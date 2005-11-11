@@ -1,0 +1,114 @@
+Query            ::= Table_query_set (Namespace_list)?
+                   | Graph_query_set (Namespace_list)?
+
+Namespace_list   ::= "using" "namespace" Namespace ("," Namespace)*
+Namespace        ::= <PREFIX_NAME> "=" <FULL_URI>
+
+Table_query_set  ::= Table_query (Set_operator Table_query_set)?
+Table_query      ::= "(" Table_query_set ")"
+                   | Select_query
+
+Graph_query_set  ::= Graph_query (Set_operator Graph_query_set)?
+Graph_query      ::= "(" Graph_query_set ")"
+                   | Construct_query
+
+Set_operator     ::= "union" | "minus" | "intersect"
+
+Select_query     ::= "select" ("distinct")? Projection
+                     ("from" ("context" ( Var | URI | BNode ))? Graph_pattern)*
+                     ("where" Boolean_expr)?
+                     ("limit" <POS_INTEGER>)?
+                     ("offset" <POS_INTEGER>)?
+
+Projection       ::= "*"
+                   | Projection_elem ("," Projection_elem)*
+
+Projection_elem  ::= Var_or_value ("as" <STRING>)?
+
+Construct_query  ::= "construct" ("distinct")? Construct_clause
+                     ("from" Graph_pattern)?
+                     ("limit" <POS_INTEGER>)?
+                     ("offset" <POS_INTEGER>)?
+
+Construct_clause ::= "*"
+                   | Path_expr_list
+
+Graph_pattern    ::= Path_expr_list 
+Path_expr_list   ::= Path_expr ("," Path_expr)*
+Path_expr        ::= Path_expr_head ((";")? Path_expr_tail)?
+                   | "[" Graph_pattern ("where" Boolean_expr)? "]"
+Path_expr_head   ::= Node Edge Node
+Path_expr_tail   ::= Edge Node ((";")? Path_expr_tail)?
+                   | "[" Edge Node ((";")? Path_expr_tail)? ("where" Boolean_expr)? "]"
+                     (";" Path_expr_tail)?
+
+Edge             ::= Var
+                   | Uri
+Node             ::= "{" (Node_elem_list)? "}"
+Node_elem_list   ::= Node_elem  ("," Node_elem)*
+Node_elem        ::= Var
+                   | Uri
+                   | BNode
+                   | Literal
+                   | Reified_stat
+Reified_stat     ::= Node Edge Node
+
+Boolean_expr     ::= And_expr ("or" Boolean_expr)?
+And_expr         ::= Boolean_elem ("and" And_expr)?
+Boolean_elem     ::= "(" Boolean_expr ")"
+                   | "true"
+                   | "false"
+                   | "not" Boolean_elem
+                   | Var_or_value Comp_op Var_or_value
+                   | Var_or_value Comp_op ("any"|"all") "(" Table_query_set ")"
+                   | Var_or_value "like" <STRING>
+                   | Var_or_value "in" "(" Table_query_set ")"
+                   | "exists" "(" Table_query_set ")"
+                   | "isResource" "(" Var ")"
+                   | "isURI" "(" Var ")"
+                   | "isBNode" "(" Var ")"
+                   | "isLiteral" "(" Var ")"
+
+Comp_op          ::= "=" | "!=" | "<" | "<=" | ">" | ">="
+
+Var_or_value     ::= Var | Value
+
+Var              ::= <NC_NAME>
+Value            ::= Uri
+                   | BNode
+                   | Literal
+                   | "null"
+                   | "datatype" "(" Var ")"
+                   | "lang" "(" Var ")"
+                   | "label" "(" Var ")"
+                   | "namespace" "(" Var ")"
+                   | "localname" "(" Var ")"
+
+Uri              ::= <FULL_URI>
+                   | <QNAME>
+
+BNode            ::= <BNODE>
+
+Literal          ::= (* A SeRQL literal, see section on literals *)
+                   | <POS_INTEGER>
+                   | <NEG_INTEGER>
+                   | <DECIMAL>
+
+<FULL_URI>       ::= "<" (* a legal URI, see http://www.ietf.org/rfc/rfc2396.txt *) ">"
+
+<QNAME>          ::= <PREFIX_NAME> ":" <NC_NAME_CHAR>*
+
+<BNODE>          ::= "_:" <NC_NAME>
+
+<POS_INTEGER>    ::= "+"? [0-9]+
+<NEG_INTEGER>    ::= "-" [0-9]+
+<DECIMAL>        ::= ("+"|"-")? [0-9]* "." [0-9]+
+
+<STRING>         ::= '"' (* zero or more (encoded) characters *) '"'
+
+<PREFIX_NAME>    ::= <LETTER> <NC_NAME_CHAR>*
+                   | "_" <NC_NAME_CHAR>+
+
+<NC_NAME>        ::= (<LETTER>|"_") <NC_NAME_CHAR>*
+<NC_NAME_CHAR>   ::= (* see http://www.w3.org/TR/REC-xml-names/#NT-NCNameChar *)
+<LETTER>         ::= (* see http://www.w3.org/TR/REC-xml/#NT-Letter *)

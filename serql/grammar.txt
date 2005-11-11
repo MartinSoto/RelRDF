@@ -1,114 +1,249 @@
-Query            ::= Table_query_set (Namespace_list)?
-                   | Graph_query_set (Namespace_list)?
+/* -*- ANTLR -*- */
 
-Namespace_list   ::= "using" "namespace" Namespace ("," Namespace)*
-Namespace        ::= <PREFIX_NAME> "=" <FULL_URI>
+/* Original grammar from the documentation, in ANTLR syntax. */
 
-Table_query_set  ::= Table_query (Set_operator Table_query_set)?
-Table_query      ::= "(" Table_query_set ")"
-                   | Select_query
+query
+    :   tableQuerySet (namespaceList)?
+    |   graphQuerySet (namespaceList)?
+    ;
 
-Graph_query_set  ::= Graph_query (Set_operator Graph_query_set)?
-Graph_query      ::= "(" Graph_query_set ")"
-                   | Construct_query
+namespaceList
+    :   "using" "namespace" namespace ( "," namespace )*
+    ;
 
-Set_operator     ::= "union" | "minus" | "intersect"
+namespace
+    :   PREFIX_NAME "=" FULL_URI
+    ;
 
-Select_query     ::= "select" ("distinct")? Projection
-                     ("from" ("context" ( Var | URI | BNode ))? Graph_pattern)*
-                     ("where" Boolean_expr)?
-                     ("limit" <POS_INTEGER>)?
-                     ("offset" <POS_INTEGER>)?
 
-Projection       ::= "*"
-                   | Projection_elem ("," Projection_elem)*
+tableQuerySet
+    :   tableQuery ( setOperator tableQuerySet )?
+    ;
 
-Projection_elem  ::= Var_or_value ("as" <STRING>)?
+tableQuery
+    :   "(" tableQuerySet ")"
+    |   selectQuery
+    ;
 
-Construct_query  ::= "construct" ("distinct")? Construct_clause
-                     ("from" Graph_pattern)?
-                     ("limit" <POS_INTEGER>)?
-                     ("offset" <POS_INTEGER>)?
 
-Construct_clause ::= "*"
-                   | Path_expr_list
+graphQuerySet
+    :   graphQuery ( setOperator graphQuerySet )?
+    ;
 
-Graph_pattern    ::= Path_expr_list 
-Path_expr_list   ::= Path_expr ("," Path_expr)*
-Path_expr        ::= Path_expr_head ((";")? Path_expr_tail)?
-                   | "[" Graph_pattern ("where" Boolean_expr)? "]"
-Path_expr_head   ::= Node Edge Node
-Path_expr_tail   ::= Edge Node ((";")? Path_expr_tail)?
-                   | "[" Edge Node ((";")? Path_expr_tail)? ("where" Boolean_expr)? "]"
-                     (";" Path_expr_tail)?
+graphQuery
+    :   "(" graphQuerySet ")"
+    |   constructQuery
+    ;
 
-Edge             ::= Var
-                   | Uri
-Node             ::= "{" (Node_elem_list)? "}"
-Node_elem_list   ::= Node_elem  ("," Node_elem)*
-Node_elem        ::= Var
-                   | Uri
-                   | BNode
-                   | Literal
-                   | Reified_stat
-Reified_stat     ::= Node Edge Node
 
-Boolean_expr     ::= And_expr ("or" Boolean_expr)?
-And_expr         ::= Boolean_elem ("and" And_expr)?
-Boolean_elem     ::= "(" Boolean_expr ")"
-                   | "true"
-                   | "false"
-                   | "not" Boolean_elem
-                   | Var_or_value Comp_op Var_or_value
-                   | Var_or_value Comp_op ("any"|"all") "(" Table_query_set ")"
-                   | Var_or_value "like" <STRING>
-                   | Var_or_value "in" "(" Table_query_set ")"
-                   | "exists" "(" Table_query_set ")"
-                   | "isResource" "(" Var ")"
-                   | "isURI" "(" Var ")"
-                   | "isBNode" "(" Var ")"
-                   | "isLiteral" "(" Var ")"
+setOperator
+    :   "union" | "minus" | "intersect"
+    ;
 
-Comp_op          ::= "=" | "!=" | "<" | "<=" | ">" | ">="
 
-Var_or_value     ::= Var | Value
+selectQuery
+    :   "select" ( "distinct" )? projection
+        ( "from" ( "context" ( var | URI | bnode ) )? graphPattern )*
+        ( "where" booleanExpr )?
+        ( "limit" POS_INTEGER )?
+        ( "offset" POS_INTEGER )?
+    ;
 
-Var              ::= <NC_NAME>
-Value            ::= Uri
-                   | BNode
-                   | Literal
-                   | "null"
-                   | "datatype" "(" Var ")"
-                   | "lang" "(" Var ")"
-                   | "label" "(" Var ")"
-                   | "namespace" "(" Var ")"
-                   | "localname" "(" Var ")"
 
-Uri              ::= <FULL_URI>
-                   | <QNAME>
+projection
+    :   "*"
+    |   projectionElem ( "," projectionElem )*
+    ;
 
-BNode            ::= <BNODE>
 
-Literal          ::= (* A SeRQL literal, see section on literals *)
-                   | <POS_INTEGER>
-                   | <NEG_INTEGER>
-                   | <DECIMAL>
+projectionElem
+    :   varOrValue ( "as" STRING )?
+    ;
 
-<FULL_URI>       ::= "<" (* a legal URI, see http://www.ietf.org/rfc/rfc2396.txt *) ">"
 
-<QNAME>          ::= <PREFIX_NAME> ":" <NC_NAME_CHAR>*
+constructQuery
+    :   "construct" ( "distinct" )? constructClause
+        ( "from" graphPattern )?
+        ( "limit" POS_INTEGER )?
+        ( "offset" POS_INTEGER )?
+    ;
 
-<BNODE>          ::= "_:" <NC_NAME>
 
-<POS_INTEGER>    ::= "+"? [0-9]+
-<NEG_INTEGER>    ::= "-" [0-9]+
-<DECIMAL>        ::= ("+"|"-")? [0-9]* "." [0-9]+
+constructClause
+    :   "*"
+    |   pathExprList
+    ;
 
-<STRING>         ::= '"' (* zero or more (encoded) characters *) '"'
 
-<PREFIX_NAME>    ::= <LETTER> <NC_NAME_CHAR>*
-                   | "_" <NC_NAME_CHAR>+
+graphPattern
+    :   pathExprList 
+    ;
 
-<NC_NAME>        ::= (<LETTER>|"_") <NC_NAME_CHAR>*
-<NC_NAME_CHAR>   ::= (* see http://www.w3.org/TR/REC-xml-names/#NT-NCNameChar *)
-<LETTER>         ::= (* see http://www.w3.org/TR/REC-xml/#NT-Letter *)
+pathExprList
+    :   pathExpr ( "," pathExpr )*
+    ;
+
+pathExpr
+    :   pathExprHead ( ( ";" )? pathExprTail )?
+    |   "[" graphPattern ( "where" booleanExpr )? "]"
+    ;
+
+pathExprHead
+    :   node edge node
+    ;
+
+pathExprTail
+    :   edge node ( ( ";" )? pathExprTail )?
+    |   "[" edge node ( ( ";" )? pathExprTail )? ( "where" booleanExpr )? "]"
+        ( ";" pathExprTail )?
+    ;
+
+
+edge
+    :   var
+    |   uri
+    ;
+
+node
+    :   "{" ( nodeElemList )? "}"
+    ;
+
+nodeElemList
+    :   nodeElem  ( "," nodeElem )*
+    ;
+
+nodeElem
+    :   var
+    |   uri
+    |   bnode
+    |   literal
+    |   reifiedStat
+    ;
+
+reifiedStat
+    :   node edge node
+    ;
+
+
+booleanExpr
+    :   andExpr ( "or" booleanExpr )?
+    ;
+
+andExpr
+    :   booleanElem ( "and" andExpr )?
+    ;
+
+booleanElem
+    :   "(" booleanExpr ")"
+    |   "true"
+    |   "false"
+    |   "not" booleanElem
+    |   varOrValue compOp varOrValue
+    |   varOrValue compOp ( "any" | "all" ) "(" tableQuerySet ")"
+    |   varOrValue "like" STRING
+    |   varOrValue "in" "(" tableQuerySet ")"
+    |   "exists" "(" tableQuerySet ")"
+    |   "isresource" "(" var ")"
+    |   "isURI" "(" var ")"
+    |   "isbnode" "(" var ")"
+    |   "isliteral" "(" var ")"
+    ;
+
+
+compOp
+    :   "=" | "!=" | "<" | "<=" | ">" | ">="
+    ;
+
+
+varOrValue
+    :   var | value
+    ;
+
+
+var
+    :   NC_NAME
+    ;
+
+value
+    :   uri
+    |   bnode
+    |   literal
+    |   "null"
+    |   "datatype" "(" var ")"
+    |   "lang" "(" var ")"
+    |   "label" "(" var ")"
+    |   "namespace" "(" var ")"
+    |   "localname" "(" var ")"
+    ;
+
+
+uri
+    :   FULL_URI
+    |   QNAME
+    ;
+
+
+bnode
+    :   BNODE
+    ;
+
+
+literal
+    :   /* A SeRQL literal, see section on literals */
+    |   POS_INTEGER
+    |   NEG_INTEGER
+    |   DECIMAL
+    ;
+
+
+FULL_URI
+    :   "<" /* a legal URI, see http://www.ietf.org/rfc/rfc2396.txt */ ">"
+    ;
+
+
+QNAME
+    :   PREFIX_NAME ":" NC_NAME_CHAR*
+    ;
+
+
+BNODE
+    :   "_:" NC_NAME
+    ;
+
+
+POS_INTEGER
+    :   "+"? [0-9]+
+    ;
+
+NEG_INTEGER
+    :   "-" [0-9]+
+    ;
+
+DECIMAL
+    :   ( "+" | "-" )? [0-9]* "." [0-9]+
+    ;
+
+
+STRING
+    :   '"' /* zero or more (encoded) characters */ '"'
+    ;
+
+
+PREFIX_NAME
+    :   LETTER NC_NAME_CHAR*
+    |   "_" NC_NAME_CHAR+
+    ;
+
+
+NC_NAME
+    :   (LETTER|"_") NC_NAME_CHAR*
+    ;
+
+NC_NAME_CHAR
+    :   /* see http://www.w3.org/TR/REC-xml-names/#NT-NCNameChar */
+    ;
+
+LETTER
+    :   /* see http://www.w3.org/TR/REC-xml/#NT-Letter */
+    ;
+

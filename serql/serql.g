@@ -1,12 +1,98 @@
+header {
+    import query
+    import serql
+}
+
 options {
     language="Python";
 }
+
+/*----------------------------------------------------------------------
+ * Parser
+ *--------------------------------------------------------------------*/
+
+class SerQLParser extends Parser("serql.Parser");
+
+graphPattern
+    :   pathExprList 
+    ;
+
+pathExprList
+    :   pathExpr ( COMMA pathExpr )*
+    ;
+
+pathExpr
+    :   pathExprHead ( ( SEMICOLON )? pathExprTail )?
+/*    |   LBRACKET graphPattern ( "where" booleanExpr )? RBRACKET */
+    ;
+
+pathExprHead
+    :   node edge node
+    ;
+
+pathExprTail
+    :   edge node ( ( SEMICOLON )? pathExprTail )?
+/*    |   LBRACKET edge node ( ( SEMICOLON )? pathExprTail )? ( "where" booleanExpr )? RBRACKET
+        ( SEMICOLON pathExprTail )? */
+    ;
+
+
+edge
+    :   var
+    |   uri
+    ;
+
+node
+    :   LBRACE ( nodeElemList )? RBRACE
+    ;
+
+nodeElemList
+    :   nodeElem  ( COMMA nodeElem )*
+    ;
+
+nodeElem
+    :   var
+    |   uri
+    |   bnode
+    |   literal
+    |   reifiedStat
+    ;
+
+reifiedStat
+    :   node edge node
+    ;
+
+var
+    :   NC_NAME
+    ;
+
+uri
+    :   FULL_URI
+    |   QNAME
+    ;
+
+bnode
+    :   BNODE
+    ;
+
+
+literal
+    :   STRING
+    |   LITERAL
+    |   ( MINUS | PLUS )? (INTEGER | DECIMAL)
+    ;
+
+
+/*----------------------------------------------------------------------
+ * Lexical Analyzer
+ *--------------------------------------------------------------------*/
 
 class SerQLLexer extends Lexer;
 
 options {
     k=2;
     charVocabulary='\u0000'..'\uFFFE';
+    caseSensitiveLiterals=false;
 }
 
 
@@ -14,8 +100,8 @@ options {
  * White space
  */
 
-WS:   
-        ( ' '
+WS
+    :   ( ' '
         | '\t'
         | '\n' ('\r')? { $newline }
         | '\r' ('\n')? { $newline }

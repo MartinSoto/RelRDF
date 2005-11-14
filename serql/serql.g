@@ -1,6 +1,6 @@
 header {
-    import query
     import serql
+    import query
 }
 
 options {
@@ -13,73 +13,102 @@ options {
 
 class SerQLParser extends Parser("serql.Parser");
 
-graphPattern
-    :   pathExprList 
+graphPattern returns [patterns]
+    :   patterns=pathExprList
     ;
 
-pathExprList
-    :   pathExpr ( COMMA pathExpr )*
+pathExprList returns [patterns]
+    :
+        { patterns = [] }
+        pathExpr[patterns]
+        (   COMMA pathExpr[patterns]
+        )*
     ;
 
-pathExpr
-    :   pathExprHead ( ( SEMICOLON )? pathExprTail )?
+pathExpr [patterns]
+    :   n1=node e=edge n2=node
+        { patterns.append(query.Pattern(n1, e, n2)) }
+        (   pathExprTail[n2, patterns]
+        |   SEMICOLON pathExprTail[n1, patterns]
+        )?
 /*    |   LBRACKET graphPattern ( "where" booleanExpr )? RBRACKET */
     ;
 
-pathExprHead
-    :   node edge node
-    ;
-
-pathExprTail
-    :   edge node ( ( SEMICOLON )? pathExprTail )?
+pathExprTail [n1, patterns]
+    :   e=edge n2=node
+        { patterns.append(query.Pattern(n1, e, n2)) }
+        (   pathExprTail[n2, patterns]
+        |   SEMICOLON pathExprTail[n1, patterns]
+        )?
 /*    |   LBRACKET edge node ( ( SEMICOLON )? pathExprTail )? ( "where" booleanExpr )? RBRACKET
         ( SEMICOLON pathExprTail )? */
     ;
 
 
-edge
-    :   var
-    |   uri
+edge returns [obj]
+    :   obj=var
+    |   obj=uri
     ;
 
-node
-    :   LBRACE ( nodeElemList )? RBRACE
+node returns [obj]
+    :   LBRACE ( obj=nodeElemList )? RBRACE
     ;
 
-nodeElemList
-    :   nodeElem  ( COMMA nodeElem )*
+nodeElemList returns [obj]
+    :   ne1=nodeElem
+        { obj = [ne1] }
+        (   COMMA ne=nodeElem
+            { obj.append(ne) }
+        )*
     ;
 
-nodeElem
-    :   var
-    |   uri
-    |   bnode
-    |   literal
-    |   reifiedStat
+nodeElem returns [obj]
+    :   obj=var
+    |   obj=uri
+    |   obj=bnode
+    |   obj=literal
+    |   obj=reifiedStat
     ;
 
-reifiedStat
+reifiedStat returns [obj]
     :   node edge node
+        { obj = None }
     ;
 
-var
-    :   NC_NAME
+var returns [obj]
+    :   nc:NC_NAME
+        { obj = query.Var(nc.getText()) }
     ;
 
-uri
-    :   FULL_URI
-    |   QNAME
+uri returns [obj]
+    :   uri:FULL_URI
+        { obj = query.Uri(uri.getText()) }
+    |   qn:QNAME
+        { obj = self.query.resolveQName(qn.getText()) }
     ;
 
-bnode
-    :   BNODE
+bnode returns [obj]
+    :   bn:BNODE
+        { obj = bn.getText() }
     ;
 
 
-literal
-    :   STRING
-    |   LITERAL
-    |   ( MINUS | PLUS )? (INTEGER | DECIMAL)
+literal returns [obj]
+    :   str:STRING
+        { obj = query.Literal(str.getText()) }
+    |   lt:LITERAL
+        { obj = query.Literal(lt.getText()) }
+    |   (   MINUS
+            { sign = -1 }
+        |   PLUS
+            { sign = 1 }
+        )?
+        (   i:INTEGER
+            { value = sign * int(i.getText()) }
+        |   d:DECIMAL
+            { value = sign * float(i.getText()) }
+        )
+        { obj = query.Literal(value) }
     ;
 
 

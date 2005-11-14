@@ -5,4 +5,5 @@ lexer = SerQLLexer.Lexer()
 parser = SerQLParser.Parser(lexer)
 parser.setFilename(lexer.getFilename())
 
-parser.graphPattern()
+import pprint
+pprint.pprint(parser.graphPattern())

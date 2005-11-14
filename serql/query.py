@@ -1,3 +1,5 @@
+import StringIO
+
 class Var(object):
     def __init__(self, name):
         self.name = name
@@ -48,6 +50,8 @@ class Query(object):
 
         self.prefixes = {}
 
+        self.basePatterns = []
+
     def getVariable(self, varName):
         try:
             return self.vars[varName]
@@ -67,8 +71,19 @@ class Query(object):
     def getPrefixes(self):
         return self.prefixes
 
-    def solveQName(self, qName):
+    def resolveQName(self, qName):
         pos = qName.index(':')
         base = self.getPrefixUri(qName[:pos])
         return base + qName[pos + 1:]
 
+    def addBasePattern(self, pattern):
+        self.basePatterns.append(pattern)
+
+    def __repr__(self):
+        s = StringIO.StringIO()
+
+        print >> s, "Base patterns:"
+        for patter in self.basePatterns:
+            print >> s, repr(pattern)
+
+        return s.getvalue()

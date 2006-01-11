@@ -1,0 +1,6 @@
+2006-01-11  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* enum.py: Added typed slightly adapted version of Zoran
+	Isailovski's enumeration module:
+	http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/413486
+

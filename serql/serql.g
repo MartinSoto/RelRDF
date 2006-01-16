@@ -1,4 +1,6 @@
 header {
+    from tree import expression
+
     import serql
     import query
 }
@@ -13,32 +15,39 @@ options {
 
 class SerQLParser extends Parser("serql.Parser");
 
-graphPattern returns [patterns]
-    :   patterns=pathExprList
+graphPattern returns [expr]
+    :   
+        { context = serql.SelectContext() }
+        expr=pathExprList[context]
+        { expr = self.graphPatternExpr(context, expr) }
     ;
 
-pathExprList returns [patterns]
+pathExprList [context] returns [expr]
     :
-        { patterns = [] }
-        pathExpr[patterns]
-        (   COMMA pathExpr[patterns]
+        expr=pathExpr[context]
+        (   COMMA expr2=pathExpr[context]
+            { expr = expression.Product(expr, expr2) }
         )*
     ;
 
-pathExpr [patterns]
+pathExpr [context] returns [expr]
     :   n1=node e=edge n2=node
-        { patterns.append(query.Pattern(n1, e, n2)) }
-        (   pathExprTail[n2, patterns]
-        |   SEMICOLON pathExprTail[n1, patterns]
+        { expr = self.exprFromPattern(context, n1, e, n2) }
+        (   expr2=pathExprTail[context, n2]
+            { expr = expression.Product(expr, expr2) }
+        |   SEMICOLON expr2=pathExprTail[context, n1]
+            { expr = expression.Product(expr, expr2) }
         )?
 /*    |   LBRACKET graphPattern ( "where" booleanExpr )? RBRACKET */
     ;
 
-pathExprTail [n1, patterns]
+pathExprTail [context, n1] returns [expr]
     :   e=edge n2=node
-        { patterns.append(query.Pattern(n1, e, n2)) }
-        (   pathExprTail[n2, patterns]
-        |   SEMICOLON pathExprTail[n1, patterns]
+        { expr = self.exprFromPattern(context, n1, e, n2) }
+        (   expr2=pathExprTail[context, n2]
+            { expr = expression.Product(expr, expr2) }
+        |   SEMICOLON expr2=pathExprTail[context, n1]
+            { expr = expression.Product(expr, expr2) }
         )?
 /*    |   LBRACKET edge node ( ( SEMICOLON )? pathExprTail )? ( "where" booleanExpr )? RBRACKET
         ( SEMICOLON pathExprTail )? */
@@ -71,8 +80,8 @@ nodeElem returns [obj]
     ;
 
 reifiedStat returns [obj]
-    :   node edge node
-        { obj = None }
+    :   n1=node e=edge n2=node
+        { obj = expression.NotSupported() }
     ;
 
 var returns [obj]
@@ -82,23 +91,24 @@ var returns [obj]
 
 uri returns [obj]
     :   uri:FULL_URI
-        { obj = query.Uri(uri.getText()) }
+        { obj = expression.Uri(uri.getText()) }
     |   qn:QNAME
-        { obj = self.query.resolveQName(qn.getText()) }
+        { obj = expression.Uri(self.query.resolveQName(qn.getText())) }
     ;
 
 bnode returns [obj]
     :   bn:BNODE
-        { obj = bn.getText() }
+        { obj = expression.NotSupported() }
     ;
 
 
 literal returns [obj]
     :   str:STRING
-        { obj = query.Literal(str.getText()) }
+        { obj = expression.Literal(str.getText()) }
     |   lt:LITERAL
-        { obj = query.Literal(lt.getText()) }
-    |   (   MINUS
+        { obj = expression.Literal(lt.getText()) }
+    |   { sign = 1 }
+        (   MINUS
             { sign = -1 }
         |   PLUS
             { sign = 1 }
@@ -106,9 +116,9 @@ literal returns [obj]
         (   i:INTEGER
             { value = sign * int(i.getText()) }
         |   d:DECIMAL
-            { value = sign * float(i.getText()) }
+            { value = sign * float(d.getText()) }
         )
-        { obj = query.Literal(value) }
+        { obj = expression.Literal(value) }
     ;
 
 

@@ -37,6 +37,11 @@ def Enum(*names):
         def __hash__(self):
             return hash(self.__value)
 
+        def __eq__(self, other):
+            if not self.enumType is other.enumType:
+                return False
+            return self.__value == other.__value
+
         def __cmp__(self, other):
             if not self.enumType is other.enumType:
                 raise TypeError, \

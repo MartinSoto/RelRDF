@@ -1,3 +1,19 @@
+2006-01-16  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* tree/enum.py:
+	* serql/serql-parse.py:
+	* serql/query.py:
+	* serql/serql.g:
+	* serql/serql.py:
+	* tree/expression.py:
+	* serql/__init__.py:
+	* serql/sample.serql:
+	* tree/__init__.py:
+	* tree/literal.py:
+	* tree/uri.py:
+	Extend translator to produce relational expression trees from a
+	subset of SerQL.
+
 2006-01-11  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* enum.py: Added typed slightly adapted version of Zoran

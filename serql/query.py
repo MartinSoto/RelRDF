@@ -1,56 +1,36 @@
 import StringIO
 
-class Var(object):
+from enum import Enum
+
+from tree import expression
+
+
+NodeTypes = Enum('VAR')
+
+
+class Var(expression.ExpressionNode):
+    """An expression node representing a SerQL variable by name."""
+
+    __slots = ('name')
+
     def __init__(self, name):
+        super(Var, self).__init__(NodeTypes.VAR)
+
         self.name = name
 
-    def __repr__(self):
-        return self.name
-
-
-class Uri(str):
-    def __add__(self, string):
-        return Uri(super(Uri, self).__add__(string))
-
-    def __repr__(self):
-        return "<%s>" % self
-
-
-class Literal(str):
-    def __new__(cls, value, typeUri=None, lang=None):
-        self = super(Literal, cls).__new__(cls, value)
-
-        self.typeUri = typeUri
-        self.lang = lang
-
-        return self
-
-    def __repr__(self):
-        if self.typeUri == None and self.lang == None:
-            return '"%s"' % self
-        elif self.typeUri != None:
-            return '"%s"^^<%s>' % (self, self.typeUri)
-        else:
-            return '"%s"@%s' % (self, self.lang)
-
-
-class Pattern(object):
-    def __init__(self, subject=None, pred=None, obj=None):
-        self.subject = subject
-        self.pred = pred
-        self.obj = obj
-
-    def __repr__(self):
-        return str((self.subject, self.pred, self.obj))
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' %s' % self.name)
 
 
 class Query(object):
+    """The representation of a SerQl query."""
+
+    __slots__ = ('vars',
+                 'prefixes')
+
     def __init__(self):
         self.vars = {}
-
         self.prefixes = {}
-
-        self.basePatterns = []
 
     def getVariable(self, varName):
         try:
@@ -76,14 +56,9 @@ class Query(object):
         base = self.getPrefixUri(qName[:pos])
         return base + qName[pos + 1:]
 
-    def addBasePattern(self, pattern):
-        self.basePatterns.append(pattern)
-
     def __repr__(self):
         s = StringIO.StringIO()
 
-        print >> s, "Base patterns:"
-        for patter in self.basePatterns:
-            print >> s, repr(pattern)
+        # FIXME: Put something here.
 
         return s.getvalue()

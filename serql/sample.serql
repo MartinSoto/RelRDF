@@ -1,0 +1,4 @@
+{<http://subj1>} rdf:pred1 {obj1};
+        pred2 {obj2},
+{subj1} pred1 {obj1}
+        pred2 {obj2}

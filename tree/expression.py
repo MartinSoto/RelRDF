@@ -1,39 +1,15 @@
 import sys
 
-from enum import Enum
-
 import uri
 import literal
-
-
-NodeTypes = Enum(
-    'NOT_SUPORTED',
-
-    'URI',
-    'LITERAL',
-    'FIELD_REF',
-
-    'COMPARISON_OP',
-
-    'BOOLEAN_OP',
-
-    'RELATION',
-
-    'OPTIONAL',
-    'PRODUCT',
-    'SELECT',
-
-    'PROJECT')
 
 
 class ExpressionNode(object):
     """A node in a expression tree."""
 
-    __slots__ = ('_type',
-                 '_subexprs')
+    __slots__ = ('_subexprs')
 
-    def __init__(self, type, *subexprs):
-        self._type = type
+    def __init__(self, *subexprs):
         self._subexprs = subexprs
         assert self._checkSubexprs()
 
@@ -43,11 +19,6 @@ class ExpressionNode(object):
                    "subexpression %d is not an ExpressionNode" % i
 
         return True
-
-    def getType(self):
-        return self._type
-
-    type = property(getType)
 
     def getSubexprs(self):
         return self._subexprs
@@ -62,7 +33,7 @@ class ExpressionNode(object):
             stream = sys.stdout
 
         stream.write("  " * indentLevel)
-        stream.write(str(self.type))
+        stream.write(self.__class__.__name__)
 
         self.prettyPrintAttributes(stream, indentLevel)
 
@@ -80,9 +51,6 @@ class NotSupported(ExpressionNode):
 
     __slots__ = ()
 
-    def __init__(self):
-        super(NotSupported, self).__init__(NodeTypes.NOT_SUPPORTED)
-
 
 class Uri(ExpressionNode):
     """An expression node representing a URI reference."""
@@ -90,7 +58,7 @@ class Uri(ExpressionNode):
     __slots__ = ('uri')
 
     def __init__(self, uriVal):
-        super(Uri, self).__init__(NodeTypes.URI)
+        super(Uri, self).__init__()
 
         if isinstance(uriVal, uri.Uri):
             self.uri = uriVal
@@ -107,7 +75,7 @@ class Literal(ExpressionNode):
     __slots__ = ('literal')
 
     def __init__(self, literalVal):
-        super(Literal, self).__init__(NodeTypes.LITERAL)
+        super(Literal, self).__init__()
 
         if isinstance(literalVal, literal.Literal):
             self.literal = literalVal
@@ -126,7 +94,7 @@ class FieldRef(ExpressionNode):
                  'fieldId')
 
     def __init__(self, relName, incarnation, fieldId):
-        super(FieldRef, self).__init__(NodeTypes.FIELD_REF)
+        super(FieldRef, self).__init__()
 
         self.relName = relName
         self.incarnation = incarnation
@@ -146,8 +114,8 @@ class Operation(ExpressionNode):
 
     __slots__ = ('operator')
 
-    def __init__(self, operationType, operator, *operands):
-        super(Operation, self).__init__(operationType, *operands)
+    def __init__(self, operator, *operands):
+        super(Operation, self).__init__(*operands)
 
         self.operator = operator
 
@@ -161,8 +129,7 @@ class Comparison(Operation):
     __slots__ = ()
 
     def __init__(self, operator, *operands):
-        super(Comparison, self).__init__(NodeTypes.COMPARISON_OP,
-                                         operator, *operands)
+        super(Comparison, self).__init__(operator, *operands)
 
 
 class BooleanOperation(Operation):
@@ -171,8 +138,7 @@ class BooleanOperation(Operation):
     __slots__ = ()
 
     def __init__(self, operator, *operands):
-        super(BooleanOperation, self).__init__(NodeTypes.BOOLEAN_OP,
-                                               operator, *operands)
+        super(BooleanOperation, self).__init__(operator, *operands)
 
 
 class Relation(ExpressionNode):
@@ -182,7 +148,7 @@ class Relation(ExpressionNode):
                  'incarnation')
 
     def __init__(self, name, incarnation):
-        super(Relation, self).__init__(NodeTypes.RELATION)
+        super(Relation, self).__init__()
 
         self.name = name
         self.incarnation = incarnation
@@ -197,7 +163,7 @@ class Optional(ExpressionNode):
     __slots__ = ()
 
     def __init__(self, baseRel):
-        super(Optional, self).__init__(NodeTypes.OPTIONAL, baseRel)
+        super(Optional, self).__init__(baseRel)
 
 
 class Product(ExpressionNode):
@@ -207,7 +173,7 @@ class Product(ExpressionNode):
     __slots__ = ()
 
     def __init__(self, *relations):
-        super(Product, self).__init__(NodeTypes.PRODUCT, *relations)
+        super(Product, self).__init__(*relations)
 
 
 class Select(ExpressionNode):
@@ -216,7 +182,7 @@ class Select(ExpressionNode):
     __slots__ = ()
 
     def __init__(self, rel, predicate):
-        super(Select, self).__init__(NodeTypes.SELECT, rel, predicate)
+        super(Select, self).__init__(rel, predicate)
 
 
 class Project(ExpressionNode):
@@ -225,7 +191,7 @@ class Project(ExpressionNode):
     __slots___ = ('columnList')
 
     def __init__(self, columnList):
-        super(Project, self).__init__(NodeTypes.PROJECT)
+        super(Project, self).__init__()
 
         self.columnList = columnList
 

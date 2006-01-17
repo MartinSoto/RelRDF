@@ -1,11 +1,6 @@
 import StringIO
 
-from enum import Enum
-
 from tree import expression
-
-
-NodeTypes = Enum('VAR')
 
 
 class Var(expression.ExpressionNode):
@@ -14,7 +9,7 @@ class Var(expression.ExpressionNode):
     __slots = ('name')
 
     def __init__(self, name):
-        super(Var, self).__init__(NodeTypes.VAR)
+        super(Var, self).__init__()
 
         self.name = name
 

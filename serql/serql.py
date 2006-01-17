@@ -130,7 +130,7 @@ class Parser(antlr.LLkParser):
 
         conds = []
         for i, node in enumerate((subject, pred, object)):
-            if node.type == query.NodeTypes.VAR:
+            if isinstance(node, query.Var):
                 context.addBinding(node.name, 'S', incarnation, i)
             else:
                 ref = expr.FieldRef('S', incarnation, i)
@@ -154,13 +154,13 @@ class Parser(antlr.LLkParser):
                 rels.append(Parser.exprFromTriple(context, node1,
                                                   edge, node2))
 
-                if node1.type == query.NodeTypes.VAR:
+                if isinstance(node1, query.Var):
                     if indepVar1:
                         context.addIndependentPair(indepVar1, node1)
                     else:
                         indepVar1 = node1
 
-                if node2.type == query.NodeTypes.VAR:
+                if isinstance(node2, query.Var):
                     if indepVar2:
                         context.addIndependentPair(indepVar2, node2)
                     else:

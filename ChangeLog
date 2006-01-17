@@ -1,5 +1,18 @@
 2006-01-17  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* tree/rewrite.py: New module for expression rewriting
+	operations.
+
+	* tree/expression.py (ExpressionNode.copyNode, Uri.copyNode) 
+	(Literal.copyNode, FieldRef.copyNode, Operation.copyNode) 
+	(Relation.copyNode, Optional.copyNode, Select.copyNode) 
+	(Project.copyNode): Add a copyNode method to expression nodes to
+	copy the main node and replace the subexpressions,
+
+	* serql/serql.py (curry): Moved to new rewrite module.
+
+2006-01-17  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* tree/expression.py (NodeTypes, ExpressionNode.__slots__) 
 	(ExpressionNode.__init__, getType, ExpressionNode.prettyPrint) 
 	(NotSupported.__init__, Literal.__init__, Uri.__init__) 

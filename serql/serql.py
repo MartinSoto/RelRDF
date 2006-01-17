@@ -7,13 +7,6 @@ from tree import expression as expr
 import query
 
 
-def curry(function, arg1):
-    def curried(*args, **keywords):
-        return function(arg1, *args, **keywords)
-
-    return curried
-
-
 class SelectContext(object):
     """A container for contextual information associated to a single
     SerQL SELECT statement."""

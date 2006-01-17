@@ -28,6 +28,9 @@ class ExpressionNode(object):
     def __getitem__(self, i):
         return self._subexprs[i]
 
+    def copyNode(self, *subexprs):
+        return self.__class__(*subexprs)
+
     def prettyPrint(self, stream=None, indentLevel=0):
         if stream == None:
             stream = sys.stdout
@@ -65,6 +68,9 @@ class Uri(ExpressionNode):
         else:
             self.uri = uri.Uri(uriVal)
 
+    def copyNode(self):
+        return self.__class__(self.uri)
+
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.uri)
 
@@ -81,6 +87,9 @@ class Literal(ExpressionNode):
             self.literal = literalVal
         else:
             self.literal = literal.Literal(literalVal)
+
+    def copyNode(self):
+        return self.__class__(self.literal)
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.literal)
@@ -105,6 +114,9 @@ class FieldRef(ExpressionNode):
                                self.incarnation,
                                self.fieldId)
 
+    def copyNode(self):
+        return self.__class__(self.relName, self.incarnation, self.fieldId)
+
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % str(self))
 
@@ -118,6 +130,9 @@ class Operation(ExpressionNode):
         super(Operation, self).__init__(*operands)
 
         self.operator = operator
+
+    def copyNode(self, *subexprs):
+        return self.__class__(self.operator, *subexprs)
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.operator)
@@ -153,6 +168,9 @@ class Relation(ExpressionNode):
         self.name = name
         self.incarnation = incarnation
 
+    def copyNode(self):
+        return self.__class__(self.name, self.incarnation)
+
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s_%d' % (self.name, self.incarnation))
 
@@ -164,6 +182,9 @@ class Optional(ExpressionNode):
 
     def __init__(self, baseRel):
         super(Optional, self).__init__(baseRel)
+
+    def copyNode(self, baseRel):
+        return self.__class__(baseRel)
 
 
 class Product(ExpressionNode):
@@ -184,6 +205,9 @@ class Select(ExpressionNode):
     def __init__(self, rel, predicate):
         super(Select, self).__init__(rel, predicate)
 
+    def copyNode(self, rel, predicate):
+        return self.__class__(rel, predicate)
+
 
 class Project(ExpressionNode):
     """A projection of a relation to certain columns."""
@@ -194,6 +218,9 @@ class Project(ExpressionNode):
         super(Project, self).__init__()
 
         self.columnList = columnList
+
+    def copyNode(self):
+        return self.__class__(self.columnList)
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' [%s]' % ', '.join(self.columnList))

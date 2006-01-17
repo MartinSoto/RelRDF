@@ -46,3 +46,41 @@ def flattenAssoc(nodeType, expr):
         return remakeExpr(expr, subexprsModif, *flattened)
 
     return treeMatchApply(nodeType, operation, expr)
+
+def promoteSelect(expr):
+    def operation(expr, subexprsModif, *subexprs):
+        assert isinstance(expr, expression.Product)
+
+        promoted = []
+        conditions = []
+        for subexpr in subexprs:
+            if isinstance(subexpr, expression.Select):
+                promoted.append(subexpr[0])
+                conditions.append(subexpr[1])
+                subexprsModif = True
+            else:
+                promoted.append(subexpr)
+
+        if subexprsModif:
+            return (expression.Select(expression.Product(*promoted),
+                                      expression.BooleanOperation('and',
+                                                                  *conditions)),
+                    True)
+
+        else:
+            return expr, False
+
+    return treeMatchApply(expression.Product, operation, expr)
+
+def flattenSelect(expr):
+    def operation(expr, subexprsModif, rel, predicate):
+        if not isinstance(rel, expression.Select):
+            return remakeExpr(expr, subexprsModif, rel, predicate)
+        else:
+            return (expression.Select(rel[0],
+                                      expression.BooleanOperation('and',
+                                                                  rel[1],
+                                                                  predicate)),
+                    True)
+
+    return treeMatchApply(expression.Select, operation, expr)

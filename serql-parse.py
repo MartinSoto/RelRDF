@@ -11,10 +11,18 @@ parser = SerQLParser.Parser(lexer)
 parser.setFilename(lexer.getFilename())
 
 expr = parser.graphPattern()
-(flat, modif) = rewrite.flattenAssoc(expression.Product, expr)
 
-flat.prettyPrint()
-print "Modified:", modif
+modif = True
+while modif:
+    modif = False
 
-(flat, modif) = rewrite.flattenAssoc(expression.Product, flat)
-print "Modified:", modif
+    (expr, m) = rewrite.flattenAssoc(expression.Product, expr)
+    modif = modif or m
+    
+    (expr, modif) = rewrite.promoteSelect(expr)
+    modif = modif or m
+    
+    (expr, modif) = rewrite.flattenSelect(expr)
+    modif = modif or m
+
+expr.prettyPrint()

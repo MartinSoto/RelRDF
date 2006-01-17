@@ -18,23 +18,32 @@ def treeApply(operation, expr):
 
     return operation(expr, subexprsModif, *procSubexprs)
 
+def treeMatchApply(nodeType, operation, expr):
+    def operationWrapper(expr, subexprsModif, *subexprs):
+        if not isinstance(expr, nodeType):
+            if subexprsModif:
+                return expr.copyNode(*subexprs), True
+            else:
+                return expr, False
+        else:
+            return operation(expr, subexprsModif, *subexprs)
+
+    return treeApply(operationWrapper, expr)
+
 def flattenAssoc(nodeType, expr):
     def operation(expr, subexprsModif, *subexprs):
         modif = subexprsModif
-        if not isinstance(expr, nodeType):
-            flattened = subexprs
-        else:
-            flattened = []
-            for subexpr in subexprs:
-                if isinstance(subexpr, nodeType):
-                    flattened.extend(subexpr.subexprs)
-                    modif = True
-                else:
-                    flattened.append(subexpr)
+        flattened = []
+        for subexpr in subexprs:
+            if isinstance(subexpr, nodeType):
+                flattened.extend(subexpr.subexprs)
+                modif = True
+            else:
+                flattened.append(subexpr)
 
         if modif:
             return expr.copyNode(*flattened), True
         else:
             return expr, False
 
-    return treeApply(operation, expr)
+    return treeMatchApply(nodeType, operation, expr)

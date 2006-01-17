@@ -63,8 +63,7 @@ def promoteSelect(expr):
 
         if subexprsModif:
             return (expression.Select(expression.Product(*promoted),
-                                      expression.BooleanOperation('and',
-                                                                  *conditions)),
+                                      expression.And(*conditions)),
                     True)
 
         else:
@@ -78,9 +77,7 @@ def flattenSelect(expr):
             return remakeExpr(expr, subexprsModif, rel, predicate)
         else:
             return (expression.Select(rel[0],
-                                      expression.BooleanOperation('and',
-                                                                  rel[1],
-                                                                  predicate)),
+                                      expression.And(rel[1], predicate)),
                     True)
 
     return treeMatchApply(expression.Select, operation, expr)

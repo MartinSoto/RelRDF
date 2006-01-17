@@ -66,21 +66,21 @@ class SelectContext(object):
 
         for binding in self.bindings.values():
             if len(binding) >= 2:
-                subconds.append(expr.Comparison('==', *binding))
+                subconds.append(expr.Equal(*binding))
 
         for group in self.independent:
             refs = []
             for var in group:
                 refs.append(iter(self.bindings[var.name]).next())
             if len(group) >= 2:
-                subconds.append(expr.Comparison('!=', *refs))
+                subconds.append(expr.Different(*refs))
 
         if len(subconds) == 0:
             return None
         elif len(subconds) == 1:
             return subconds[0]
         else:
-            return expr.BooleanOperation('and', *subconds)
+            return expr.And(*subconds)
 
     def prettyPrint(self, stream=None, indent=0):
         if stream == None:
@@ -127,13 +127,13 @@ class Parser(antlr.LLkParser):
                 context.addBinding(node.name, 'S', incarnation, i)
             else:
                 ref = expr.FieldRef('S', incarnation, i)
-                conds.append(expr.Comparison('==', ref, node))
+                conds.append(expr.Equal(ref, node))
 
         rel = expr.Relation('S', incarnation)
         if conds == []:
             return rel
         else:
-            return expr.Select(rel, expr.BooleanOperation('and', *conds))
+            return expr.Select(rel, expr.And(*conds))
 
     @staticmethod
     def exprFromPattern(context, nodeList1, edge, nodeList2):

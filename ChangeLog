@@ -1,5 +1,17 @@
 2006-01-17  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* tree/expression.py (Operation, Comparison, Equal, Different) 
+	(BooleanOperation, And): Don't specify operators as parameters,
+	use new node classes instead.
+
+	* tree/rewrite.py (promoteSelect.operation) 
+	(flattenSelect.operation): 
+	* serql/serql.py (SelectContext.getCondition) 
+	(Parser.exprFromTriple): 
+	Adapt to the new node classes.
+
+2006-01-17  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* tree/rewrite.py (promoteSelect, flattenSelect): New
 	simplification operations.
 

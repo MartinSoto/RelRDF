@@ -126,25 +126,23 @@ class Operation(ExpressionNode):
 
     __slots__ = ('operator')
 
-    def __init__(self, operator, *operands):
-        super(Operation, self).__init__(*operands)
-
-        self.operator = operator
-
-    def copyNode(self, *subexprs):
-        return self.__class__(self.operator, *subexprs)
-
-    def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s' % self.operator)
-
 
 class Comparison(Operation):
     """A node representing a value comparison."""
 
     __slots__ = ()
 
-    def __init__(self, operator, *operands):
-        super(Comparison, self).__init__(operator, *operands)
+
+class Equal(Comparison):
+    """Determine if two or more operands are equal.""" 
+
+    __slots__ = ()
+
+
+class Different(Comparison):
+    """Determine if two or more operands are different from each other.""" 
+
+    __slots__ = ()
 
 
 class BooleanOperation(Operation):
@@ -152,8 +150,11 @@ class BooleanOperation(Operation):
 
     __slots__ = ()
 
-    def __init__(self, operator, *operands):
-        super(BooleanOperation, self).__init__(operator, *operands)
+
+class And(BooleanOperation):
+    """A boolean 'and' operation."""
+
+    __slots__ = ()
 
 
 class Relation(ExpressionNode):

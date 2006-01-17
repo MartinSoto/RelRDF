@@ -1,5 +1,11 @@
 2006-01-17  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* tree/rewrite.py (treeApply, flattenAssoc.operation): Return a
+	tuple containing the transformed expression and a boolean value
+	indicating whether the expression was changed or not.
+
+2006-01-17  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* tree/rewrite.py: New module for expression rewriting
 	operations.
 

@@ -11,6 +11,10 @@ parser = SerQLParser.Parser(lexer)
 parser.setFilename(lexer.getFilename())
 
 expr = parser.graphPattern()
-flat = rewrite.flattenAssoc(expression.Product, expr)
+(flat, modif) = rewrite.flattenAssoc(expression.Product, expr)
 
 flat.prettyPrint()
+print "Modified:", modif
+
+(flat, modif) = rewrite.flattenAssoc(expression.Product, flat)
+print "Modified:", modif

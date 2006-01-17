@@ -9,24 +9,32 @@ def curry(function, arg1):
 def treeApply(operation, expr):
     assert isinstance(expr, expression.ExpressionNode)
 
+    subexprsModif = False
     procSubexprs = []
     for subexpr in expr.subexprs:
-        procSubexprs.append(treeApply(operation, subexpr))
+        (procSubexpr, modif) = treeApply(operation, subexpr)
+        procSubexprs.append(procSubexpr)
+        subexprsModif = subexprsModif or modif
 
-    return operation(expr, *procSubexprs)
+    return operation(expr, subexprsModif, *procSubexprs)
 
 def flattenAssoc(nodeType, expr):
-    def operation(expr, *subexprs):
+    def operation(expr, subexprsModif, *subexprs):
+        modif = subexprsModif
         if not isinstance(expr, nodeType):
-            return expr.copyNode(*subexprs)
-        
-        flattened = []
-        for subexpr in subexprs:
-            if isinstance(subexpr, nodeType):
-                flattened.extend(subexpr.subexprs)
-            else:
-                flattened.append(subexpr)
+            flattened = subexprs
+        else:
+            flattened = []
+            for subexpr in subexprs:
+                if isinstance(subexpr, nodeType):
+                    flattened.extend(subexpr.subexprs)
+                    modif = True
+                else:
+                    flattened.append(subexpr)
 
-        return expr.copyNode(*flattened)
+        if modif:
+            return expr.copyNode(*flattened), True
+        else:
+            return expr, False
 
     return treeApply(operation, expr)

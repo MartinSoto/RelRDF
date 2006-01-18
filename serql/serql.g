@@ -15,10 +15,36 @@ options {
 
 class SerQLParser extends Parser("serql.Parser");
 
-graphPattern returns [expr]
-    :   
+selectQuery returns [expr]
         { context = serql.SelectContext() }
-        expr=pathExprList[context]
+    :   "select" nameBindings=projection
+        "from" patternExpr=graphPattern[context]
+        { expr = self.selectQueryExpr(context, nameBindings, patternExpr) }
+    ;
+
+projection returns [nameBindings]
+    :   nameBinding=projectionElem
+        { columnNames = [nameBinding[0]]; \
+          mappingExprs = [nameBinding[1]] }
+        (   "," nameBinding=projectionElem
+            { columnNames.append(nameBinding[0]); \
+              mappingExprs.append(nameBinding[1]) }
+        )*
+        { nameBindings = columnNames, mappingExprs }
+    ;
+
+projectionElem returns [nameBinding]
+    :   mappingExpr=var
+        { columnName=mappingExpr.name }
+        (   "as" str:STRING
+            { columnName = str.getText() }
+        )?
+        { nameBinding = columnName, mappingExpr }
+    ;
+
+
+graphPattern [context] returns [expr]
+    :   expr=pathExprList[context]
         { expr = self.graphPatternExpr(context, expr) }
     ;
 
@@ -38,7 +64,6 @@ pathExpr [context] returns [expr]
         |   SEMICOLON expr2=pathExprTail[context, n1]
             { expr = expression.Product(expr, expr2) }
         )?
-/*    |   LBRACKET graphPattern ( "where" booleanExpr )? RBRACKET */
     ;
 
 pathExprTail [context, n1] returns [expr]
@@ -49,8 +74,6 @@ pathExprTail [context, n1] returns [expr]
         |   SEMICOLON expr2=pathExprTail[context, n1]
             { expr = expression.Product(expr, expr2) }
         )?
-/*    |   LBRACKET edge node ( ( SEMICOLON )? pathExprTail )? ( "where" booleanExpr )? RBRACKET
-        ( SEMICOLON pathExprTail )? */
     ;
 
 

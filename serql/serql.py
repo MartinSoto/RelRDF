@@ -3,7 +3,9 @@ import pprint
 
 import antlr
 
+import error
 from tree import expression as expr
+from tree import rewrite
 import query
 
 
@@ -81,6 +83,16 @@ class SelectContext(object):
             return subconds[0]
         else:
             return expr.And(*subconds)
+
+    def expandVariables(self, expr):
+        def operation(expr, subexprsModif, *subexprs):
+            assert isinstance(expr, query.Var)
+            assert subexprsModif == False
+
+            # Select an arbitrary binding.
+            return iter(self.bindings[expr.name]).next(), True
+
+        return rewrite.treeMatchApply(query.Var, operation, expr)[0]
 
     def prettyPrint(self, stream=None, indent=0):
         if stream == None:
@@ -170,3 +182,10 @@ class Parser(antlr.LLkParser):
         if cond:
             node = expr.Select(node, cond)
         return node
+
+    @staticmethod
+    def selectQueryExpr(context, (columnNames, mappingExprs), baseExpr):
+        mapping = expr.Map('Answer', baseExpr,
+                           *[context.expandVariables(mappingExpr)
+                             for mappingExpr in mappingExprs])
+        return expr.NameColumns(columnNames, mapping)

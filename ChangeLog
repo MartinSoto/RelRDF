@@ -1,3 +1,13 @@
+2006-01-18  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* tree/expression.py (Map, NameColumns): 
+	* serql/serql.py (SelectContext.expandVariables) 
+	(Parser.graphPatternExpr): 
+	* serql/serql.g (selectQuery, projection, projectionElem):
+	Parse a simplified version of the SELECT statement a produce a
+	corresponding expression tree, with value mapping and named
+	columns.
+
 2006-01-17  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* tree/expression.py (Operation, Comparison, Equal, Different) 

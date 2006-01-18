@@ -10,7 +10,7 @@ lexer = SerQLLexer.Lexer()
 parser = SerQLParser.Parser(lexer)
 parser.setFilename(lexer.getFilename())
 
-expr = parser.graphPattern()
+expr = parser.selectQuery()
 
 modif = True
 while modif:

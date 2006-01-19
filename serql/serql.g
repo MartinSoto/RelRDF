@@ -16,10 +16,13 @@ options {
 class SerQLParser extends Parser("serql.Parser");
 
 selectQuery returns [expr]
-        { context = serql.SelectContext() }
+        { context = serql.SelectContext(); \
+          condExpr = None}
     :   "select" nameBindings=projection
         "from" patternExpr=graphPattern[context]
-        { expr = self.selectQueryExpr(context, nameBindings, patternExpr) }
+        (   "where" condExpr=booleanExpr )?
+        { expr = self.selectQueryExpr(context, nameBindings, patternExpr,
+                                      condExpr) }
     ;
 
 projection returns [nameBindings]
@@ -40,6 +43,8 @@ projectionElem returns [nameBinding]
             { columnName = str.getText() }
         )?
         { nameBinding = columnName, mappingExpr }
+    |   mappingExpr=value "as" str2:STRING
+        { nameBinding = str2.getText(), mappingExpr }
     ;
 
 
@@ -76,7 +81,6 @@ pathExprTail [context, n1] returns [expr]
         )?
     ;
 
-
 edge returns [obj]
     :   obj=var
     |   obj=uri
@@ -107,9 +111,57 @@ reifiedStat returns [obj]
         { obj = expression.NotSupported() }
     ;
 
+booleanExpr returns [expr]
+    :   expr=andExpr
+        (   "or" expr2=booleanExpr
+            { expr = expression.Or(expr, expr2) }
+        )?
+    ;
+
+andExpr returns [expr]
+    :   expr = booleanElem
+        (   "and" expr2=andExpr
+            { expr = expression.And(expr, expr2) }
+        )?
+    ;
+
+booleanElem returns [expr]
+    :   "(" expr=booleanExpr ")"
+    |   "not" expr1=booleanElem
+        { expr = expression.Not(expr1) }
+    |   expr1=varOrValue factory=compOp expr2=varOrValue
+        { expr = factory(expr1, expr2) }
+    ;
+
+compOp returns [factory]
+    :   "="
+        { factory = expression.Equal }
+    |   "!="
+        { factory = expression.Different }
+    |   "<"
+        { factory = expression.LessThan }
+    |   "<="
+        { factory = expression.LessThanOrEqual }
+    |   ">"
+        { factory = expression.GreaterThan }
+    |   ">="
+        { factory = expression.GreaterThanOrEqual }
+    ;
+
+varOrValue returns [expr]
+    :   expr=var 
+    |   expr=value
+    ;
+
 var returns [obj]
     :   nc:NC_NAME
         { obj = query.Var(nc.getText()) }
+    ;
+
+value returns [expr]
+    :   expr=uri
+    |   expr=bnode
+    |   expr=literal
     ;
 
 uri returns [obj]

@@ -19,6 +19,8 @@ while modif:
     (expr, m) = rewrite.flattenAssoc(expression.Product, expr)
     modif = modif or m
     
+    (expr, m) = rewrite.flattenAssoc(expression.Or, expr)
+    modif = modif or m
     (expr, m) = rewrite.flattenAssoc(expression.And, expr)
     modif = modif or m
     

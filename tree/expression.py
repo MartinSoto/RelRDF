@@ -124,7 +124,31 @@ class FieldRef(ExpressionNode):
 class Operation(ExpressionNode):
     """A node representing an operation."""
 
-    __slots__ = ('operator')
+    __slots__ = ()
+
+
+class UnaryOperation(Operation):
+    """A node representing a unary operation."""
+
+    __slots__ = ()
+
+    def __init__(self, operand):
+        super(BinaryOperation, self).__init__(operand)
+
+    def copyNode(self, operand):
+        return self.__class__(operand)
+
+
+class BinaryOperation(Operation):
+    """A node representing a binary operation."""
+
+    __slots__ = ()
+
+    def __init__(self, operand1, operand2):
+        super(BinaryOperation, self).__init__(operand1, operand2)
+
+    def copyNode(self, operand1, operand2):
+        return self.__class__(operand1, operand2)
 
 
 class Comparison(Operation):
@@ -135,6 +159,30 @@ class Comparison(Operation):
 
 class Equal(Comparison):
     """Determine if two or more operands are equal.""" 
+
+    __slots__ = ()
+
+
+class LessThan(Comparison, BinaryOperation):
+    """Determine if operand1 < operand2.""" 
+
+    __slots__ = ()
+
+
+class LessThanOrEqual(Comparison, BinaryOperation):
+    """Determine if operand1 <= operand2.""" 
+
+    __slots__ = ()
+
+
+class GreaterThan(Comparison, BinaryOperation):
+    """Determine if operand1 > operand2.""" 
+
+    __slots__ = ()
+
+
+class GreaterThanOrEqual(Comparison, BinaryOperation):
+    """Determine if operand1 >= operand2.""" 
 
     __slots__ = ()
 
@@ -151,8 +199,20 @@ class BooleanOperation(Operation):
     __slots__ = ()
 
 
+class Or(BooleanOperation):
+    """A boolean 'or' operation."""
+
+    __slots__ = ()
+
+
 class And(BooleanOperation):
     """A boolean 'and' operation."""
+
+    __slots__ = ()
+
+
+class Not(BooleanOperation, UnaryOperation):
+    """A boolean 'not' operation."""
 
     __slots__ = ()
 

@@ -184,8 +184,13 @@ class Parser(antlr.LLkParser):
         return node
 
     @staticmethod
-    def selectQueryExpr(context, (columnNames, mappingExprs), baseExpr):
-        mapping = expr.Map('Answer', baseExpr,
+    def selectQueryExpr(context, (columnNames, mappingExprs), baseExpr,
+                        condExpr):
+        current = baseExpr
+        if condExpr:
+            current = expr.Select(current, context.expandVariables(condExpr))
+        current = expr.Map('Answer', current,
                            *[context.expandVariables(mappingExpr)
                              for mappingExpr in mappingExprs])
-        return expr.NameColumns(columnNames, mapping)
+        current = expr.NameColumns(columnNames, current)
+        return current

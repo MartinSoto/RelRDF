@@ -1,3 +1,13 @@
+2006-01-19  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* tree/expression.py (UnaryOperation, BinaryOperation, LessThan) 
+	(LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Or, Not): 
+	* serql/serql.py (Parser.selectQueryExpr): 
+	* serql/serql.g (selectQuery, booleanExpr, andExpr)
+	(booleanElem, compOp, varOrValue, value):
+	Parse the WHERE clause in the SELECT statement with a limited set
+	of valid expressions, and produce a corresponding expression tree.
+
 2006-01-18  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* tree/expression.py (Map, NameColumns): 

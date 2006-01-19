@@ -1,5 +1,5 @@
 header {
-    from tree import expression
+    from expression import nodes
 
     import serql
     import query
@@ -57,7 +57,7 @@ pathExprList [context] returns [expr]
     :
         expr=pathExpr[context]
         (   COMMA expr2=pathExpr[context]
-            { expr = expression.Product(expr, expr2) }
+            { expr = nodes.Product(expr, expr2) }
         )*
     ;
 
@@ -65,9 +65,9 @@ pathExpr [context] returns [expr]
     :   n1=node e=edge n2=node
         { expr = self.exprFromPattern(context, n1, e, n2) }
         (   expr2=pathExprTail[context, n2]
-            { expr = expression.Product(expr, expr2) }
+            { expr = nodes.Product(expr, expr2) }
         |   SEMICOLON expr2=pathExprTail[context, n1]
-            { expr = expression.Product(expr, expr2) }
+            { expr = nodes.Product(expr, expr2) }
         )?
     ;
 
@@ -75,9 +75,9 @@ pathExprTail [context, n1] returns [expr]
     :   e=edge n2=node
         { expr = self.exprFromPattern(context, n1, e, n2) }
         (   expr2=pathExprTail[context, n2]
-            { expr = expression.Product(expr, expr2) }
+            { expr = nodes.Product(expr, expr2) }
         |   SEMICOLON expr2=pathExprTail[context, n1]
-            { expr = expression.Product(expr, expr2) }
+            { expr = nodes.Product(expr, expr2) }
         )?
     ;
 
@@ -108,44 +108,44 @@ nodeElem returns [obj]
 
 reifiedStat returns [obj]
     :   n1=node e=edge n2=node
-        { obj = expression.NotSupported() }
+        { obj = nodes.NotSupported() }
     ;
 
 booleanExpr returns [expr]
     :   expr=andExpr
         (   "or" expr2=booleanExpr
-            { expr = expression.Or(expr, expr2) }
+            { expr = nodes.Or(expr, expr2) }
         )?
     ;
 
 andExpr returns [expr]
     :   expr = booleanElem
         (   "and" expr2=andExpr
-            { expr = expression.And(expr, expr2) }
+            { expr = nodes.And(expr, expr2) }
         )?
     ;
 
 booleanElem returns [expr]
     :   "(" expr=booleanExpr ")"
     |   "not" expr1=booleanElem
-        { expr = expression.Not(expr1) }
+        { expr = nodes.Not(expr1) }
     |   expr1=varOrValue factory=compOp expr2=varOrValue
         { expr = factory(expr1, expr2) }
     ;
 
 compOp returns [factory]
     :   "="
-        { factory = expression.Equal }
+        { factory = nodes.Equal }
     |   "!="
-        { factory = expression.Different }
+        { factory = nodes.Different }
     |   "<"
-        { factory = expression.LessThan }
+        { factory = nodes.LessThan }
     |   "<="
-        { factory = expression.LessThanOrEqual }
+        { factory = nodes.LessThanOrEqual }
     |   ">"
-        { factory = expression.GreaterThan }
+        { factory = nodes.GreaterThan }
     |   ">="
-        { factory = expression.GreaterThanOrEqual }
+        { factory = nodes.GreaterThanOrEqual }
     ;
 
 varOrValue returns [expr]
@@ -166,22 +166,22 @@ value returns [expr]
 
 uri returns [obj]
     :   uri:FULL_URI
-        { obj = expression.Uri(uri.getText()) }
+        { obj = nodes.Uri(uri.getText()) }
     |   qn:QNAME
-        { obj = expression.Uri(self.query.resolveQName(qn.getText())) }
+        { obj = nodes.Uri(self.query.resolveQName(qn.getText())) }
     ;
 
 bnode returns [obj]
     :   bn:BNODE
-        { obj = expression.NotSupported() }
+        { obj = nodes.NotSupported() }
     ;
 
 
 literal returns [obj]
     :   str:STRING
-        { obj = expression.Literal(str.getText()) }
+        { obj = nodes.Literal(str.getText()) }
     |   lt:LITERAL
-        { obj = expression.Literal(lt.getText()) }
+        { obj = nodes.Literal(lt.getText()) }
     |   { sign = 1 }
         (   MINUS
             { sign = -1 }
@@ -193,7 +193,7 @@ literal returns [obj]
         |   d:DECIMAL
             { value = sign * float(d.getText()) }
         )
-        { obj = expression.Literal(value) }
+        { obj = nodes.Literal(value) }
     ;
 
 

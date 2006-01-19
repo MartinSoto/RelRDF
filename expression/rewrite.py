@@ -1,4 +1,4 @@
-import expression
+import nodes
 
 def curry(function, arg1):
     def curried(*args, **keywords):
@@ -7,7 +7,7 @@ def curry(function, arg1):
     return curried
 
 def treeApply(operation, expr):
-    assert isinstance(expr, expression.ExpressionNode)
+    assert isinstance(expr, nodes.ExpressionNode)
 
     subexprsModif = False
     procSubexprs = []
@@ -49,12 +49,12 @@ def flattenAssoc(nodeType, expr):
 
 def promoteSelect(expr):
     def operation(expr, subexprsModif, *subexprs):
-        assert isinstance(expr, expression.Product)
+        assert isinstance(expr, nodes.Product)
 
         promoted = []
         conditions = []
         for subexpr in subexprs:
-            if isinstance(subexpr, expression.Select):
+            if isinstance(subexpr, nodes.Select):
                 promoted.append(subexpr[0])
                 conditions.append(subexpr[1])
                 subexprsModif = True
@@ -62,22 +62,22 @@ def promoteSelect(expr):
                 promoted.append(subexpr)
 
         if subexprsModif:
-            return (expression.Select(expression.Product(*promoted),
-                                      expression.And(*conditions)),
+            return (nodes.Select(nodes.Product(*promoted),
+                                 nodes.And(*conditions)),
                     True)
 
         else:
             return expr, False
 
-    return treeMatchApply(expression.Product, operation, expr)
+    return treeMatchApply(nodes.Product, operation, expr)
 
 def flattenSelect(expr):
     def operation(expr, subexprsModif, rel, predicate):
-        if not isinstance(rel, expression.Select):
+        if not isinstance(rel, nodes.Select):
             return remakeExpr(expr, subexprsModif, rel, predicate)
         else:
-            return (expression.Select(rel[0],
-                                      expression.And(rel[1], predicate)),
+            return (nodes.Select(rel[0],
+                                 nodes.And(rel[1], predicate)),
                     True)
 
-    return treeMatchApply(expression.Select, operation, expr)
+    return treeMatchApply(nodes.Select, operation, expr)

@@ -3,7 +3,8 @@ from serql import SerQLParser
 
 from serql import serql
 
-from tree import expression, rewrite
+from expression import nodes
+from expression import rewrite
 
 
 lexer = SerQLLexer.Lexer() 
@@ -16,12 +17,12 @@ modif = True
 while modif:
     modif = False
 
-    (expr, m) = rewrite.flattenAssoc(expression.Product, expr)
+    (expr, m) = rewrite.flattenAssoc(nodes.Product, expr)
     modif = modif or m
     
-    (expr, m) = rewrite.flattenAssoc(expression.Or, expr)
+    (expr, m) = rewrite.flattenAssoc(nodes.Or, expr)
     modif = modif or m
-    (expr, m) = rewrite.flattenAssoc(expression.And, expr)
+    (expr, m) = rewrite.flattenAssoc(nodes.And, expr)
     modif = modif or m
     
     (expr, modif) = rewrite.promoteSelect(expr)

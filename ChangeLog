@@ -1,5 +1,14 @@
 2006-01-19  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/serql.py: 
+	* serql/serql.g: 
+	* serql/query.py: 
+	* expression/rewrite.py: 
+	Rename "tree" module to "expression" and and its "expression"
+	submodule to "nodes" (doh!)
+
+2006-01-19  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* tree/expression.py (UnaryOperation, BinaryOperation, LessThan) 
 	(LessThanOrEqual, GreaterThan, GreaterThanOrEqual, Or, Not): 
 	* serql/serql.py (Parser.selectQueryExpr): 

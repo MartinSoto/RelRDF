@@ -4,8 +4,8 @@ import pprint
 import antlr
 
 import error
-from tree import expression as expr
-from tree import rewrite
+from expression import nodes
+from expression import rewrite
 import query
 
 
@@ -34,7 +34,7 @@ class SelectContext(object):
             varBindings = set()
             self.bindings[varName] = varBindings
 
-        varBindings.add(expr.FieldRef(relName, incarnation, columnId))
+        varBindings.add(nodes.FieldRef(relName, incarnation, columnId))
 
     def addIndependentPair(self, var1, var2):
         if var1.name == var2.name:
@@ -68,21 +68,21 @@ class SelectContext(object):
 
         for binding in self.bindings.values():
             if len(binding) >= 2:
-                subconds.append(expr.Equal(*binding))
+                subconds.append(nodes.Equal(*binding))
 
         for group in self.independent:
             refs = []
             for var in group:
                 refs.append(iter(self.bindings[var.name]).next())
             if len(group) >= 2:
-                subconds.append(expr.Different(*refs))
+                subconds.append(nodes.Different(*refs))
 
         if len(subconds) == 0:
             return None
         elif len(subconds) == 1:
             return subconds[0]
         else:
-            return expr.And(*subconds)
+            return nodes.And(*subconds)
 
     def expandVariables(self, expr):
         def operation(expr, subexprsModif, *subexprs):
@@ -138,14 +138,14 @@ class Parser(antlr.LLkParser):
             if isinstance(node, query.Var):
                 context.addBinding(node.name, 'S', incarnation, i)
             else:
-                ref = expr.FieldRef('S', incarnation, i)
-                conds.append(expr.Equal(ref, node))
+                ref = nodes.FieldRef('S', incarnation, i)
+                conds.append(nodes.Equal(ref, node))
 
-        rel = expr.Relation('S', incarnation)
+        rel = nodes.Relation('S', incarnation)
         if conds == []:
             return rel
         else:
-            return expr.Select(rel, expr.And(*conds))
+            return nodes.Select(rel, nodes.And(*conds))
 
     @staticmethod
     def exprFromPattern(context, nodeList1, edge, nodeList2):
@@ -172,7 +172,7 @@ class Parser(antlr.LLkParser):
                         indepVar2 = node2
 
         if len(rels) > 1:
-            return expr.Product(*rels)
+            return nodes.Product(*rels)
         else:
             return rels[0]
 
@@ -180,7 +180,7 @@ class Parser(antlr.LLkParser):
     def graphPatternExpr(context, node):
         cond = context.getCondition()
         if cond:
-            node = expr.Select(node, cond)
+            node = nodes.Select(node, cond)
         return node
 
     @staticmethod
@@ -188,9 +188,9 @@ class Parser(antlr.LLkParser):
                         condExpr):
         current = baseExpr
         if condExpr:
-            current = expr.Select(current, context.expandVariables(condExpr))
-        current = expr.Map('Answer', current,
-                           *[context.expandVariables(mappingExpr)
-                             for mappingExpr in mappingExprs])
-        current = expr.NameColumns(columnNames, current)
+            current = nodes.Select(current, context.expandVariables(condExpr))
+        current = nodes.Map('Answer', current,
+                            *[context.expandVariables(mappingExpr)
+                              for mappingExpr in mappingExprs])
+        current = nodes.NameColumns(columnNames, current)
         return current

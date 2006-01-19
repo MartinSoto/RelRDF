@@ -1,9 +1,9 @@
 import StringIO
 
-from tree import expression
+from expression import nodes
 
 
-class Var(expression.ExpressionNode):
+class Var(nodes.ExpressionNode):
     """An expression node representing a SerQL variable by name."""
 
     __slots = ('name')

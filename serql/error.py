@@ -1,0 +1,2 @@
+class SerQLError(Exception):
+    pass

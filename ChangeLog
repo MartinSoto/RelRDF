@@ -1,3 +1,7 @@
+2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* serql/error.py: New module for exception classes.
+
 2006-01-19  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* serql/serql.py: 

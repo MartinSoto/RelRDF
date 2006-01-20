@@ -1,5 +1,22 @@
 2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/__init__.py: Export only the parser environment.
+
+	* serql/environment.py: New entry point for SerQL parsing,
+	encapsulating parsing and expression simplification.
+
+	* serql/parser.py (Parser.basePrefixes, Parser.getPrefixUri) 
+	(Parser.resolveQName): Make the complete prefix table public and
+	implement a two level lookup scheme for prefixes. Prefixes are now
+	searched in the external 'prefixes' table, and, if not found, in
+	the set of SerQL predefined prefixes.
+	(__repr__, setPrefix): Deleted.
+
+	* serql/serql.g (query): Add main production with simplified
+	definition.
+
+2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/serql.g (selectQuery, var, uri): 
 	* serql/parser.py (Var, expandVariables.operation)
 	(Parser.__slots__, Parser.__init__, Parser.setPrefix)

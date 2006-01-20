@@ -124,44 +124,35 @@ class Parser(antlr.LLkParser):
 
     __slots__ = ('prefixes')
 
+
+    # The standard SerQL predefined prefixes.
+    basePrefixes = {
+        'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+        'xsd': 'http://www.w3.org/2001/XMLSchema#',
+        'owl': 'http://www.w3.org/2002/07/owl#',
+        'serql': 'http://www.openrdf.org/schema/serql#'}
+
+
     def __init__(self, *args, **kwargs):
         super(Parser, self).__init__(*args, **kwargs)
 
-        self.prefixes = {}
-
-        # Set the standard SerQL predefined prefixes.
-        self.setPrefix('rdf',
-                       'http://www.w3.org/1999/02/22-rdf-syntax-ns#')
-        self.setPrefix('rdfs',
-                       'http://www.w3.org/2000/01/rdf-schema#')
-        self.setPrefix('xsd',
-                       'http://www.w3.org/2001/XMLSchema#')
-        self.setPrefix('owl',
-                       'http://www.w3.org/2002/07/owl#')
-        self.setPrefix('serql',
-                       'http://www.openrdf.org/schema/serql#')
-
-    def setPrefix(self, prefix, uri):
-        self.prefixes[prefix] = uri
+        try:
+            self.prefixes = kwargs['prefixes']
+        except KeyError:
+            self.prefixes = {}
 
     def getPrefixUri(self, prefix):
-        return self.prefixes[prefix]
         # FIXME: Produce appropriate exception.
-
-    def getPrefixes(self):
-        return self.prefixes
+        try:
+            return self.prefixes[prefix]
+        except KeyError:
+            return self.basePrefixes[prefix]
 
     def resolveQName(self, qName):
         pos = qName.index(':')
         base = self.getPrefixUri(qName[:pos])
         return base + qName[pos + 1:]
-
-    def __repr__(self):
-        s = StringIO.StringIO()
-
-        # FIXME: Put something here.
-
-        return s.getvalue()
 
     @staticmethod
     def exprFromTriple(context, subject, pred, object):

@@ -14,6 +14,10 @@ options {
 
 class SerQLParser extends Parser("parser.Parser");
 
+query returns [expr]:
+        expr=selectQuery
+    ;
+
 selectQuery returns [expr]
         { context = parser.SelectContext(); \
           condExpr = None}

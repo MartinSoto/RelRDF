@@ -1,32 +1,10 @@
-from serql import SerQLLexer
-from serql import SerQLParser
+import sys
+import serql
 
-from expression import nodes
-from expression import rewrite
+prefixes = {
+    'ex': 'http://example.com/model#'
+    }
 
+parser = serql.Parser(prefixes)
+parser.parse(sys.stdin).prettyPrint()
 
-lexer = SerQLLexer.Lexer() 
-parser = SerQLParser.Parser(lexer)
-parser.setFilename(lexer.getFilename())
-
-expr = parser.selectQuery()
-
-modif = True
-while modif:
-    modif = False
-
-    (expr, m) = rewrite.flattenAssoc(nodes.Product, expr)
-    modif = modif or m
-    
-    (expr, m) = rewrite.flattenAssoc(nodes.Or, expr)
-    modif = modif or m
-    (expr, m) = rewrite.flattenAssoc(nodes.And, expr)
-    modif = modif or m
-    
-    (expr, modif) = rewrite.promoteSelect(expr)
-    modif = modif or m
-    
-    (expr, modif) = rewrite.flattenSelect(expr)
-    modif = modif or m
-
-expr.prettyPrint()

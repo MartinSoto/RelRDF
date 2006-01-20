@@ -8,13 +8,28 @@ from expression import nodes
 from expression import rewrite
 
 
-class Var(nodes.ExpressionNode):
+class LocationNode(nodes.ExpressionNode):
+    """An expression node with location information."""
+
+    __slots__ = ('line',
+                 'column',
+                 'fileName')
+
+    def __init__(self, line=None, column=None, fileName=None):
+        super(LocationNode, self).__init__()
+
+        self.line = line
+        self.column = column
+        self.fileName = fileName
+        
+
+class Var(LocationNode):
     """An expression node representing a SerQL variable by name."""
 
     __slots = ('name')
 
-    def __init__(self, name):
-        super(Var, self).__init__()
+    def __init__(self, name, line=None, column=None, fileName=None):
+        super(Var, self).__init__(line, column, fileName)
 
         self.name = name
 
@@ -103,7 +118,13 @@ class SelectContext(object):
             assert subexprsModif == False
 
             # Select an arbitrary binding.
-            return iter(self.bindings[expr.name]).next(), True
+            try:
+                return iter(self.bindings[expr.name]).next(), True
+            except KeyError:
+                raise error.SemanticError(
+                    msg=_("Unbound variable '%s'") % expr.name,
+                    line=expr.line, column=expr.column,
+                    fileName=expr.fileName)
 
         return rewrite.treeMatchApply(Var, operation, expr)[0]
 

@@ -14,6 +14,11 @@ options {
 
 class SerQLParser extends Parser("parser.Parser");
 
+options {
+    defaultErrorHandler=false;
+}
+
+
 query returns [expr]:
         expr=selectQuery
     ;
@@ -158,7 +163,9 @@ varOrValue returns [expr]
 
 var returns [obj]
     :   nc:NC_NAME
-        { obj = parser.Var(nc.getText()) }
+        { obj = parser.Var(nc.getText(), line=nc.getLine(),
+                           column=nc.getColumn(),
+                           fileName=self.getFilename()) }
     ;
 
 value returns [expr]

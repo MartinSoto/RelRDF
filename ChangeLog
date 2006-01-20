@@ -1,5 +1,21 @@
 2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/environment.py (ParseEnvironment.parse): Convert ANTLR
+	exceptions into serql module exceptions.
+
+	* serql/error.py (Error, PositionError, SyntaxError) 
+	(SemanticError): New classes to report parsing errors.
+
+	* serql/serql.g: Deactivate default error handler.
+	(var): Store location information into the Var object.
+
+	* serql/parser.py (LocationNode, Var) 
+	(SelectContext.expandVariables.operation): Extend variable nodes to
+	have location info. Use that info to produce adequate unbound
+	variable errors.
+
+2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/__init__.py: Export only the parser environment.
 
 	* serql/environment.py: New entry point for SerQL parsing,

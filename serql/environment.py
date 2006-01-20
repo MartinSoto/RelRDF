@@ -1,8 +1,11 @@
 import StringIO
 
+import antlr
+
 from expression import nodes
 from expression import rewrite
 
+import error
 import SerQLLexer
 import SerQLParser
 
@@ -27,7 +30,7 @@ class ParseEnvironment(object):
 
     prefixes = property(getPrefixes, setPrefixes)
 
-    def parse(self, queryText, fileName="<unknown>"):
+    def parse(self, queryText, fileName=_("<unknown>")):
         if isinstance(queryText, str):
             stream = StringIO.StringIO(queryText)
         else:
@@ -36,7 +39,24 @@ class ParseEnvironment(object):
         self.lexer.setInput(stream)
         self.parser.setFilename(fileName)
 
-        return self.simplifySerQLExpr(self.parser.query())
+        try:
+            expr = self.parser.query()
+        except antlr.RecognitionException, e:
+            new = error.SyntaxError.create(e)
+            if new:
+                new.fileName = fileName
+                raise new
+            else:
+                raise e
+        except antlr.TokenStreamRecognitionException, e:
+            new = error.SyntaxError.create(e.recog)
+            if new:
+                new.fileName = fileName
+                raise new
+            else:
+                raise e
+
+        return self.simplifySerQLExpr(expr)
 
     @staticmethod
     def simplifySerQLExpr(expr):

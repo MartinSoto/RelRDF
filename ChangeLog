@@ -1,5 +1,15 @@
 2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/serql.g (selectQuery, var, uri): 
+	* serql/parser.py (Var, expandVariables.operation)
+	(Parser.__slots__, Parser.__init__, Parser.setPrefix)
+	(Parser.getPrefixUri, Parser.getPrefixes, Parser.resolveQName)
+	(Parser.__repr__, Parser.exprFromTriple, Parser.exprFromPattern): 
+	serql.py renamed to parser.py. query.Query class merged into
+	Parser class. query.py deleted.
+
+2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/error.py: New module for exception classes.
 
 2006-01-19  Martin Soto  <martinsoto@users.sourceforge.net>

@@ -1,8 +1,6 @@
 from serql import SerQLLexer
 from serql import SerQLParser
 
-from serql import serql
-
 from expression import nodes
 from expression import rewrite
 

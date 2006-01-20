@@ -1,8 +1,7 @@
 header {
     from expression import nodes
 
-    import serql
-    import query
+    import parser
 }
 
 options {
@@ -13,10 +12,10 @@ options {
  * Parser
  *--------------------------------------------------------------------*/
 
-class SerQLParser extends Parser("serql.Parser");
+class SerQLParser extends Parser("parser.Parser");
 
 selectQuery returns [expr]
-        { context = serql.SelectContext(); \
+        { context = parser.SelectContext(); \
           condExpr = None}
     :   "select" nameBindings=projection
         "from" patternExpr=graphPattern[context]
@@ -155,7 +154,7 @@ varOrValue returns [expr]
 
 var returns [obj]
     :   nc:NC_NAME
-        { obj = query.Var(nc.getText()) }
+        { obj = parser.Var(nc.getText()) }
     ;
 
 value returns [expr]
@@ -168,7 +167,7 @@ uri returns [obj]
     :   uri:FULL_URI
         { obj = nodes.Uri(uri.getText()) }
     |   qn:QNAME
-        { obj = nodes.Uri(self.query.resolveQName(qn.getText())) }
+        { obj = nodes.Uri(self.resolveQName(qn.getText())) }
     ;
 
 bnode returns [obj]

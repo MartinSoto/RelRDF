@@ -185,13 +185,9 @@ class Parser(antlr.LLkParser):
         except KeyError:
             self.externalPrefixes = {}
 
-    def initLocalPrefixes(self):
-        """Initialize the set of locally defined namespace prefixes
-        (prefixes defined by the query itself through the USING
-        NAMESPACE clause) to the empty set.
-
-        This method must be called at least once before performing any
-        prefix lookups."""
+        # The set of locally defined namespace prefixes (prefixes
+        # defined by the query itself through the USING NAMESPACE
+        # clause.)
         self.localPrefixes = {}
 
     def createLocalPrefix(self, prefix, uri):

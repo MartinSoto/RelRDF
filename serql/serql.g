@@ -20,7 +20,6 @@ options {
 
 
 query returns [expr]:
-        { self.initLocalPrefixes() }
         expr=selectQuery ( namespaceList )?
         { expr = self.expandQNames(expr) }
     ;

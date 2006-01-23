@@ -1,5 +1,16 @@
 2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/serql.g (query):
+	* serql/parser.py (Parser.__init__): Initialize local prefix in
+	Parser constructor.
+
+	* serql/environment.py (ParseEnvironment.__slots__) 
+	(ParseEnvironment.__init__, ParseEnvironment.setPrefixes) 
+	(ParseEnvironment.getPrefixes, ParseEnvironment.parse): Create
+	new parser and lexer objects every time a query is parsed.
+
+2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/serql.g (uri, query, namespaceList, namespace)
 	(prefixName): Parse the USING NAMESPACE clause.
 

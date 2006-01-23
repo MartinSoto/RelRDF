@@ -15,20 +15,16 @@ class ParseEnvironment(object):
     operations for obtaining normalized expression trees out of SerQL
     queries."""
 
-    __slots__ = ('lexer',
-                 'parser')
+    __slots__ = ('prefixes')
 
     def __init__(self, prefixes={}):
-        self.lexer = SerQLLexer.Lexer() 
-        self.parser = SerQLParser.Parser(self.lexer, prefixes=prefixes)
+        self.prefixes = prefixes
 
     def setPrefixes(self, prefixes):
-        self.parser.prefixes = prefixes
+        self.prefixes = prefixes
 
     def getPrefixes(self):
-        return self.parser.prefixes
-
-    prefixes = property(getPrefixes, setPrefixes)
+        return self.prefixes
 
     def parse(self, queryText, fileName=_("<unknown>")):
         if isinstance(queryText, str):
@@ -36,11 +32,14 @@ class ParseEnvironment(object):
         else:
             stream = queryText
 
-        self.lexer.setInput(stream)
-        self.parser.setFilename(fileName)
+        lexer = SerQLLexer.Lexer() 
+        lexer.setInput(stream)
+
+        parser = SerQLParser.Parser(lexer, prefixes=self.prefixes)
+        parser.setFilename(fileName)
 
         try:
-            expr = self.parser.query()
+            expr = parser.query()
         except antlr.RecognitionException, e:
             new = error.SyntaxError.create(e)
             if new:

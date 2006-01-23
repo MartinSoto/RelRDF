@@ -20,8 +20,28 @@ options {
 
 
 query returns [expr]:
-        expr=selectQuery
+        { self.initLocalPrefixes() }
+        expr=selectQuery ( namespaceList )?
+        { expr = self.expandQNames(expr) }
     ;
+
+namespaceList
+    :   "using" "namespace" namespace ( "," namespace )*
+    ;
+
+namespace
+    :   prefix=prefixName "=" fu:FULL_URI
+        { self.createLocalPrefix(prefix, fu.getText()) }
+    ;
+
+/* This rule should use PREFIX_NAME instead of NC_NAME, but this leads
+to ambiguities. Since the only difference is that a NC_NAME can be a
+single underscore, we check for this case explicitly. */
+prefixName returns [prefix]
+    :   nn:NC_NAME
+        { prefix = self.checkPrefix(nn) }
+    ;
+
 
 selectQuery returns [expr]
         { context = parser.SelectContext(); \
@@ -178,7 +198,9 @@ uri returns [obj]
     :   uri:FULL_URI
         { obj = nodes.Uri(uri.getText()) }
     |   qn:QNAME
-        { obj = nodes.Uri(self.resolveQName(qn.getText())) }
+        { obj = parser.QName(qn.getText(), line=qn.getLine(),
+                             column=qn.getColumn(),
+                             fileName=self.getFilename()) }
     ;
 
 bnode returns [obj]

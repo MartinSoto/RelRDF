@@ -14,6 +14,11 @@ prefixes = {
 parser = serql.Parser(prefixes)
 
 try:
-    parser.parse(sys.stdin, "sys.stdin").prettyPrint()
+    if len(sys.argv) > 1:
+        query = ''.join(sys.stdin)
+        for i in xrange(int(sys.argv[1])):
+            parser.parse(query, "sys.stdin")
+    else:
+        parser.parse(sys.stdin, "sys.stdin").prettyPrint()
 except serql.Error, e:
     print >> sys.stderr, "Error:", str(e)

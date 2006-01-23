@@ -1,3 +1,15 @@
+2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* serql/serql.g (uri, query, namespaceList, namespace)
+	(prefixName): Parse the USING NAMESPACE clause.
+
+	* serql/parser.py (QName): New class for qualified name nodes.
+	(Parser.__slots__, Parser.__init__, Parser.initLocalPrefixes) 
+	(Parser.createLocalPrefix, Parser.getPrefixUri) 
+	(Parser.resolveQName, Parser.expandQNames.operation) 
+	(Parser.checkPrefix): Add support for query-defined namespace
+	prefixes.
+
 2006-01-20  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* serql/environment.py (ParseEnvironment.parse): Convert ANTLR

@@ -293,11 +293,10 @@ class Parser(antlr.LLkParser):
         if condExpr:
             current = nodes.Select(current, self.currentContext(). \
                                    expandVariables(condExpr))
-        current = nodes.Map('Answer', current,
-                            *[self.currentContext(). \
-                              expandVariables(mappingExpr)
-                              for mappingExpr in mappingExprs])
-        current = nodes.NameColumns(columnNames, current)
+        current = nodes.MapResult(columnNames, current,
+                                  *[self.currentContext(). \
+                                    expandVariables(mappingExpr)
+                                    for mappingExpr in mappingExprs])
         return current
 
     def resolveQName(self, qName):

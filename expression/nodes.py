@@ -270,37 +270,19 @@ class Select(ExpressionNode):
         return self.__class__(rel, predicate)
 
 
-class Map(ExpressionNode):
-    """Map a relational expression to a new relation based on a set of
-    scalar expressions that specify how to calculate the new field
-    values."""
-
-    __slots___ = ('name')
-
-    def __init__(self, name, rel, *mappingExprs):
-        super(Map, self).__init__(rel, *mappingExprs)
-
-        self.name = name
-
-    def copyNode(self, rel, *mappingExprs):
-        return self.__class__(self.name, rel, *mappingExprs)
-
-    def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' "%s"' % self.name)
-
-
-class NameColumns(ExpressionNode):
-    """Give human readable names to a relation's columns."""
+class MapResult(ExpressionNode):
+    """Specify the column names of a result table, together with the
+    relation incarnations they are bound to."""
 
     __slots__ = ('columnNames')
 
-    def __init__(self, columnNames, rel):
-        super(NameColumns, self).__init__(rel)
+    def __init__(self, columnNames, rel, *mappingExprs):
+        super(MapResult, self).__init__(rel, *mappingExprs)
 
         self.columnNames = columnNames
 
-    def copyNode(self, rel):
-        return self.__class__(self.columnNames, rel)
+    def copyNode(self, rel, *mappingExprs):
+        return self.__class__(self.columnNames, rel, *mappingExprs)
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' [%s]' % ', '.join(self.columnNames))

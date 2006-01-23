@@ -1,5 +1,12 @@
 2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/parser.py (Parser.selectQueryExpr): 
+	* expression/nodes.py (MapResult): 
+	Replace Map and NameColumns by a single MapResult node that does
+	column mapping and naming.
+
+2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/serql.g (selectQuery, graphPattern, pathExprList)
 	(pathExpr, pathExprTail): Use the context stack.
 

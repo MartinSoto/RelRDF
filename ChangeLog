@@ -1,5 +1,18 @@
 2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/serql.g (selectQuery, graphPattern, pathExprList)
+	(pathExpr, pathExprTail): Use the context stack.
+
+	* serql/parser.py (Parser.__slots__, Parser.__init__) 
+	(Parser.pushContext, Parser.popContext, Parser.currentContext):
+	In preparation for nested SELECT queries, add a stack of
+	SelectContext objects.
+	(Parser.exprFromPattern, Parser.graphPatternExpr) 
+	(Parser.selectQueryExpr, Parser.exprFromTriple): Use the new
+	context stack.
+
+2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* antlr.py: Include antlr.py in the source tree.
 
 2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>

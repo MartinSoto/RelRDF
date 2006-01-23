@@ -43,13 +43,14 @@ prefixName returns [prefix]
 
 
 selectQuery returns [expr]
-        { context = parser.SelectContext(); \
+        { self.pushContext(); \
           condExpr = None}
     :   "select" nameBindings=projection
-        "from" patternExpr=graphPattern[context]
+        "from" patternExpr=graphPattern
         (   "where" condExpr=booleanExpr )?
-        { expr = self.selectQueryExpr(context, nameBindings, patternExpr,
-                                      condExpr) }
+        { expr = self.selectQueryExpr(nameBindings, patternExpr,
+                                      condExpr); \
+          self.popContext() }
     ;
 
 projection returns [nameBindings]
@@ -75,35 +76,35 @@ projectionElem returns [nameBinding]
     ;
 
 
-graphPattern [context] returns [expr]
-    :   expr=pathExprList[context]
-        { expr = self.graphPatternExpr(context, expr) }
+graphPattern returns [expr]
+    :   expr=pathExprList
+        { expr = self.graphPatternExpr(expr) }
     ;
 
-pathExprList [context] returns [expr]
+pathExprList returns [expr]
     :
-        expr=pathExpr[context]
-        (   COMMA expr2=pathExpr[context]
+        expr=pathExpr
+        (   COMMA expr2=pathExpr
             { expr = nodes.Product(expr, expr2) }
         )*
     ;
 
-pathExpr [context] returns [expr]
+pathExpr returns [expr]
     :   n1=node e=edge n2=node
-        { expr = self.exprFromPattern(context, n1, e, n2) }
-        (   expr2=pathExprTail[context, n2]
+        { expr = self.exprFromPattern(n1, e, n2) }
+        (   expr2=pathExprTail[n2]
             { expr = nodes.Product(expr, expr2) }
-        |   SEMICOLON expr2=pathExprTail[context, n1]
+        |   SEMICOLON expr2=pathExprTail[n1]
             { expr = nodes.Product(expr, expr2) }
         )?
     ;
 
-pathExprTail [context, n1] returns [expr]
+pathExprTail [n1] returns [expr]
     :   e=edge n2=node
-        { expr = self.exprFromPattern(context, n1, e, n2) }
-        (   expr2=pathExprTail[context, n2]
+        { expr = self.exprFromPattern(n1, e, n2) }
+        (   expr2=pathExprTail[n2]
             { expr = nodes.Product(expr, expr2) }
-        |   SEMICOLON expr2=pathExprTail[context, n1]
+        |   SEMICOLON expr2=pathExprTail[n1]
             { expr = nodes.Product(expr, expr2) }
         )?
     ;

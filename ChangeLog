@@ -1,5 +1,9 @@
 2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* antlr.py: Include antlr.py in the source tree.
+
+2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/serql.g (query):
 	* serql/parser.py (Parser.__init__): Initialize local prefix in
 	Parser constructor.

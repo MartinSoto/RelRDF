@@ -5,6 +5,7 @@ import gettext
 gettext.install('relrdf')
 
 import serql
+from sqlmap import generate
 
 
 prefixes = {
@@ -19,6 +20,9 @@ try:
         for i in xrange(int(sys.argv[1])):
             parser.parse(query, "sys.stdin")
     else:
-        parser.parse(sys.stdin, "sys.stdin").prettyPrint()
+        expr = parser.parse(sys.stdin, "sys.stdin")
+        expr.prettyPrint()
+        print
+        print generate.generate(expr)
 except serql.Error, e:
     print >> sys.stderr, "Error:", str(e)

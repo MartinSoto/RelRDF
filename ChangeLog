@@ -1,5 +1,13 @@
 2006-01-24  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* sqlmap/generate.py: A proof-of-concept translator to SQL.
+
+	* expression/rewrite.py (treeApplyObject): New function for
+	executing diverse method of an object on the nodes of an
+	expression tree.
+
+2006-01-24  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/parser.py (Parser.exprFromTriple): Use readable column
 	names instead of positional references for the canonical S
 	relation.

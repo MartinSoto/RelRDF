@@ -18,6 +18,19 @@ def treeApply(operation, expr):
 
     return operation(expr, subexprsModif, *procSubexprs)
 
+def treeApplyObject(object, expr):
+    assert isinstance(expr, nodes.ExpressionNode)
+
+    procSubexprs = []
+    for subexpr in expr.subexprs:
+        procSubexprs.append(treeApplyObject(object, subexpr))
+
+    if hasattr(object, expr.__class__.__name__):
+        method = getattr(object, expr.__class__.__name__)
+        return method(expr, *procSubexprs)
+    else:
+        return tuple([expr,] + procSubexprs)
+
 def remakeExpr(expr, subexprsModif, *subexprs):
     if not subexprsModif:
         return expr, False

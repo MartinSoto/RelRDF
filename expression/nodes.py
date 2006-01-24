@@ -133,7 +133,7 @@ class UnaryOperation(Operation):
     __slots__ = ()
 
     def __init__(self, operand):
-        super(BinaryOperation, self).__init__(operand)
+        super(UnaryOperation, self).__init__(operand)
 
     def copyNode(self, operand):
         return self.__class__(operand)

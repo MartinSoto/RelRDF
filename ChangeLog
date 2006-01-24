@@ -1,5 +1,9 @@
 2006-01-24  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* expression/nodes.py (UnaryOperation.__init__): Fix super call.
+
+2006-01-24  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* sqlmap/generate.py: A proof-of-concept translator to SQL.
 
 	* expression/rewrite.py (treeApplyObject): New function for

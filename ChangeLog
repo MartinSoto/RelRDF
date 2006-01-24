@@ -1,3 +1,12 @@
+2006-01-24  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* serql/parser.py (Parser.exprFromTriple): Use readable column
+	names instead of positional references for the canonical S
+	relation.
+
+	* expression/nodes.py (FieldRef.__repr__): Show field identifier
+	inside quotes.
+
 2006-01-23  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* serql/parser.py (Parser.selectQueryExpr): 

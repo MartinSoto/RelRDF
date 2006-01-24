@@ -110,9 +110,9 @@ class FieldRef(ExpressionNode):
         self.fieldId = fieldId
 
     def __repr__(self):
-        return '%s_%d[%s]' % (self.relName,
-                               self.incarnation,
-                               self.fieldId)
+        return "%s_%d['%s']" % (self.relName,
+                                self.incarnation,
+                                self.fieldId)
 
     def copyNode(self):
         return self.__class__(self.relName, self.incarnation, self.fieldId)

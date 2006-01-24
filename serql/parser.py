@@ -238,12 +238,13 @@ class Parser(antlr.LLkParser):
         incarnation = self.currentContext().getIncarnation('S')
 
         conds = []
-        for i, node in enumerate((subject, pred, object)):
+        for id, node in (('subject', subject), ('predicate', pred),
+                         ('object', object)):
             if isinstance(node, Var):
                 self.currentContext().addBinding(node.name, 'S',
-                                                    incarnation, i)
+                                                 incarnation, id)
             else:
-                ref = nodes.FieldRef('S', incarnation, i)
+                ref = nodes.FieldRef('S', incarnation, id)
                 conds.append(nodes.Equal(ref, node))
 
         rel = nodes.Relation('S', incarnation)

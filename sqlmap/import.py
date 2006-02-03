@@ -34,9 +34,11 @@ class DbRdfSink(object):
             (self.versionId, self.cursor.lastrowid))
 
 
-conn = MySQLdb.connect(host='localhost', passwd="d0nZknut", db="rdf")
+(db, uri, versionNumber) = sys.argv[1:]
+
+conn = MySQLdb.connect(host='localhost', passwd="d0nZknut", db=db)
 cursor = conn.cursor()
 
-rdfxmlparse.parseURI(sys.argv[1], sink=DbRdfSink(cursor, int(sys.argv[2])))
+rdfxmlparse.parseURI(uri, sink=DbRdfSink(cursor, int(versionNumber)))
 
 cursor.close()

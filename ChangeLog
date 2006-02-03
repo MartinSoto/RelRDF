@@ -1,5 +1,10 @@
 2006-02-03  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* sqlmap/import.py: Make it possible to import to diverse
+	databases.
+
+2006-02-03  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* sqlmap/rdfxmlparse.py: Simple wrapper for Redland, to produce
 	parsing results in a form that is usable by the version importer.
 

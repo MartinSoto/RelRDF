@@ -1,3 +1,12 @@
+2006-02-03  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* sqlmap/rdfxmlparse.py: Simple wrapper for Redland, to produce
+	parsing results in a form that is usable by the version importer.
+
+	* sqlmap/import.py: Basic version importer.
+
+	* sqlmap/create-schema.sql: Refine schema.
+
 2006-01-31  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* sqlmap/create-schema.sql: Initial SQL script for creating the

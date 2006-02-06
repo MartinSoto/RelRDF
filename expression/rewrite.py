@@ -11,7 +11,7 @@ def treeApply(operation, expr):
 
     subexprsModif = False
     procSubexprs = []
-    for subexpr in expr.subexprs:
+    for subexpr in expr:
         (procSubexpr, modif) = treeApply(operation, subexpr)
         procSubexprs.append(procSubexpr)
         subexprsModif = subexprsModif or modif
@@ -22,7 +22,7 @@ def treeApplyObject(object, expr):
     assert isinstance(expr, nodes.ExpressionNode)
 
     procSubexprs = []
-    for subexpr in expr.subexprs:
+    for subexpr in expr:
         procSubexprs.append(treeApplyObject(object, subexpr))
 
     if hasattr(object, expr.__class__.__name__):
@@ -51,7 +51,7 @@ def flattenAssoc(nodeType, expr):
         flattened = []
         for subexpr in subexprs:
             if isinstance(subexpr, nodeType):
-                flattened.extend(subexpr.subexprs)
+                flattened.extend(subexpr)
                 subexprsModif = True
             else:
                 flattened.append(subexpr)

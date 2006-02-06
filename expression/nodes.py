@@ -4,29 +4,21 @@ import uri
 import literal
 
 
-class ExpressionNode(object):
+class ExpressionNode(list):
     """A node in a expression tree."""
 
-    __slots__ = ('_subexprs')
+    __slots__ = ()
 
     def __init__(self, *subexprs):
-        self._subexprs = subexprs
+        super(ExpressionNode, self).__init__(subexprs)
         assert self._checkSubexprs()
 
     def _checkSubexprs(self):
-        for i, subexpr in enumerate(self._subexprs):
+        for i, subexpr in enumerate(self):
             assert isinstance(subexpr, ExpressionNode), \
                    "subexpression %d is not an ExpressionNode" % i
 
         return True
-
-    def getSubexprs(self):
-        return self._subexprs
-
-    subexprs = property(getSubexprs)
-
-    def __getitem__(self, i):
-        return self._subexprs[i]
 
     def copyNode(self, *subexprs):
         return self.__class__(*subexprs)
@@ -41,7 +33,7 @@ class ExpressionNode(object):
         self.prettyPrintAttributes(stream, indentLevel)
 
         stream.write('\n')
-        for subexpr in self._subexprs:
+        for subexpr in self:
             subexpr.prettyPrint(stream, indentLevel + 1)
 
     def prettyPrintAttributes(self, stream, indentLevel):

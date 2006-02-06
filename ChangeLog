@@ -1,5 +1,18 @@
 2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* expression/rewrite.py (treeApply, treeApplyObject) 
+	(flattenAssoc.operation): Use expressions as lists of
+	subexpressions.
+
+	* expression/nodes.py (ExpressionNode, ExpressionNode.__slots__) 
+	(ExpressionNode.__init__, ExpressionNode._checkSubexprs) 
+	(ExpressionNode.getSubexprs, ExpressionNode.subexprs) 
+	(ExpressionNode.__getitem__, ExpressionNode.prettyPrint): Instead
+	of containing a list of subexpressions, _be_ the list of
+	subexpressions.
+
+2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/serql.g (var, uri): 
 	* serql/parser.py (SelectContext.checkVariables.operation) 
 	(SelectContext.checkVariables, Parser.exprFromPattern) 

@@ -183,9 +183,9 @@ varOrValue returns [expr]
 
 var returns [obj]
     :   nc:NC_NAME
-        { obj = parser.Var(nc.getText(), line=nc.getLine(),
-                           column=nc.getColumn(),
-                           fileName=self.getFilename()) }
+        { obj = nodes.Var(nc.getText(), line=nc.getLine(),
+                          column=nc.getColumn(),
+                          fileName=self.getFilename()) }
     ;
 
 value returns [expr]
@@ -198,9 +198,9 @@ uri returns [obj]
     :   uri:FULL_URI
         { obj = nodes.Uri(uri.getText()) }
     |   qn:QNAME
-        { obj = parser.QName(qn.getText(), line=qn.getLine(),
-                             column=qn.getColumn(),
-                             fileName=self.getFilename()) }
+        { obj = nodes.QName(qn.getText(), line=qn.getLine(),
+                            column=qn.getColumn(),
+                            fileName=self.getFilename()) }
     ;
 
 bnode returns [obj]

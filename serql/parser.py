@@ -8,61 +8,6 @@ from expression import nodes
 from expression import rewrite
 
 
-class LocationNode(nodes.ExpressionNode):
-    """An expression node with location information."""
-
-    __slots__ = ('line',
-                 'column',
-                 'fileName')
-
-    def __init__(self, line=None, column=None, fileName=None):
-        super(LocationNode, self).__init__()
-
-        self.line = line
-        self.column = column
-        self.fileName = fileName
-
-
-class QName(LocationNode):
-    """An expression node representing a qualified name."""
-
-    __slots__ = ('qname')
-
-    def __init__(self, qname, line=None, column=None, fileName=None):
-        super(QName, self).__init__(line, column, fileName)
-
-        self.qname = qname 
-
-    def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s' % self.qname)
-        
-
-class Var(LocationNode):
-    """An expression node representing a SerQL variable by name."""
-
-    __slots = ('name')
-
-    def __init__(self, name, line=None, column=None, fileName=None):
-        super(Var, self).__init__(line, column, fileName)
-
-        self.name = name
-
-    def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s' % self.name)
-
-
-class StatementPattern(nodes.ExpressionNode):
-    """An expression node representing an statement pattern."""
-
-    __slots__ = ()
-
-    def __init__(self, subj, pred, obj):
-        super(StatementPattern, self).__init__(subj, pred, obj)
-
-    def copyNode(self, subj, pred, obj):
-        return self.__class__(subj, pred, obj)
-
-
 class SelectContext(object):
     """A container for contextual information associated to a single
     SerQL SELECT statement."""
@@ -120,7 +65,7 @@ class SelectContext(object):
 
     def checkVariables(self, expr):
         def operation(expr, subexprsModif, *subexprs):
-            assert isinstance(expr, Var)
+            assert isinstance(expr, nodes.Var)
             assert subexprsModif == False
 
             if not expr.name in self.bound:
@@ -131,7 +76,7 @@ class SelectContext(object):
 
             return expr, False
 
-        return rewrite.treeMatchApply(Var, operation, expr)[0]
+        return rewrite.treeMatchApply(nodes.Var, operation, expr)[0]
 
     def prettyPrint(self, stream=None, indent=0):
         if stream == None:
@@ -231,9 +176,9 @@ class Parser(antlr.LLkParser):
 
         for node1 in nodeList1:
             for node2 in nodeList2:
-                rels.append(StatementPattern(node1, edge, node2))
+                rels.append(nodes.StatementPattern(node1, edge, node2))
 
-                if isinstance(node1, Var):
+                if isinstance(node1, nodes.Var):
                     self.currentContext().addBound(node1.name)
                     if indepVar1:
                         self.currentContext() \
@@ -241,10 +186,10 @@ class Parser(antlr.LLkParser):
                     else:
                         indepVar1 = node1
 
-                if isinstance(edge, Var):
+                if isinstance(edge, nodes.Var):
                     self.currentContext().addBound(edge.name)
 
-                if isinstance(node2, Var):
+                if isinstance(node2, nodes.Var):
                     self.currentContext().addBound(node2.name)
                     if indepVar2:
                         self.currentContext() \
@@ -288,7 +233,7 @@ class Parser(antlr.LLkParser):
         URIs."""
 
         def operation(expr, subexprsModif, *subexprs):
-            assert isinstance(expr, QName)
+            assert isinstance(expr, nodes.QName)
             assert subexprsModif == False
 
             try:
@@ -299,7 +244,7 @@ class Parser(antlr.LLkParser):
                     line=expr.line, column=expr.column,
                     fileName=expr.fileName)
 
-        return rewrite.treeMatchApply(QName, operation, expr)[0]
+        return rewrite.treeMatchApply(nodes.QName, operation, expr)[0]
 
     def checkPrefix(self, token):
         if token.getText() == '_':

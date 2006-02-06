@@ -48,6 +48,21 @@ class ExpressionNode(object):
         pass
 
 
+class LocationNode(ExpressionNode):
+    """An expression node with location information."""
+
+    __slots__ = ('line',
+                 'column',
+                 'fileName')
+
+    def __init__(self, line=None, column=None, fileName=None):
+        super(LocationNode, self).__init__()
+
+        self.line = line
+        self.column = column
+        self.fileName = fileName
+
+
 class NotSupported(ExpressionNode):
     """An expression node representing a subexpression that is not
     currently supported by the parser."""
@@ -75,6 +90,20 @@ class Uri(ExpressionNode):
         stream.write(' %s' % self.uri)
 
 
+class QName(LocationNode):
+    """An expression node representing a qualified name."""
+
+    __slots__ = ('qname')
+
+    def __init__(self, qname, line=None, column=None, fileName=None):
+        super(QName, self).__init__(line, column, fileName)
+
+        self.qname = qname 
+
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' %s' % self.qname)
+        
+
 class Literal(ExpressionNode):
     """An expression node representing a RDF literal."""
 
@@ -93,6 +122,20 @@ class Literal(ExpressionNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.literal)
+
+
+class Var(LocationNode):
+    """An expression node representing a SerQL variable by name."""
+
+    __slots = ('name')
+
+    def __init__(self, name, line=None, column=None, fileName=None):
+        super(Var, self).__init__(line, column, fileName)
+
+        self.name = name
+
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' %s' % self.name)
 
 
 class FieldRef(ExpressionNode):
@@ -119,6 +162,19 @@ class FieldRef(ExpressionNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % str(self))
+
+
+class StatementPattern(ExpressionNode):
+    """An expression node representing an statement pattern."""
+
+
+    __slots__ = ()
+
+    def __init__(self, subj, pred, obj):
+        super(StatementPattern, self).__init__(subj, pred, obj)
+
+    def copyNode(self, subj, pred, obj):
+        return self.__class__(subj, pred, obj)
 
 
 class Operation(ExpressionNode):

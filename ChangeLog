@@ -1,5 +1,16 @@
 2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/serql.g (var, uri): 
+	* serql/parser.py (SelectContext.checkVariables.operation) 
+	(SelectContext.checkVariables, Parser.exprFromPattern) 
+	(Parser.expandQNames): Certain node classes are now in nodes
+	module.
+
+	* expression/nodes.py (LocationNode, QName, Var) 
+	(StatementPattern): Moved from serql/parser.py.
+
+2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/parser.py (StatementPattern): Expression node for serql
 	statement patterns.
 	(SelectContext.__slots__, SelectContext.__init__, addBinding) 

@@ -1,3 +1,9 @@
+2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* serql/serql.g (pathExprList, pathExpr, pathExprTail, node)
+	(nodeElemList): Replace symbolic token references by explicit
+	string references for better legibility.
+
 2006-02-03  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* sqlmap/import.py: Make it possible to import to diverse

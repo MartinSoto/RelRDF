@@ -84,7 +84,7 @@ graphPattern returns [expr]
 pathExprList returns [expr]
     :
         expr=pathExpr
-        (   COMMA expr2=pathExpr
+        (   "," expr2=pathExpr
             { expr = nodes.Product(expr, expr2) }
         )*
     ;
@@ -94,7 +94,7 @@ pathExpr returns [expr]
         { expr = self.exprFromPattern(n1, e, n2) }
         (   expr2=pathExprTail[n2]
             { expr = nodes.Product(expr, expr2) }
-        |   SEMICOLON expr2=pathExprTail[n1]
+        |   ";" expr2=pathExprTail[n1]
             { expr = nodes.Product(expr, expr2) }
         )?
     ;
@@ -104,7 +104,7 @@ pathExprTail [n1] returns [expr]
         { expr = self.exprFromPattern(n1, e, n2) }
         (   expr2=pathExprTail[n2]
             { expr = nodes.Product(expr, expr2) }
-        |   SEMICOLON expr2=pathExprTail[n1]
+        |   ";" expr2=pathExprTail[n1]
             { expr = nodes.Product(expr, expr2) }
         )?
     ;
@@ -115,13 +115,13 @@ edge returns [obj]
     ;
 
 node returns [obj]
-    :   LBRACE ( obj=nodeElemList )? RBRACE
+    :   "{" ( obj=nodeElemList )? "}"
     ;
 
 nodeElemList returns [obj]
     :   ne1=nodeElem
         { obj = [ne1] }
-        (   COMMA ne=nodeElem
+        (   "," ne=nodeElem
             { obj.append(ne) }
         )*
     ;

@@ -64,7 +64,7 @@ class SelectContext(object):
             return nodes.And(*subconds)
 
     def checkVariables(self, expr):
-        def operation(expr, subexprsModif, *subexprs):
+        def operation(expr, subexprsModif):
             assert isinstance(expr, nodes.Var)
             assert subexprsModif == False
 
@@ -232,7 +232,7 @@ class Parser(antlr.LLkParser):
         """Expand all QName nodes in `expr` into their corresponding
         URIs."""
 
-        def operation(expr, subexprsModif, *subexprs):
+        def operation(expr, subexprsModif):
             assert isinstance(expr, nodes.QName)
             assert subexprsModif == False
 

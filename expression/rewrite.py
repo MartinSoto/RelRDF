@@ -10,13 +10,11 @@ def treeApply(operation, expr):
     assert isinstance(expr, nodes.ExpressionNode)
 
     subexprsModif = False
-    procSubexprs = []
-    for subexpr in expr:
-        (procSubexpr, modif) = treeApply(operation, subexpr)
-        procSubexprs.append(procSubexpr)
+    for i, subexpr in enumerate(expr):
+        (expr[i], modif) = treeApply(operation, subexpr)
         subexprsModif = subexprsModif or modif
 
-    return operation(expr, subexprsModif, *procSubexprs)
+    return operation(expr, subexprsModif)
 
 def treeApplyObject(object, expr):
     assert isinstance(expr, nodes.ExpressionNode)
@@ -31,42 +29,37 @@ def treeApplyObject(object, expr):
     else:
         return tuple([expr,] + procSubexprs)
 
-def remakeExpr(expr, subexprsModif, *subexprs):
-    if not subexprsModif:
-        return expr, False
-    else:
-        return expr.copyNode(*subexprs), True
-
 def treeMatchApply(nodeType, operation, expr):
-    def operationWrapper(expr, subexprsModif, *subexprs):
+    def operationWrapper(expr, subexprsModif):
         if not isinstance(expr, nodeType):
-            return remakeExpr(expr, subexprsModif, *subexprs)
+            return (expr, subexprsModif)
         else:
-            return operation(expr, subexprsModif, *subexprs)
+            return operation(expr, subexprsModif)
 
     return treeApply(operationWrapper, expr)
 
 def flattenAssoc(nodeType, expr):
-    def operation(expr, subexprsModif, *subexprs):
-        flattened = []
-        for subexpr in subexprs:
+    def operation(expr, subexprsModif):
+        i = 0
+        for subexpr in expr:
             if isinstance(subexpr, nodeType):
-                flattened.extend(subexpr)
+                expr[i:i+1] = subexpr
+                i += len(expr)
                 subexprsModif = True
             else:
-                flattened.append(subexpr)
+                i += 1
 
-        return remakeExpr(expr, subexprsModif, *flattened)
+        return expr, subexprsModif
 
     return treeMatchApply(nodeType, operation, expr)
 
 def promoteSelect(expr):
-    def operation(expr, subexprsModif, *subexprs):
+    def operation(expr, subexprsModif):
         assert isinstance(expr, nodes.Product)
 
         promoted = []
         conditions = []
-        for subexpr in subexprs:
+        for subexpr in expr:
             if isinstance(subexpr, nodes.Select):
                 promoted.append(subexpr[0])
                 conditions.append(subexpr[1])
@@ -85,9 +78,10 @@ def promoteSelect(expr):
     return treeMatchApply(nodes.Product, operation, expr)
 
 def flattenSelect(expr):
-    def operation(expr, subexprsModif, rel, predicate):
+    def operation(expr, subexprsModif):
+        (rel, predicate) = expr
         if not isinstance(rel, nodes.Select):
-            return remakeExpr(expr, subexprsModif, rel, predicate)
+            return expr, subexprsModif
         else:
             return (nodes.Select(rel[0],
                                  nodes.And(rel[1], predicate)),

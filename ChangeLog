@@ -1,5 +1,18 @@
 2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/parser.py (SelectContext.checkVariables.operation) 
+	(Parser.expandQNames.operation): Get rid of the subexprs
+	parameter.
+
+	* expression/rewrite.py (treeApply): Operate in place. The
+	subexprs parameter isn't necessary anymore.
+	(remakeExpr): Deleted.
+	(treeMatchApply.operationWrapper, flattenAssoc.operation) 
+	(promoteSelect.operation, flattenSelect.operation): Operate in
+	place.
+
+2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* expression/rewrite.py (treeApply, treeApplyObject) 
 	(flattenAssoc.operation): Use expressions as lists of
 	subexpressions.

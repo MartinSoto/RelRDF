@@ -51,17 +51,27 @@ class Var(LocationNode):
         stream.write(' %s' % self.name)
 
 
+class StatementPattern(nodes.ExpressionNode):
+    """An expression node representing an statement pattern."""
+
+    __slots__ = ()
+
+    def __init__(self, subj, pred, obj):
+        super(StatementPattern, self).__init__(subj, pred, obj)
+
+    def copyNode(self, subj, pred, obj):
+        return self.__class__(subj, pred, obj)
+
+
 class SelectContext(object):
     """A container for contextual information associated to a single
     SerQL SELECT statement."""
 
-    __slots__ = ('incarnations',
-                 'bindings',
+    __slots__ = ('bound',
                  'indepMapping')
 
     def __init__(self):
-        self.incarnations = {}
-        self.bindings = {}
+        self.bound = set()
         self.indepMapping = {}
 
     def getIndependent(self):
@@ -69,14 +79,8 @@ class SelectContext(object):
 
     independent = property(getIndependent)
 
-    def addBinding(self, varName, relName, incarnation, columnId):
-        try:
-            varBindings = self.bindings[varName]
-        except KeyError:
-            varBindings = set()
-            self.bindings[varName] = varBindings
-
-        varBindings.add(nodes.FieldRef(relName, incarnation, columnId))
+    def addBound(self, varName):
+        self.bound.add(varName)
 
     def addIndependentPair(self, var1, var2):
         if var1.name == var2.name:
@@ -100,24 +104,12 @@ class SelectContext(object):
         self.indepMapping[var1.name] = group
         self.indepMapping[var2.name] = group
 
-    def getIncarnation(self, relName):
-        incarnation = self.incarnations.get(relName, 0) + 1
-        self.incarnations[relName] = incarnation
-        return incarnation
-
     def getCondition(self):
         subconds = []
 
-        for binding in self.bindings.values():
-            if len(binding) >= 2:
-                subconds.append(nodes.Equal(*binding))
-
         for group in self.independent:
-            refs = []
-            for var in group:
-                refs.append(iter(self.bindings[var.name]).next())
             if len(group) >= 2:
-                subconds.append(nodes.Different(*refs))
+                subconds.append(nodes.Different(*group))
 
         if len(subconds) == 0:
             return None
@@ -126,19 +118,18 @@ class SelectContext(object):
         else:
             return nodes.And(*subconds)
 
-    def expandVariables(self, expr):
+    def checkVariables(self, expr):
         def operation(expr, subexprsModif, *subexprs):
             assert isinstance(expr, Var)
             assert subexprsModif == False
 
-            # Select an arbitrary binding.
-            try:
-                return iter(self.bindings[expr.name]).next(), True
-            except KeyError:
+            if not expr.name in self.bound:
                 raise error.SemanticError(
                     msg=_("Unbound variable '%s'") % expr.name,
                     line=expr.line, column=expr.column,
                     fileName=expr.fileName)
+
+            return expr, False
 
         return rewrite.treeMatchApply(Var, operation, expr)[0]
 
@@ -146,10 +137,8 @@ class SelectContext(object):
         if stream == None:
             stream = sys.stdout
 
-        stream.write('Incarnations:\n')
-        pprint.pprint(self.incarnations, stream, indent + 2)
-        stream.write('\nBindings:\n')
-        pprint.pprint(self.bindings, stream, indent + 2)
+        stream.write('Bound:\n')
+        pprint.pprint(self.bound, stream, indent + 2)
         stream.write('\nIndependent groups:\n')
         pprint.pprint(self.independent, stream, indent + 2)
 
@@ -234,25 +223,6 @@ class Parser(antlr.LLkParser):
     # Expression Construction and Transformation
     #
 
-    def exprFromTriple(self, subject, pred, object):
-        incarnation = self.currentContext().getIncarnation('S')
-
-        conds = []
-        for id, node in (('subject', subject), ('predicate', pred),
-                         ('object', object)):
-            if isinstance(node, Var):
-                self.currentContext().addBinding(node.name, 'S',
-                                                 incarnation, id)
-            else:
-                ref = nodes.FieldRef('S', incarnation, id)
-                conds.append(nodes.Equal(ref, node))
-
-        rel = nodes.Relation('S', incarnation)
-        if conds == []:
-            return rel
-        else:
-            return nodes.Select(rel, nodes.And(*conds))
-
     def exprFromPattern(self, nodeList1, edge, nodeList2):
         rels = []
 
@@ -261,16 +231,21 @@ class Parser(antlr.LLkParser):
 
         for node1 in nodeList1:
             for node2 in nodeList2:
-                rels.append(self.exprFromTriple(node1, edge, node2))
+                rels.append(StatementPattern(node1, edge, node2))
 
                 if isinstance(node1, Var):
+                    self.currentContext().addBound(node1.name)
                     if indepVar1:
                         self.currentContext() \
                             .addIndependentPair(indepVar1, node1)
                     else:
                         indepVar1 = node1
 
+                if isinstance(edge, Var):
+                    self.currentContext().addBound(edge.name)
+
                 if isinstance(node2, Var):
+                    self.currentContext().addBound(node2.name)
                     if indepVar2:
                         self.currentContext() \
                             .addIndependentPair(indepVar2, node2)
@@ -291,13 +266,14 @@ class Parser(antlr.LLkParser):
     def selectQueryExpr(self, (columnNames, mappingExprs), baseExpr,
                         condExpr):
         current = baseExpr
+
         if condExpr:
-            current = nodes.Select(current, self.currentContext(). \
-                                   expandVariables(condExpr))
-        current = nodes.MapResult(columnNames, current,
-                                  *[self.currentContext(). \
-                                    expandVariables(mappingExpr)
-                                    for mappingExpr in mappingExprs])
+            self.currentContext().checkVariables(condExpr)
+            current = nodes.Select(current, condExpr)
+
+        for mappingExpr in mappingExprs:
+            self.currentContext().checkVariables(mappingExpr)
+        current = nodes.MapResult(columnNames, current, *mappingExprs)
         return current
 
     def resolveQName(self, qName):

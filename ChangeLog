@@ -1,5 +1,18 @@
 2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/parser.py (StatementPattern): Expression node for serql
+	statement patterns.
+	(SelectContext.__slots__, SelectContext.__init__, addBinding) 
+	(SelectContext.addBound, getIncarnation, getCondition) 
+	(SelectContext.checkVariables, SelectContext.prettyPrint) 
+	(exprFromTriple, Parser.exprFromPattern, Parser.selectQueryExpr):
+	Don't attempt any relational mapping here, but generate
+	StatementPattern nodes for the statement patterns. This implies
+	that variables are checked in certain context to make sure they're
+	bound, but they are not mapped.
+
+2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/serql.g (pathExprList, pathExpr, pathExprTail, node)
 	(nodeElemList): Replace symbolic token references by explicit
 	string references for better legibility.

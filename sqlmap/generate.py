@@ -61,4 +61,4 @@ class SqlGenerator(object):
 
 def generate(expr):
     generator = SqlGenerator()
-    return rewrite.treeApplyObject(generator, expr)
+    return rewrite.mapObject(generator, expr)

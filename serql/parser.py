@@ -64,7 +64,7 @@ class SelectContext(object):
             return nodes.And(*subconds)
 
     def checkVariables(self, expr):
-        def operation(expr, subexprsModif):
+        def postOp(expr, subexprsModif):
             assert isinstance(expr, nodes.Var)
             assert subexprsModif == False
 
@@ -76,7 +76,7 @@ class SelectContext(object):
 
             return expr, False
 
-        return rewrite.treeMatchApply(nodes.Var, operation, expr)[0]
+        return rewrite.exprMatchApply(expr, nodes.Var, postOp=postOp)[0]
 
     def prettyPrint(self, stream=None, indent=0):
         if stream == None:
@@ -232,7 +232,7 @@ class Parser(antlr.LLkParser):
         """Expand all QName nodes in `expr` into their corresponding
         URIs."""
 
-        def operation(expr, subexprsModif):
+        def postOp(expr, subexprsModif):
             assert isinstance(expr, nodes.QName)
             assert subexprsModif == False
 
@@ -244,7 +244,7 @@ class Parser(antlr.LLkParser):
                     line=expr.line, column=expr.column,
                     fileName=expr.fileName)
 
-        return rewrite.treeMatchApply(nodes.QName, operation, expr)[0]
+        return rewrite.exprMatchApply(expr, nodes.QName, postOp=postOp)[0]
 
     def checkPrefix(self, token):
         if token.getText() == '_':

@@ -6,22 +6,50 @@ def curry(function, arg1):
 
     return curried
 
-def treeApply(operation, expr):
+def exprApply(expr, preOp=None, postOp=None):
     assert isinstance(expr, nodes.ExpressionNode)
 
-    subexprsModif = False
+    modif = False
+
+    if preOp != None:
+        expr, modif = preOp(expr)
+
     for i, subexpr in enumerate(expr):
-        (expr[i], modif) = treeApply(operation, subexpr)
-        subexprsModif = subexprsModif or modif
+        expr[i], m = exprApply(subexpr, preOp, postOp)
+        modif = modif or m
 
-    return operation(expr, subexprsModif)
+    if postOp != None:
+        return postOp(expr, modif)
+    else:
+        return expr, modif
 
-def treeApplyObject(object, expr):
+def exprMatchApply(expr, nodeType, preOp=None, postOp=None):
+    if preOp != None:
+        def preOpWrapper(expr):
+            if not isinstance(expr, nodeType):
+                return expr, False
+            else:
+                return preOp(expr)
+    else:
+        preOpWrapper = None
+
+    if postOp != None:
+        def postOpWrapper(expr, subexprsModif):
+            if not isinstance(expr, nodeType):
+                return expr, subexprsModif
+            else:
+                return postOp(expr, subexprsModif)
+    else:
+        postOpWrapper = None
+
+    return exprApply(expr, preOp=preOpWrapper, postOp=postOpWrapper)
+
+def mapObject(object, expr):
     assert isinstance(expr, nodes.ExpressionNode)
 
     procSubexprs = []
     for subexpr in expr:
-        procSubexprs.append(treeApplyObject(object, subexpr))
+        procSubexprs.append(mapObject(object, subexpr))
 
     if hasattr(object, expr.__class__.__name__):
         method = getattr(object, expr.__class__.__name__)
@@ -29,17 +57,9 @@ def treeApplyObject(object, expr):
     else:
         return tuple([expr,] + procSubexprs)
 
-def treeMatchApply(nodeType, operation, expr):
-    def operationWrapper(expr, subexprsModif):
-        if not isinstance(expr, nodeType):
-            return (expr, subexprsModif)
-        else:
-            return operation(expr, subexprsModif)
-
-    return treeApply(operationWrapper, expr)
 
 def flattenAssoc(nodeType, expr):
-    def operation(expr, subexprsModif):
+    def postOp(expr, subexprsModif):
         i = 0
         for subexpr in expr:
             if isinstance(subexpr, nodeType):
@@ -51,10 +71,10 @@ def flattenAssoc(nodeType, expr):
 
         return expr, subexprsModif
 
-    return treeMatchApply(nodeType, operation, expr)
+    return exprMatchApply(expr, nodeType, postOp=postOp)
 
 def promoteSelect(expr):
-    def operation(expr, subexprsModif):
+    def postOp(expr, subexprsModif):
         assert isinstance(expr, nodes.Product)
 
         promoted = []
@@ -75,10 +95,10 @@ def promoteSelect(expr):
         else:
             return expr, False
 
-    return treeMatchApply(nodes.Product, operation, expr)
+    return exprMatchApply(expr, nodes.Product, postOp=postOp)
 
 def flattenSelect(expr):
-    def operation(expr, subexprsModif):
+    def postOp(expr, subexprsModif):
         (rel, predicate) = expr
         if not isinstance(rel, nodes.Select):
             return expr, subexprsModif
@@ -87,4 +107,4 @@ def flattenSelect(expr):
                                  nodes.And(rel[1], predicate)),
                     True)
 
-    return treeMatchApply(nodes.Select, operation, expr)
+    return exprMatchApply(expr, nodes.Select, postOp=postOp)

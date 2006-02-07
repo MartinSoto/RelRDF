@@ -1,3 +1,17 @@
+2006-02-07  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* serql/parser.py (SelectContext.checkVariables) 
+	(Parser.expandQNames): Adapted to new treeApplyMatch's calling
+	convention.
+
+	* expression/rewrite.py (exprApply): Renamed from treeApply. Now
+	takes optional preorder and postorder operations.
+	(exprMatchApply): Renamed from treeMatchApply. Also supports pre
+	and postorder operations.
+	(mapObject): Renamed from treeApplyObject.
+	(flattenAssoc, flattenSelect, promoteSelect): Adapted to new
+	treeApplyMatch's calling convention.
+
 2006-02-06  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* serql/parser.py (SelectContext.checkVariables.operation) 

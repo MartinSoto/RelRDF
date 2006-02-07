@@ -1,5 +1,10 @@
 2006-02-07  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* serql/serql.g (URI_CHAR): Accept the fragment delimiter '#' as
+	valid URI character.
+
+2006-02-07  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* sqlmap/map.py: New module for mapping generic translated
 	expressions to a relational friendly form.
 

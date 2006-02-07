@@ -502,7 +502,7 @@ SCHEME
 
 protected
 URI_CHAR
-    :   URI_ALPHA | URI_DIGIT | URI_RESERVED | URI_MARK | URI_ESCAPE
+    :   URI_ALPHA | URI_DIGIT | URI_RESERVED | URI_MARK | URI_ESCAPE | '#'
     ;
 
 protected

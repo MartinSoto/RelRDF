@@ -106,7 +106,13 @@ class RelationalMapper(object):
 
         def postOp(expr, subexprsModif):
             if isinstance(expr, nodes.MapResult):
-                return self.popScope().expandVariables(expr)
+                scope = self.popScope()
+                expr, modif = scope.expandVariables(expr)
+                cond = scope.getCondition()
+                if cond != None:
+                    expr[0] = nodes.Select(expr[0], cond)
+                    modif = True
+                return expr, modif
             elif isinstance(expr, nodes.StatementPattern):
                 return self.mapPattern(*expr)
             else:
@@ -121,3 +127,40 @@ class RelationalMapper(object):
 
         stream.write('Incarnations:\n')
         pprint.pprint(self.incarnations, stream, indent + 2)
+
+
+class VersionMapper(RelationalMapper):
+    __slots__ = ('versionNumber')
+
+    def __init__(self, versionNumber):
+        super(VersionMapper, self).__init__()
+
+        self.versionNumber = versionNumber
+
+    def mapPattern(self, subject, pred, object):
+        stmtIncr = self.getIncarnation('statements')
+        verIncr = self.getIncarnation('version_statement')
+
+        conds = []
+        for id, node in (('subject', subject), ('predicate', pred),
+                         ('object', object)):
+            if isinstance(node, nodes.Var):
+                self.currentScope().addBinding(node.name, 'statements',
+                                               stmtIncr, id)
+            else:
+                ref = nodes.FieldRef('statements', stmtIncr, id)
+                conds.append(nodes.Equal(ref, node))
+
+        rel = nodes.Product(nodes.Relation('version_statement', verIncr),
+                            nodes.Relation('statements', stmtIncr))
+
+        conds.append(
+            nodes.And(
+                nodes.Equal(
+                    nodes.FieldRef('version_statement', verIncr, 'version_id'),
+                    nodes.Literal(str(self.versionNumber))),
+                nodes.Equal(
+                    nodes.FieldRef('version_statement', verIncr, 'stmt_id'),
+                    nodes.FieldRef('statements', stmtIncr, 'id'))))
+
+        return nodes.Select(rel, nodes.And(*conds)), True

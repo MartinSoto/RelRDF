@@ -1,5 +1,19 @@
 2006-02-07  Martin Soto  <martinsoto@users.sourceforge.net>
 
+	* sqlmap/map.py: New module for mapping generic translated
+	expressions to a relational friendly form.
+
+	* serql/environment.py (ParseEnvironment.parse): Don't simplify
+	here.
+
+	* expression/rewrite.py (flattenAssoc.postOp): The Golden Rule of
+	Python Iterators: Never iterate over a data structure and modify
+	it at the same time.
+	(simplify): Move the simplification code from serql/environment.py
+	since it is generic.
+
+2006-02-07  Martin Soto  <martinsoto@users.sourceforge.net>
+
 	* serql/parser.py (SelectContext.checkVariables) 
 	(Parser.expandQNames): Adapted to new treeApplyMatch's calling
 	convention.

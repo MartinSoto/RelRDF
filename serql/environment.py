@@ -12,8 +12,7 @@ import SerQLParser
 
 class ParseEnvironment(object):
     """A parsing environment for SerQL. It contains high level
-    operations for obtaining normalized expression trees out of SerQL
-    queries."""
+    operations for obtaining expression trees out of SerQL queries."""
 
     __slots__ = ('prefixes')
 
@@ -54,31 +53,5 @@ class ParseEnvironment(object):
                 raise new
             else:
                 raise e
-
-        return self.simplifySerQLExpr(expr)
-
-    @staticmethod
-    def simplifySerQLExpr(expr):
-        """Simplify a expression resulting from parsing a SerQL query."""
-
-        modif = True
-        while modif:
-            modif = False
-
-            # Flatten associative operators.
-            (expr, m) = rewrite.flattenAssoc(nodes.Product, expr)
-            modif = modif or m
-            (expr, m) = rewrite.flattenAssoc(nodes.Or, expr)
-            modif = modif or m
-            (expr, m) = rewrite.flattenAssoc(nodes.And, expr)
-            modif = modif or m
-
-            # Move selects up in the tree.
-            (expr, modif) = rewrite.promoteSelect(expr)
-            modif = modif or m
-
-            # Flatten nested selects.
-            (expr, modif) = rewrite.flattenSelect(expr)
-            modif = modif or m
 
         return expr

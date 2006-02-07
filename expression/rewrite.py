@@ -61,10 +61,11 @@ def mapObject(object, expr):
 def flattenAssoc(nodeType, expr):
     def postOp(expr, subexprsModif):
         i = 0
-        for subexpr in expr:
+        while i < len(expr):
+            subexpr = expr[i]
             if isinstance(subexpr, nodeType):
                 expr[i:i+1] = subexpr
-                i += len(expr)
+                i += len(subexpr)
                 subexprsModif = True
             else:
                 i += 1
@@ -108,3 +109,28 @@ def flattenSelect(expr):
                     True)
 
     return exprMatchApply(expr, nodes.Select, postOp=postOp)
+
+def simplify(expr):
+    """Simplify a expression."""
+
+    modif = True
+    while modif:
+        modif = False
+
+        # Flatten associative operators.
+        (expr, m) = flattenAssoc(nodes.Product, expr)
+        modif = modif or m
+        (expr, m) = flattenAssoc(nodes.Or, expr)
+        modif = modif or m
+        (expr, m) = flattenAssoc(nodes.And, expr)
+        modif = modif or m
+
+        # Move selects up in the tree.
+        (expr, m) = promoteSelect(expr)
+        modif = modif or m
+
+        # Flatten nested selects.
+        (expr, m) = flattenSelect(expr)
+        modif = modif or m
+
+    return expr

@@ -159,7 +159,6 @@ class FieldRef(ExpressionNode):
 class StatementPattern(ExpressionNode):
     """An expression node representing an statement pattern."""
 
-
     __slots__ = ()
 
     def __init__(self, subj, pred, obj):
@@ -307,7 +306,7 @@ class Product(ExpressionNode):
 
 
 class Select(ExpressionNode):
-    """A node representing an optional relation."""
+    """A node representing a select expression."""
 
     __slots__ = ()
 
@@ -320,7 +319,7 @@ class Select(ExpressionNode):
 
 class MapResult(ExpressionNode):
     """Specify the column names of a result table, together with the
-    relation incarnations they are bound to."""
+    expressions they are bound to."""
 
     __slots__ = ('columnNames')
 

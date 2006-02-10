@@ -109,34 +109,38 @@ pathExprTail [n1] returns [expr]
         )?
     ;
 
-edge returns [obj]
-    :   obj=var
-    |   obj=uri
+edge returns [expr]
+    :   expr=var
+    |   expr=uri
     ;
 
-node returns [obj]
-    :   "{" ( obj=nodeElemList )? "}"
+node returns [exprList]
+    :   "{" ( exprList=nodeElemList )? "}"
     ;
 
-nodeElemList returns [obj]
+nodeElemList returns [exprList]
     :   ne1=nodeElem
-        { obj = [ne1] }
+        { exprList = ne1 }
         (   "," ne=nodeElem
-            { obj.append(ne) }
+            { exprList.extend(ne) }
         )*
     ;
 
-nodeElem returns [obj]
-    :   obj=var
-    |   obj=uri
-    |   obj=bnode
-    |   obj=literal
-    |   obj=reifiedStat
+nodeElem returns [exprList]
+    :   expr=var
+        { exprList = [expr] }
+    |   expr=uri
+        { exprList = [expr] }
+    |   expr=bnode
+        { exprList = [expr] }
+    |   expr=literal
+        { exprList = [expr] }
+    |   exprList=reifiedStat
     ;
 
-reifiedStat returns [obj]
+reifiedStat returns [exprList]
     :   n1=node e=edge n2=node
-        { obj = nodes.NotSupported() }
+        { exprList = self.exprListFromReifPattern(n1, e, n2) }
     ;
 
 booleanExpr returns [expr]
@@ -181,11 +185,11 @@ varOrValue returns [expr]
     |   expr=value
     ;
 
-var returns [obj]
+var returns [expr]
     :   nc:NC_NAME
-        { obj = nodes.Var(nc.getText(), line=nc.getLine(),
-                          column=nc.getColumn(),
-                          fileName=self.getFilename()) }
+        { expr = nodes.Var(nc.getText(), line=nc.getLine(),
+                           column=nc.getColumn(),
+                           fileName=self.getFilename()) }
     ;
 
 value returns [expr]
@@ -194,26 +198,26 @@ value returns [expr]
     |   expr=literal
     ;
 
-uri returns [obj]
+uri returns [expr]
     :   uri:FULL_URI
-        { obj = nodes.Uri(uri.getText()) }
+        { expr = nodes.Uri(uri.getText()) }
     |   qn:QNAME
-        { obj = nodes.QName(qn.getText(), line=qn.getLine(),
-                            column=qn.getColumn(),
-                            fileName=self.getFilename()) }
+        { expr = nodes.QName(qn.getText(), line=qn.getLine(),
+                             column=qn.getColumn(),
+                             fileName=self.getFilename()) }
     ;
 
-bnode returns [obj]
+bnode returns [expr]
     :   bn:BNODE
-        { obj = nodes.NotSupported() }
+        { expr = nodes.NotSupported() }
     ;
 
 
-literal returns [obj]
+literal returns [expr]
     :   str:STRING
-        { obj = nodes.Literal(str.getText()) }
+        { expr = nodes.Literal(str.getText()) }
     |   lt:LITERAL
-        { obj = nodes.Literal(lt.getText()) }
+        { expr = nodes.Literal(lt.getText()) }
     |   { sign = 1 }
         (   MINUS
             { sign = -1 }
@@ -225,7 +229,7 @@ literal returns [obj]
         |   d:DECIMAL
             { value = sign * float(d.getText()) }
         )
-        { obj = nodes.Literal(value) }
+        { expr = nodes.Literal(value) }
     ;
 
 

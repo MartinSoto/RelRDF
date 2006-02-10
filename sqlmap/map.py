@@ -53,7 +53,14 @@ class RelationalMapper(object):
 
     __slots__ = ('scopeStack',
                  'incarnations')
-    
+
+    RDF_TYPE = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
+    RDF_STATEMENT = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement')
+    RDF_SUBJECT = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#subject')
+    RDF_PREDICATE = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate')
+    RDF_OBJECT = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#object')
+
+
     def __init__(self):
         self.incarnations = {}
 
@@ -98,6 +105,16 @@ class RelationalMapper(object):
         else:
             return nodes.Select(rel, nodes.And(*conds)), True
 
+    def mapReifPattern(self, var, subject, pred, object):
+        return nodes.Product(self.mapPattern(var, self.RDF_TYPE,
+                                             self.RDF_STATEMENT)[0],
+                             self.mapPattern(var, self.RDF_SUBJECT,
+                                             subject)[0],
+                             self.mapPattern(var, self.RDF_PREDICATE,
+                                             pred)[0],
+                             self.mapPattern(var, self.RDF_OBJECT,
+                                             object)[0]), True
+
     def mapExpression(self, expr):
         def preOp(expr):
             if isinstance(expr, nodes.MapResult):
@@ -115,6 +132,8 @@ class RelationalMapper(object):
                 return expr, modif
             elif isinstance(expr, nodes.StatementPattern):
                 return self.mapPattern(*expr)
+            elif isinstance(expr, nodes.ReifStmtPattern):
+                return self.mapReifPattern(*expr)
             else:
                 return expr, subexprsModif
 

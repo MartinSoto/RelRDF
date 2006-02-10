@@ -1,3 +1,28 @@
+2006-02-10  Martin Soto  <martinsoto@users.sourceforge.net>
+
+	* sqlmap/map.py (RelationalMapper.RDF_TYPE) 
+	(RelationalMapper.RDF_STATEMENT, RelationalMapper.RDF_SUBJECT) 
+	(RelationalMapper.RDF_PREDICATE, RelationalMapper.RDF_OBJECT) 
+	(RelationalMapper.mapReifPattern) 
+	(RelationalMapper.mapExpression.postOp): Map reified statement
+	patterns into normal statement patterns using the standard RDFS
+	reification relations.
+
+	* serql/serql.g: Use expr instead of obj for many parameters and
+	return values, to emphasize the fact that they are expressions.
+
+	* serql/serql.g (reifiedStat, nodeElem, nodeElemList):
+	* serql/parser.py (SelectContext.__slots__) 
+	(SelectContext.__init__, SelectContext.addReifPattern) 
+	(SelectContext.getReifPatterns, SelectContext.prettyPrint) 
+	(Parser.exprListFromReifPattern, Parser.selectQueryExpr): 
+	Support SerQL reified statement patterns.
+
+	* expression/nodes.py (ExpressionNode._checkSubexprs): Improve
+	error message.
+	(ReifStmtPattern.__init__): New expression node for reified
+	statement patterns.
+
 2006-02-07  Martin Soto  <martinsoto@users.sourceforge.net>
 
 	* sqlmap/map.py (RelationalMapper.mapExpression.postOp): Include

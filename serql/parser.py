@@ -13,11 +13,15 @@ class SelectContext(object):
     SerQL SELECT statement."""
 
     __slots__ = ('bound',
-                 'indepMapping')
+                 'indepMapping',
+                 'reifPatternVarNr',
+                 'reifPatterns')
 
     def __init__(self):
         self.bound = set()
         self.indepMapping = {}
+        self.reifPatternVarNr = 1
+        self.reifPatterns = []
 
     def getIndependent(self):
         return frozenset(self.indepMapping.values())
@@ -48,6 +52,18 @@ class SelectContext(object):
 
         self.indepMapping[var1.name] = group
         self.indepMapping[var2.name] = group
+
+    def addReifPattern(self, subject, predicate, object):
+        # Use a variable name that isn't allowed in SerQL.
+        var = nodes.Var('#stmt_%d#' % self.reifPatternVarNr)
+        self.reifPatternVarNr += 1
+
+        self.reifPatterns.append(nodes.ReifStmtPattern(var, subject,
+                                                       predicate, object))
+        return var
+
+    def getReifPatterns(self):
+        return tuple(self.reifPatterns)
 
     def getCondition(self):
         subconds = []
@@ -86,6 +102,8 @@ class SelectContext(object):
         pprint.pprint(self.bound, stream, indent + 2)
         stream.write('\nIndependent groups:\n')
         pprint.pprint(self.independent, stream, indent + 2)
+        stream.write('\Reified statement patterns:\n')
+        pprint.pprint(self.reifPatterns, stream, indent + 2)
 
 
 class Parser(antlr.LLkParser):
@@ -202,15 +220,53 @@ class Parser(antlr.LLkParser):
         else:
             return rels[0]
 
+    def exprListFromReifPattern(self, nodeList1, edge, nodeList2):
+        vars = []
+
+        indepVar1 = None
+        indepVar2 = None
+
+        for node1 in nodeList1:
+            for node2 in nodeList2:
+                vars.append(self.currentContext().addReifPattern(node1, edge,
+                                                                 node2))
+
+                if isinstance(node1, nodes.Var):
+                    self.currentContext().addBound(node1.name)
+                    if indepVar1:
+                        self.currentContext() \
+                            .addIndependentPair(indepVar1, node1)
+                    else:
+                        indepVar1 = node1
+
+                if isinstance(edge, nodes.Var):
+                    self.currentContext().addBound(edge.name)
+
+                if isinstance(node2, nodes.Var):
+                    self.currentContext().addBound(node2.name)
+                    if indepVar2:
+                        self.currentContext() \
+                            .addIndependentPair(indepVar2, node2)
+                    else:
+                        indepVar2 = node2
+
+        return vars
+
     def graphPatternExpr(self, node):
         cond = self.currentContext().getCondition()
         if cond:
             node = nodes.Select(node, cond)
         return node
 
-    def selectQueryExpr(self, (columnNames, mappingExprs), baseExpr,
+    def selectQueryExpr(self, (columnNames, mappingExprs), patternExpr,
                         condExpr):
-        current = baseExpr
+        current = patternExpr
+
+        patterns = self.currentContext().getReifPatterns()
+        if len(patterns) > 0:
+            # Add the reified statement patterns to the pattern
+            # expression.
+            current = nodes.Product(current, *patterns)
 
         if condExpr:
             self.currentContext().checkVariables(condExpr)

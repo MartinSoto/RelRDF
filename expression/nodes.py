@@ -16,7 +16,8 @@ class ExpressionNode(list):
     def _checkSubexprs(self):
         for i, subexpr in enumerate(self):
             assert isinstance(subexpr, ExpressionNode), \
-                   "subexpression %d is not an ExpressionNode" % i
+                   "subexpression %d '%s' is not an ExpressionNode" % \
+                   (i, subexpr)
 
         return True
 
@@ -166,6 +167,18 @@ class StatementPattern(ExpressionNode):
 
     def copyNode(self, subj, pred, obj):
         return self.__class__(subj, pred, obj)
+
+
+class ReifStmtPattern(ExpressionNode):
+    """An expression node representing a reified statement pattern."""
+
+    __slots__ = ()
+
+    def __init__(self, var, subj, pred, obj):
+        super(ReifStmtPattern, self).__init__(var, subj, pred, obj)
+
+    def copyNode(self, var, subj, pred, obj):
+        return self.__class__(var, subj, pred, obj)
 
 
 class Operation(ExpressionNode):

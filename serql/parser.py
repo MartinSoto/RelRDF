@@ -4,6 +4,7 @@ import pprint
 import antlr
 
 import error
+import commonns
 from expression import nodes
 from expression import rewrite
 from expression import uri
@@ -117,11 +118,11 @@ class Parser(antlr.LLkParser):
 
     # The standard SerQL predefined prefixes.
     basePrefixes = {
-        'rdf': uri.Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
-        'rdfs': uri.Namespace('http://www.w3.org/2000/01/rdf-schema#'),
-        'xsd': uri.Namespace('http://www.w3.org/2001/XMLSchema#'),
-        'owl': uri.Namespace('http://www.w3.org/2002/07/owl#'),
-        'serql': uri.Namespace('http://www.openrdf.org/schema/serql#')}
+        'rdf': commonns.rdf,
+        'rdfs': commonns.rdfs,
+        'xsd': commonns.xsd,
+        'owl': commonns.owl,
+        'serql': commonns.serql}
 
 
     def __init__(self, *args, **kwargs):

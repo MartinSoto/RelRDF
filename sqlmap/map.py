@@ -1,5 +1,6 @@
 import pprint
 
+import commonns
 from expression import nodes
 from expression import rewrite
 
@@ -54,11 +55,11 @@ class RelationalMapper(object):
     __slots__ = ('scopeStack',
                  'incarnations')
 
-    RDF_TYPE = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
-    RDF_STATEMENT = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement')
-    RDF_SUBJECT = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#subject')
-    RDF_PREDICATE = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate')
-    RDF_OBJECT = nodes.Uri('http://www.w3.org/1999/02/22-rdf-syntax-ns#object')
+    RDF_TYPE = nodes.Uri(commonns.rdf.type)
+    RDF_STATEMENT = nodes.Uri(commonns.rdf.Statement)
+    RDF_SUBJECT = nodes.Uri(commonns.rdf.subject)
+    RDF_PREDICATE = nodes.Uri(commonns.rdf.predicate)
+    RDF_OBJECT = nodes.Uri(commonns.rdf.object)
 
 
     def __init__(self):

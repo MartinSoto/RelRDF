@@ -24,6 +24,21 @@ class ExpressionNode(list):
     def copyNode(self, *subexprs):
         return self.__class__(*subexprs)
 
+    def __repr__(self):
+        attribs = self.attributesRepr()
+        subexprs = ', '.join([repr(subexpr) for subexpr in self])
+
+        if attribs != '' and subexprs != '':
+            return "%s(%s, %s)" % (self.__class__.__name__,
+                                   attribs, subexprs)
+        elif attribs != '':
+            return "%s(%s)" % (self.__class__.__name__, attribs)
+        else:
+            return "%s(%s)" % (self.__class__.__name__, subexprs)
+
+    def attributesRepr(self):
+        return ''
+
     def prettyPrint(self, stream=None, indentLevel=0):
         if stream == None:
             stream = sys.stdout
@@ -79,6 +94,9 @@ class Uri(ExpressionNode):
     def copyNode(self):
         return self.__class__(self.uri)
 
+    def attributesRepr(self):
+        return repr(self.uri)
+
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.uri)
 
@@ -92,6 +110,9 @@ class QName(LocationNode):
         super(QName, self).__init__(line, column, fileName)
 
         self.qname = qname 
+
+    def attributesRepr(self):
+        return repr(self.qname)
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.qname)
@@ -113,6 +134,9 @@ class Literal(ExpressionNode):
     def copyNode(self):
         return self.__class__(self.literal)
 
+    def attributesRepr(self):
+        return repr(self.literal)
+
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.literal)
 
@@ -126,6 +150,9 @@ class Var(LocationNode):
         super(Var, self).__init__(line, column, fileName)
 
         self.name = name
+
+    def attributesRepr(self):
+        return repr(self.name)
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.name)
@@ -145,13 +172,13 @@ class FieldRef(ExpressionNode):
         self.incarnation = incarnation
         self.fieldId = fieldId
 
-    def __repr__(self):
-        return "%s_%d['%s']" % (self.relName,
-                                self.incarnation,
-                                self.fieldId)
-
     def copyNode(self):
         return self.__class__(self.relName, self.incarnation, self.fieldId)
+
+    def attributesRepr(self):
+        return '%s, %s, %s' % (repr(self.relName),
+                               repr(self.incarnation),
+                               repr(self.fieldId))
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % str(self))
@@ -292,6 +319,9 @@ class Relation(ExpressionNode):
     def copyNode(self):
         return self.__class__(self.name, self.incarnation)
 
+    def attributesRepr(self):
+        return '%s, %s' % (repr(self.name), repr(self.incarnation))
+
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s_%d' % (self.name, self.incarnation))
 
@@ -343,6 +373,9 @@ class MapResult(ExpressionNode):
 
     def copyNode(self, rel, *mappingExprs):
         return self.__class__(self.columnNames, rel, *mappingExprs)
+
+    def attributesRepr(self):
+        return repr(self.columnNames)
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' [%s]' % ', '.join(self.columnNames))

@@ -6,6 +6,7 @@ import antlr
 import error
 from expression import nodes
 from expression import rewrite
+from expression import uri
 
 
 class SelectContext(object):
@@ -116,11 +117,11 @@ class Parser(antlr.LLkParser):
 
     # The standard SerQL predefined prefixes.
     basePrefixes = {
-        'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-        'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-        'xsd': 'http://www.w3.org/2001/XMLSchema#',
-        'owl': 'http://www.w3.org/2002/07/owl#',
-        'serql': 'http://www.openrdf.org/schema/serql#'}
+        'rdf': uri.Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+        'rdfs': uri.Namespace('http://www.w3.org/2000/01/rdf-schema#'),
+        'xsd': uri.Namespace('http://www.w3.org/2001/XMLSchema#'),
+        'owl': uri.Namespace('http://www.w3.org/2002/07/owl#'),
+        'serql': uri.Namespace('http://www.openrdf.org/schema/serql#')}
 
 
     def __init__(self, *args, **kwargs):
@@ -160,13 +161,14 @@ class Parser(antlr.LLkParser):
         """Return the current (topmost) context."""
         return self.contextStack[-1]
 
-    def createLocalPrefix(self, prefix, uri):
+    def createLocalPrefix(self, prefix, uriStr):
         """Create a new local prefix `prefix` with associated URI
         `uri`."""
-        self.localPrefixes[prefix] = uri
+        self.localPrefixes[prefix] = uri.Namespace(uriStr)
 
     def getPrefixUri(self, prefix):
-        """Return the URI associated to namespace prefix `prefix`.
+        """Return the uri.Namespace object associated to namespace
+        prefix `prefix`.
 
         Prefixes will be searched for first in the locally defined
         set, then in the external set provided when constructing the
@@ -177,7 +179,7 @@ class Parser(antlr.LLkParser):
             return self.localPrefixes[prefix]
         except KeyError:
             try:
-                return self.externalPrefixes[prefix]
+                return uri.Namespace(self.externalPrefixes[prefix])
             except KeyError:
                 return self.basePrefixes[prefix]
 
@@ -278,11 +280,11 @@ class Parser(antlr.LLkParser):
         return current
 
     def resolveQName(self, qName):
-        """Create a URI expression node corresponding to qualified
+        """Create an URI expression node corresponding to qualified
         name `qName`."""
         pos = qName.index(':')
-        base = self.getPrefixUri(qName[:pos])
-        return nodes.Uri(base + qName[pos + 1:])
+        namespace = self.getPrefixUri(qName[:pos])
+        return nodes.Uri(namespace[qName[pos + 1:]])
 
     def expandQNames(self, expr):
         """Expand all QName nodes in `expr` into their corresponding

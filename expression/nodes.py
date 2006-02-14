@@ -7,11 +7,17 @@ import literal
 class ExpressionNode(list):
     """A node in a expression tree."""
 
-    __slots__ = ()
+    __slots__ = ('line',
+                 'column',
+                 'fileName')
 
     def __init__(self, *subexprs):
         super(ExpressionNode, self).__init__(subexprs)
         assert self._checkSubexprs()
+
+        self.line = None
+        self.column = None
+        self.fileName = None
 
     def _checkSubexprs(self):
         for i, subexpr in enumerate(self):
@@ -20,6 +26,16 @@ class ExpressionNode(list):
                    (i, subexpr)
 
         return True
+
+    def setPosition(self, token=None, parser=None):
+        """Set the position of `self` to the position of the provided
+        token and the file name of the provided parser."""
+        if token is not None:
+            self.line = token.getLine()
+            self.column = token.getColumn()
+
+        if parser is not None:
+            self.fileName = parser.getFilename()
 
     def copyNode(self, *subexprs):
         return self.__class__(*subexprs)
@@ -56,21 +72,6 @@ class ExpressionNode(list):
         pass
 
 
-class LocationNode(ExpressionNode):
-    """An expression node with location information."""
-
-    __slots__ = ('line',
-                 'column',
-                 'fileName')
-
-    def __init__(self, line=None, column=None, fileName=None):
-        super(LocationNode, self).__init__()
-
-        self.line = line
-        self.column = column
-        self.fileName = fileName
-
-
 class NotSupported(ExpressionNode):
     """An expression node representing a subexpression that is not
     currently supported by the parser."""
@@ -101,13 +102,13 @@ class Uri(ExpressionNode):
         stream.write(' %s' % self.uri)
 
 
-class QName(LocationNode):
+class QName(ExpressionNode):
     """An expression node representing a qualified name."""
 
     __slots__ = ('qname')
 
-    def __init__(self, qname, line=None, column=None, fileName=None):
-        super(QName, self).__init__(line, column, fileName)
+    def __init__(self, qname):
+        super(QName, self).__init__()
 
         self.qname = qname 
 
@@ -141,13 +142,13 @@ class Literal(ExpressionNode):
         stream.write(' %s' % self.literal)
 
 
-class Var(LocationNode):
+class Var(ExpressionNode):
     """An expression node representing a SerQL variable by name."""
 
     __slots = ('name')
 
-    def __init__(self, name, line=None, column=None, fileName=None):
-        super(Var, self).__init__(line, column, fileName)
+    def __init__(self, name):
+        super(Var, self).__init__()
 
         self.name = name
 

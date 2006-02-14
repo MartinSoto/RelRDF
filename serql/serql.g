@@ -187,9 +187,8 @@ varOrValue returns [expr]
 
 var returns [expr]
     :   nc:NC_NAME
-        { expr = nodes.Var(nc.getText(), line=nc.getLine(),
-                           column=nc.getColumn(),
-                           fileName=self.getFilename()) }
+        { expr = nodes.Var(nc.getText()); \
+          expr.setPosition(nc, self) }
     ;
 
 value returns [expr]
@@ -202,9 +201,8 @@ uri returns [expr]
     :   uri:FULL_URI
         { expr = nodes.Uri(uri.getText()) }
     |   qn:QNAME
-        { expr = nodes.QName(qn.getText(), line=qn.getLine(),
-                             column=qn.getColumn(),
-                             fileName=self.getFilename()) }
+        { expr = nodes.QName(qn.getText()); \
+          expr.setPosition(qn, self) }
     ;
 
 bnode returns [expr]

@@ -25,7 +25,7 @@ try:
         expr.prettyPrint()
         print
 
-        mapper = map.VersionMapper(1)
+        mapper = map.MultiVersionMapper('http://ex.com/versions#')
         expr = mapper.mapExpression(expr)
         expr.prettyPrint()
         print

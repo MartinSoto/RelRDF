@@ -116,13 +116,14 @@ class Parser(antlr.LLkParser):
                  'externalPrefixes',
                  'localPrefixes')
 
-    # The standard SerQL predefined prefixes.
+    # The standard SerQL predefined prefixes, and the relrdf prefix.
     basePrefixes = {
         'rdf': commonns.rdf,
         'rdfs': commonns.rdfs,
         'xsd': commonns.xsd,
         'owl': commonns.owl,
-        'serql': commonns.serql}
+        'serql': commonns.serql,
+        'relrdf': commonns.relrdf}
 
 
     def __init__(self, *args, **kwargs):

@@ -1,8 +1,10 @@
+import re
 import pprint
 
-import commonns
+from commonns import rdf, relrdf
 from expression import nodes
 from expression import rewrite
+from expression import uri
 
 
 class Scope(dict):
@@ -55,11 +57,11 @@ class RelationalMapper(object):
     __slots__ = ('scopeStack',
                  'incarnations')
 
-    RDF_TYPE = nodes.Uri(commonns.rdf.type)
-    RDF_STATEMENT = nodes.Uri(commonns.rdf.Statement)
-    RDF_SUBJECT = nodes.Uri(commonns.rdf.subject)
-    RDF_PREDICATE = nodes.Uri(commonns.rdf.predicate)
-    RDF_OBJECT = nodes.Uri(commonns.rdf.object)
+    RDF_TYPE = nodes.Uri(rdf.type)
+    RDF_STATEMENT = nodes.Uri(rdf.Statement)
+    RDF_SUBJECT = nodes.Uri(rdf.subject)
+    RDF_PREDICATE = nodes.Uri(rdf.predicate)
+    RDF_OBJECT = nodes.Uri(rdf.object)
 
 
     def __init__(self):
@@ -184,3 +186,109 @@ class VersionMapper(RelationalMapper):
                     nodes.FieldRef('statements', stmtIncr, 'id'))))
 
         return nodes.Select(rel, nodes.And(*conds)), True
+
+
+class MultiVersionMapper(RelationalMapper):
+    """
+    <version> relrdf:contains <stmt>
+
+    <version> := model:version_%d
+    <stmt> := model:stmt_%d
+    """
+
+    __slots__ = ('baseNs')
+
+    versionPattern = re.compile('version_([0-9]+)')
+    stmtPattern = re.compile('stmt_([0-9]+)')
+
+
+    def __init__(self, baseUri):
+        super(MultiVersionMapper, self).__init__()
+
+        self.baseNs = uri.Namespace(baseUri)
+
+    def mapContainsRel(self, subject, object):
+        verIncr = self.getIncarnation('version_statement')
+
+        conds = []
+
+        # 0 is never used as version or statement id.
+
+        for col, pattern, node in (('version_id', self.versionPattern,
+                                    subject),
+                                   ('stmt_id', self.stmtPattern, object)):
+            if isinstance(node, nodes.Uri):
+                local = self.baseNs.getLocal(node.uri)
+                if local is not None:
+                    m = pattern.match(local)
+                    if m is not None:
+                        numId = int(m.group(1))
+                    else:
+                        numId = 0
+                else:
+                    numId = 0
+
+                ref = nodes.FieldRef('version_statement', verIncr, col)
+                conds.append(nodes.Equal(ref, nodes.Literal(numId)))
+        else:
+            self.currentScope().addBinding(node.name, 'version_statement',
+                                           verIncr, col)
+
+        rel = nodes.Relation('version_statement', verIncr)
+
+        if len(conds) == 0:
+            return rel, True
+        else:
+            return nodes.Select(rel, nodes.And(*conds)), True
+
+    def mapPattern(self, subject, pred, object):
+        if isinstance(pred, nodes.Uri):
+            if pred.uri == relrdf.contains:
+                return self.mapContainsRel(subject, object)
+
+        stmtIncr = self.getIncarnation('statements')
+        verIncr = self.getIncarnation('not_versioned_statements')
+
+        conds = []
+        for col, node in (('subject', subject), ('predicate', pred),
+                          ('object', object)):
+            if isinstance(node, nodes.Var):
+                self.currentScope().addBinding(node.name, 'statements',
+                                               stmtIncr, col)
+            else:
+                ref = nodes.FieldRef('statements', stmtIncr, col)
+                conds.append(nodes.Equal(ref, node))
+
+        rel = nodes.Product(nodes.Relation('not_versioned_statements',
+                                           verIncr),
+                            nodes.Relation('statements', stmtIncr))
+
+        conds.append(
+            nodes.Equal(
+            nodes.FieldRef('not_versioned_statements', verIncr, 'stmt_id'),
+            nodes.FieldRef('statements', stmtIncr, 'id')))
+
+        return nodes.Select(rel, nodes.And(*conds)), True
+
+    def mapReifPattern(self, var, subject, pred, object):
+        stmtIncr = self.getIncarnation('statements')
+
+        self.currentScope().addBinding(var.name, 'statements',
+                                       stmtIncr, 'id')
+
+        conds = []
+        for col, node in (('subject', subject), ('predicate', pred),
+                          ('object', object)):
+            if isinstance(node, nodes.Var):
+                self.currentScope().addBinding(node.name, 'statements',
+                                               stmtIncr, col)
+            else:
+                ref = nodes.FieldRef('statements', stmtIncr, col)
+                conds.append(nodes.Equal(ref, node))
+
+        rel = nodes.Relation('statements', stmtIncr)
+
+        if len(conds) == 0:
+            return rel, True
+        else:
+            return nodes.Select(rel, nodes.And(*conds)), True

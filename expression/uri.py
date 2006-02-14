@@ -3,9 +3,15 @@ class Uri(str):
         return Uri(super(Uri, self).__add__(string))
 
 class Namespace(Uri):
-    def __getitem__(self, index):
-        return self + index
+    def __getitem__(self, localPart):
+        return self + localPart
 
-    def __getattr__(self, attr):
-        return self + attr
+    def __getattr__(self, localPart):
+        return self + localPart
+
+    def getLocal(self, uri):
+        if uri.startswith(self):
+            return uri[len(self):]
+        else:
+            return None
 

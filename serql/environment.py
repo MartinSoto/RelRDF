@@ -42,14 +42,14 @@ class ParseEnvironment(object):
         except antlr.RecognitionException, e:
             new = error.SyntaxError.create(e)
             if new:
-                new.fileName = fileName
+                new.extents.fileName = fileName
                 raise new
             else:
                 raise e
         except antlr.TokenStreamRecognitionException, e:
             new = error.SyntaxError.create(e.recog)
             if new:
-                new.fileName = fileName
+                new.extents.fileName = fileName
                 raise new
             else:
                 raise e

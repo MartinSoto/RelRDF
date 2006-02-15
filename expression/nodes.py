@@ -4,20 +4,69 @@ import uri
 import literal
 
 
+class NodeExtents(object):
+    """The extents of a node (with subnodes) in the source code."""
+
+    __slots__ = ('fileName',
+                 'startLine',
+                 'startColumn',
+                 'endLine',
+                 'endColumn')
+
+    def __init__(self):
+        super(NodeExtents, self).__init__()
+
+        self.fileName = None
+        self.startLine = None
+        self.startColumn = None
+        self.endLine = None
+        self.endColumn = None
+
+    def setStartFromToken(self, token, parser=None):
+        """Set the start fields of the extents object to the start of
+        the provided token, and use the file name from the provided
+        parser."""
+        self.startLine = token.getLine()
+        self.startColumn = token.getColumn()
+
+        if parser is not None:
+            self.fileName = parser.getFilename()
+
+    def setEndFromToken(self, token):
+        """Set the end fields of the extents object to the end of
+        the provided token."""
+        self.endLine = token.getLine()
+        self.endColumn = token.getColumn() + len(token.getText())
+
+    def setFromToken(self, token, parser=None):
+        """Set the fields of the extents object to the extents of
+        the provided token, and use the file name from the provided
+        parser."""
+        self.setStartFromToken(token, parser)
+        self.setEndFromToken(token)
+
+
 class ExpressionNode(list):
     """A node in a expression tree."""
 
-    __slots__ = ('line',
-                 'column',
-                 'fileName')
+    __slots__ = ('extents',
+                 'startSubexpr',
+                 'endSubexpr')
 
     def __init__(self, *subexprs):
         super(ExpressionNode, self).__init__(subexprs)
         assert self._checkSubexprs()
 
-        self.line = None
-        self.column = None
-        self.fileName = None
+        # Explicit node extents. If None, extents are calculated based
+        # on the subexpressions.
+        self.extents = None
+
+        # Start and end subexpressions for extent calculation. If
+        # startSubexpr is None, the first subexpression will be
+        # used. If endSubexpr is None, the last subexpression will be
+        # used.
+        self.startSubexpr = None
+        self.endSubexpr = None
 
     def _checkSubexprs(self):
         for i, subexpr in enumerate(self):
@@ -27,15 +76,76 @@ class ExpressionNode(list):
 
         return True
 
-    def setPosition(self, token=None, parser=None):
-        """Set the position of `self` to the position of the provided
-        token and the file name of the provided parser."""
-        if token is not None:
-            self.line = token.getLine()
-            self.column = token.getColumn()
+    def _getExplicitExtents(self):
+        if self.extents == None:
+            self.extents = NodeExtents()
+        return self.extents
 
-        if parser is not None:
-            self.fileName = parser.getFilename()
+    def setExtentsStartFromToken(self, token, parser=None):
+        """Set the start fields of `self`'s extents to the start of
+        the provided token, and use the file name from the provided
+        parser."""
+        extents = self._getExplicitExtents()
+        extents.setStartFromToken(token, parser)
+
+    def setExtentsEndFromToken(self, token):
+        """Set the end fields of `self`'s extents to the end of the
+        provided token."""
+        extents = self._getExplicitExtents()
+        extents.setEndFromToken(token)
+
+    def setExtentsFromToken(self, token, parser=None):
+        """Set `self`'s extents to the extents of the provided token,
+        and use the file name from the provided parser."""
+        extents = self._getExplicitExtents()
+        extents.setFromToken(token, parser)
+
+    def setStartSubexpr(self, subexpr):
+        """Set `subexpr`as the start subexpression for extent
+        calculation. This means that this node's extents will start
+        where `subexpr` extents start."""
+        self.startSubexpr = subexpr
+
+    def setEndSubexpr(self, subexpr):
+        """Set `subexpr`as the end subexpression for extent
+        calculation. This means that this node's extents will end
+        where `subexpr` extents ends."""
+        self.endSubexpr = subexpr
+
+    def getExtents(self):
+        """Return a NodeExtents object with the extents of the current
+        node (including its subnodes.)"""
+        expl = self._getExplicitExtents()
+        res = NodeExtents()
+
+        if expl.startLine is not None:
+            startExtents = expl
+        elif self.startSubexpr is not None:
+            startExtents = self.startSubexpr.getExtents()
+        elif len(self) > 0:
+            startExtents = self[0].getExtents()
+        else:
+            startExtents = None
+
+        if startExtents is not None:
+            res.startLine = startExtents.startLine
+            res.startColumn = startExtents.startColumn
+            res.fileName = startExtents.fileName            
+
+        if expl.endLine is not None:
+            endExtents = expl
+        elif self.endSubexpr is not None:
+            endExtents = self.endSubexpr.getExtents()
+        elif len(self) > 0:
+            endExtents = self[-1].getExtents()
+        else:
+            endExtents = None
+
+        if endExtents is not None:
+            res.endLine = endExtents.endLine
+            res.endColumn = endExtents.endColumn
+
+        return res
 
     def copyNode(self, *subexprs):
         return self.__class__(*subexprs)

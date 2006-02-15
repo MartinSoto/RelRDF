@@ -89,8 +89,7 @@ class SelectContext(object):
             if not expr.name in self.bound:
                 raise error.SemanticError(
                     msg=_("Unbound variable '%s'") % expr.name,
-                    line=expr.line, column=expr.column,
-                    fileName=expr.fileName)
+                    extents=expr.getExtents())
 
             return expr, False
 
@@ -300,16 +299,16 @@ class Parser(antlr.LLkParser):
                 return self.resolveQName(expr.qname), True
             except KeyError:
                 raise error.SemanticError(
-                    msg=_("Undefined namespace prefix '%s'") % expr.qname,
-                    line=expr.line, column=expr.column,
-                    fileName=expr.fileName)
+                    msg=_("Undefined namespace prefix '%s'") % \
+                    expr.qname[:expr.qname.index(':')],
+                    extents=expr.getExtents())
 
         return rewrite.exprMatchApply(expr, nodes.QName, postOp=postOp)[0]
 
     def checkPrefix(self, token):
         if token.getText() == '_':
+            extents = nodes.NodeExtents()
+            extents.setFromToken(token, self)
             raise error.SyntaxError(msg=_("Invalid namespace prefix '_'"),
-                                    line=token.getLine(),
-                                    column=token.getColumn(),
-                                    fileName=self.getFilename())
+                                    extents=extents)
         return token.getText()

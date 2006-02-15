@@ -45,11 +45,16 @@ prefixName returns [prefix]
 selectQuery returns [expr]
         { self.pushContext(); \
           condExpr = None}
-    :   "select" nameBindings=projection
+    :   select:"select" nameBindings=projection
         "from" patternExpr=graphPattern
-        (   "where" condExpr=booleanExpr )?
+        { endSubexpr = patternExpr }
+        (   "where" condExpr=booleanExpr
+            { endSubexpr = condExpr }
+        )?
         { expr = self.selectQueryExpr(nameBindings, patternExpr,
                                       condExpr); \
+          expr.setExtentsStartFromToken(select, self); \
+          expr.setEndSubexpr(endSubexpr); \
           self.popContext() }
     ;
 
@@ -158,9 +163,12 @@ andExpr returns [expr]
     ;
 
 booleanElem returns [expr]
-    :   "(" expr=booleanExpr ")"
-    |   "not" expr1=booleanElem
-        { expr = nodes.Not(expr1) }
+    :   lp:"(" expr=booleanExpr rp:")"
+        { expr.setStartExtentsFromToken(lp, self); \
+          expr.setEndExtentsFromToken(rp, self) }
+    |   notOp:"not" expr1=booleanElem
+        { expr = nodes.Not(expr1); \
+          expr.setStartExtentsFromToken(notOp, self) }
     |   expr1=varOrValue factory=compOp expr2=varOrValue
         { expr = factory(expr1, expr2) }
     ;
@@ -188,7 +196,7 @@ varOrValue returns [expr]
 var returns [expr]
     :   nc:NC_NAME
         { expr = nodes.Var(nc.getText()); \
-          expr.setPosition(nc, self) }
+          expr.setExtentsFromToken(nc, self) }
     ;
 
 value returns [expr]
@@ -199,10 +207,11 @@ value returns [expr]
 
 uri returns [expr]
     :   uri:FULL_URI
-        { expr = nodes.Uri(uri.getText()) }
+        { expr = nodes.Uri(uri.getText()); \
+          expr.setExtentsFromToken(uri, self) }
     |   qn:QNAME
         { expr = nodes.QName(qn.getText()); \
-          expr.setPosition(qn, self) }
+          expr.setExtentsFromToken(qn, self) }
     ;
 
 bnode returns [expr]
@@ -213,9 +222,11 @@ bnode returns [expr]
 
 literal returns [expr]
     :   str:STRING
-        { expr = nodes.Literal(str.getText()) }
+        { expr = nodes.Literal(str.getText()); \
+          expr.setExtentsFromToken(str, self) }
     |   lt:LITERAL
-        { expr = nodes.Literal(lt.getText()) }
+        { expr = nodes.Literal(lt.getText()); \
+          expr.setExtentsFromToken(lt, self) }
     |   { sign = 1 }
         (   MINUS
             { sign = -1 }
@@ -223,11 +234,14 @@ literal returns [expr]
             { sign = 1 }
         )?
         (   i:INTEGER
-            { value = sign * int(i.getText()) }
+            { value = sign * int(i.getText()); \
+              expr = nodes.Literal(value); \
+              expr.setExtentsFromToken(i, self) }
         |   d:DECIMAL
-            { value = sign * float(d.getText()) }
+            { value = sign * float(d.getText()); \
+              expr = nodes.Literal(value); \
+              expr.setExtentsFromToken(d, self) }
         )
-        { expr = nodes.Literal(value) }
     ;
 
 

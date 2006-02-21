@@ -507,3 +507,44 @@ class MapResult(ExpressionNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' [%s]' % ', '.join(self.columnNames))
+
+
+class SetOperation(Operation):
+    """A generic set operation."""
+
+    __slots__ = ('columnNames')
+
+    def __init__(self, *subexprs):
+        super(SetOperation, self).__init__(*subexprs)
+
+        self.columnNames = []
+
+    def copyNode(self, *subexprs):
+        cp = self.__class__(*subexprs)
+        cp.columnNames = self.columnNames
+        return cp
+
+    def attributesRepr(self):
+        return repr(self.columnNames)
+
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' [%s]' % ', '.join(self.columnNames))
+
+
+class Union(SetOperation):
+    """Set union operation."""
+
+    __slots__ = ()
+
+
+class SetDifference(SetOperation):
+    """Set difference operation."""
+
+    __slots__ = ()
+
+
+class Intersection(SetOperation):
+    """Set intersection operation."""
+
+    __slots__ = ()
+

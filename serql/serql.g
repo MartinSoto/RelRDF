@@ -19,8 +19,8 @@ options {
 }
 
 
-query returns [expr]:
-        expr=selectQuery ( namespaceList )?
+query returns [expr]
+    :   expr=tableQuerySet ( namespaceList )?
         { expr = self.expandQNames(expr) }
     ;
 
@@ -39,6 +39,28 @@ single underscore, we check for this case explicitly. */
 prefixName returns [prefix]
     :   nn:NC_NAME
         { prefix = self.checkPrefix(nn) }
+    ;
+
+
+tableQuerySet returns [expr]
+    :   expr = tableQuery
+        (   factory=setOperator expr2=tableQuerySet
+            { return self.setOperationExpr(factory, expr, expr2) }
+        )?
+    ;
+
+tableQuery returns [expr]
+    :   "(" expr=tableQuerySet ")"
+    |   expr=selectQuery
+    ;
+
+setOperator returns [factory]
+    :   "union"
+        { factory = nodes.Union }
+    |   "minus"
+        { factory = nodes.SetDifference }
+    |   "intersect"
+        { factory = nodes.Intersection }
     ;
 
 

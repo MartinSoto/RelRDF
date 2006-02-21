@@ -283,6 +283,18 @@ class Parser(antlr.LLkParser):
         current = nodes.MapResult(columnNames, current, *mappingExprs)
         return current
 
+    def setOperationExpr(self, factory, expr1, expr2):
+        expr = factory(expr1, expr2)
+
+        if expr1.columnNames != expr2.columnNames:
+            raise error.SemanticError(
+                msg=_("Invalid set operation: result columns do not match"),
+                extents=expr.getExtents())
+
+        expr.columnNames = expr1.columnNames
+
+        return expr
+
     def resolveQName(self, qName):
         """Create an URI expression node corresponding to qualified
         name `qName`."""

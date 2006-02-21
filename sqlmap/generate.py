@@ -58,6 +58,9 @@ class SqlGenerator(object):
                              for e, n in zip(columnExprs, expr.columnNames)])
         return 'SELECT %s\n%s' % (columns, select)
 
+    def Union(self, expr, *operands):
+        return '(' + ') AND ('.join(operands) + ')'
+
 
 def generate(expr):
     generator = SqlGenerator()

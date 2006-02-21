@@ -45,6 +45,16 @@ class NodeExtents(object):
         self.setStartFromToken(token, parser)
         self.setEndFromToken(token)
 
+    def prettyPrint(self, stream=None):
+        if stream == None:
+            stream = sys.stdout
+
+        stream.write("%s: %s.%s - %s.%s" % (self.fileName,
+                                            self.startLine,
+                                            self.startColumn,
+                                            self.endLine,
+                                            self.endColumn))
+
 
 class ExpressionNode(list):
     """A node in a expression tree."""
@@ -80,6 +90,10 @@ class ExpressionNode(list):
         if self.extents == None:
             self.extents = NodeExtents()
         return self.extents
+
+    def setExtents(self, extents):
+        """Set `self`'s extents to `extents`."""
+        self.extents = extents
 
     def setExtentsStartFromToken(self, token, parser=None):
         """Set the start fields of `self`'s extents to the start of
@@ -170,6 +184,9 @@ class ExpressionNode(list):
             stream = sys.stdout
 
         stream.write("  " * indentLevel)
+
+        #self.getExtents().prettyPrint(stream)
+        #stream.write(": ")
         stream.write(self.__class__.__name__)
 
         self.prettyPrintAttributes(stream, indentLevel)

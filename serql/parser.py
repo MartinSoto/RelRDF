@@ -60,8 +60,11 @@ class SelectContext(object):
         var = nodes.Var('#stmt_%d#' % self.reifPatternVarNr)
         self.reifPatternVarNr += 1
 
-        self.reifPatterns.append(nodes.ReifStmtPattern(var, subject,
-                                                       predicate, object))
+        expr = nodes.ReifStmtPattern(var, subject,
+                                     predicate, object)
+        expr.setStartSubexpr(subject)
+        var.setExtents(expr.getExtents())
+        self.reifPatterns.append(expr)
         return var
 
     def getReifPatterns(self):
@@ -296,7 +299,9 @@ class Parser(antlr.LLkParser):
             assert subexprsModif == False
 
             try:
-                return self.resolveQName(expr.qname), True
+                newExpr = self.resolveQName(expr.qname)
+                newExpr.setExtents(expr.getExtents())
+                return newExpr, True
             except KeyError:
                 raise error.SemanticError(
                     msg=_("Undefined namespace prefix '%s'") % \

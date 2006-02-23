@@ -126,8 +126,6 @@ def simplify(expr):
         modif = modif or m
         (expr, m) = flattenAssoc(nodes.Union, expr)
         modif = modif or m
-        (expr, m) = flattenAssoc(nodes.SetDifference, expr)
-        modif = modif or m
         (expr, m) = flattenAssoc(nodes.Intersection, expr)
         modif = modif or m
 

@@ -55,7 +55,7 @@ class Scope(dict):
 class RelationalMapper(object):
 
     __slots__ = ('scopeStack',
-                 'incarnations')
+                 'currentIncarnation')
 
     RDF_TYPE = nodes.Uri(rdf.type)
     RDF_STATEMENT = nodes.Uri(rdf.Statement)
@@ -65,7 +65,7 @@ class RelationalMapper(object):
 
 
     def __init__(self):
-        self.incarnations = {}
+        self.currentIncarnation = 0
 
         # A stack of Scope objects, to handle nested variable
         # scopes.
@@ -84,13 +84,12 @@ class RelationalMapper(object):
         """Return the current (topmost) scope."""
         return self.scopeStack[-1]
 
-    def getIncarnation(self, relName):
-        incarnation = self.incarnations.get(relName, 0) + 1
-        self.incarnations[relName] = incarnation
-        return incarnation
+    def makeIncarnation(self):
+        self.currentIncarnation += 1
+        return self.currentIncarnation
 
     def mapPattern(self, subject, pred, object):
-        incarnation = self.getIncarnation('S')
+        incarnation = self.makeIncarnation()
 
         conds = []
         for id, node in (('subject', subject), ('predicate', pred),
@@ -126,13 +125,20 @@ class RelationalMapper(object):
 
         def postOp(expr, subexprsModif):
             if isinstance(expr, nodes.MapResult):
+                # Close the scope and expand the variables.
                 scope = self.popScope()
                 expr, modif = scope.expandVariables(expr)
+
+                # Add the binding condition if necessary.
                 cond = scope.getCondition()
                 if cond != None:
                     expr[0] = nodes.Select(expr[0], cond)
                     modif = True
-                return expr, modif
+
+                # Add an unique incarnation identifier.
+                expr.incarnation = self.makeIncarnation()
+
+                return expr, True
             elif isinstance(expr, nodes.StatementPattern):
                 return self.mapPattern(*expr)
             elif isinstance(expr, nodes.ReifStmtPattern):
@@ -147,9 +153,6 @@ class RelationalMapper(object):
         if stream == None:
             stream = sys.stdout
 
-        stream.write('Incarnations:\n')
-        pprint.pprint(self.incarnations, stream, indent + 2)
-
 
 class VersionMapper(RelationalMapper):
     __slots__ = ('versionNumber')
@@ -160,14 +163,15 @@ class VersionMapper(RelationalMapper):
         self.versionNumber = versionNumber
 
     def mapPattern(self, subject, pred, object):
-        stmtIncr = self.getIncarnation('statements')
-        verIncr = self.getIncarnation('version_statement')
+        stmtIncr = self.makeIncarnation()
+        verIncr = self.makeIncarnation()
 
         conds = []
         for id, node in (('subject', subject), ('predicate', pred),
                          ('object', object)):
             if isinstance(node, nodes.Var):
                 self.currentScope().addBinding(node.name, 'statements',
+                                               
                                                stmtIncr, id)
             else:
                 ref = nodes.FieldRef('statements', stmtIncr, id)
@@ -208,7 +212,7 @@ class MultiVersionMapper(RelationalMapper):
         self.baseNs = uri.Namespace(baseUri)
 
     def mapContainsRel(self, subject, object):
-        verIncr = self.getIncarnation('version_statement')
+        verIncr = self.makeIncarnation()
 
         conds = []
 
@@ -246,8 +250,8 @@ class MultiVersionMapper(RelationalMapper):
             if pred.uri == relrdf.contains:
                 return self.mapContainsRel(subject, object)
 
-        stmtIncr = self.getIncarnation('statements')
-        verIncr = self.getIncarnation('not_versioned_statements')
+        stmtIncr = self.makeIncarnation()
+        verIncr = self.makeIncarnation()
 
         conds = []
         for col, node in (('subject', subject), ('predicate', pred),
@@ -271,7 +275,7 @@ class MultiVersionMapper(RelationalMapper):
         return nodes.Select(rel, nodes.And(*conds)), True
 
     def mapReifPattern(self, var, subject, pred, object):
-        stmtIncr = self.getIncarnation('statements')
+        stmtIncr = self.makeIncarnation()
 
         self.currentScope().addBinding(var.name, 'statements',
                                        stmtIncr, 'id')

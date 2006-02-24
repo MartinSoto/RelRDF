@@ -8,7 +8,7 @@ class SqlGenerator(object):
         return '"%s"' % expr.uri
 
     def Literal(self, expr):
-        return str(expr.literal)
+        return '"%s"' % str(expr.literal)
 
     def FieldRef(self, expr):
         return '%s_%s.%s' % (expr.relName, expr.incarnation, expr.fieldId)
@@ -45,7 +45,7 @@ class SqlGenerator(object):
         return '(' + ') AND ('.join(operands) + ')'
 
     def Relation(self, expr):
-        return '%s %s_%s' % (expr.name, expr.name, expr.incarnation)
+        return '%s AS %s_%s' % (expr.name, expr.name, expr.incarnation)
 
     def Product(self, expr, *operands):
         return ', '.join(operands)
@@ -54,12 +54,29 @@ class SqlGenerator(object):
         return 'FROM %s\nWHERE %s' % (rel, cond)
 
     def MapResult(self, expr, select, *columnExprs):
-        columns = ', '.join(['%s %s' % (e, n)
+        columns = ', '.join(['%s AS %s' % (e, n)
                              for e, n in zip(columnExprs, expr.columnNames)])
         return 'SELECT %s\n%s' % (columns, select)
 
     def Union(self, expr, *operands):
-        return '(' + ') AND ('.join(operands) + ')'
+        return '(' + ')\nUNION\n('.join(operands) + ')'
+
+    def _setDiffOrIntersect(self, compOperator, expr, operand1, operand2):
+        incarnation1 = 'table_%s' % expr[0].incarnation
+
+        columns = ', '.join(['%s.%s AS %s' % (incarnation1, n, n)
+                             for n in expr.columnNames])
+        columnExprs = ', '.join(['%s.%s' % (incarnation1, n)
+                                 for n in expr.columnNames])
+        return 'SELECT %s\nFROM (%s) AS %s\nWHERE ROW(%s) %s (%s)' % \
+               (columns, operand1, incarnation1, columnExprs, compOperator,
+                operand2)
+
+    def Intersection(self, *args):
+        return self._setDiffOrIntersect('IN', *args)
+
+    def SetDifference(self, *args):
+        return self._setDiffOrIntersect('NOT IN', *args)
 
 
 def generate(expr):

@@ -31,6 +31,6 @@ try:
         expr.prettyPrint()
         print
 
-        #print generate.generate(expr)
+        print generate.generate(expr)
 except serql.Error, e:
     print >> sys.stderr, "Error:", str(e)

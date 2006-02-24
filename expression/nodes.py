@@ -492,12 +492,17 @@ class MapResult(ExpressionNode):
     """Specify the column names of a result table, together with the
     expressions they are bound to."""
 
-    __slots__ = ('columnNames')
+    __slots__ = ('columnNames',
+                 'incarnation')
 
     def __init__(self, columnNames, rel, *mappingExprs):
         super(MapResult, self).__init__(rel, *mappingExprs)
 
         self.columnNames = columnNames
+
+        # The incarnation can be used to give the resulting table a
+        # name while generating SQL expressions.
+        self.incarnation = None
 
     def copyNode(self, rel, *mappingExprs):
         return self.__class__(self.columnNames, rel, *mappingExprs)
@@ -507,6 +512,8 @@ class MapResult(ExpressionNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' [%s]' % ', '.join(self.columnNames))
+        if self.incarnation is not None:
+            stream.write(' _%d' % self.incarnation)
 
 
 class SetOperation(Operation):

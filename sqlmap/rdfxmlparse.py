@@ -2,36 +2,44 @@ import sys
 
 import RDF
 
-TYPE_RESOURCE = '<RESOURCE>'
-TYPE_BLANK = '<BLANKNODE>'
-TYPE_LITERAL = '<LITERAL>'
-    
-class PrintSink(object):
-    def triple(self, subject, pred, objectType, object):
-        print subject.encode('utf8'), pred.encode('utf8'), \
-              objectType.encode('utf8'), object.encode('utf8')
-        pass
+from expression import uri, blanknode, literal
 
-def parseURI(uri, base=None, sink=None):
+
+class PrintSink(object):
+    def triple(self, subject, pred, object):
+        if isinstance(object, uri.Uri):
+            objStr = '<%s>' % object
+        elif isinstance(object, blanknode.BlankNode):
+            objStr = 'bnode:%s' % object
+        elif isinstance(object, literal.Literal):
+            objStr = '"%s"' % object
+        else:
+            assert False, "Unexpected object type '%d'" \
+                   % object.__class__.__name__
+            
+        print "<%s> <%s> %s" % (subject.encode('utf8'),
+                                pred.encode('utf8'), \
+                                objStr.encode('utf8'))
+
+def parseFromUri(uriRef, base=None, sink=None):
     if sink == None:
         sink = PrintSink()
 
     parser = RDF.RDFXMLParser()
-    for stmt in parser.parse_as_stream(uri, base_uri=base):
+    for stmt in parser.parse_as_stream(uriRef, base_uri=base):
         if stmt.object.is_resource():
-            objectType = TYPE_RESOURCE
-            object = stmt.object.uri
+            object = uri.Uri(stmt.object.uri)
         elif stmt.object.is_blank():
-            objectType = TYPE_BLANK
-            object = stmt.object.blank_identifier
+            object = blanknode.BlankNode(stmt.object.blank_identifier)
         else:
-            object = stmt.object.literal_value['string']
-            objectType = stmt.object.literal_value['datatype']
-            if objectType == None:
-                objectType = TYPE_LITERAL
+            object = literal.Literal(stmt.object.literal_value['string'],
+                                     typeUri=stmt.object. \
+                                     literal_value['datatype'],
+                                     lang=stmt.object. \
+                                     literal_value['language'])
 
-        sink.triple(unicode(stmt.subject.uri), unicode(stmt.predicate.uri),
-                    unicode(objectType), unicode(object))
+        sink.triple(uri.Uri(stmt.subject.uri), uri.Uri(stmt.predicate.uri),
+                    object)
 
 if __name__ == "__main__": 
-    parseURI(sys.argv[1], sink=PrintSink())
+    parseFromUri(sys.argv[1], sink=PrintSink())

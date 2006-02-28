@@ -1,4 +1,4 @@
-class Literal(str):
+class Literal(unicode):
     def __new__(cls, value, typeUri=None, lang=None):
         self = super(Literal, cls).__new__(cls, value)
 

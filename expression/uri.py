@@ -1,4 +1,4 @@
-class Uri(str):
+class Uri(unicode):
     def __add__(self, string):
         return Uri(super(Uri, self).__add__(string))
 

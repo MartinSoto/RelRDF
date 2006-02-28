@@ -3,23 +3,8 @@ import sys
 import RDF
 
 from expression import uri, blanknode, literal
+from basesinks import PrintSink
 
-
-class PrintSink(object):
-    def triple(self, subject, pred, object):
-        if isinstance(object, uri.Uri):
-            objStr = '<%s>' % object
-        elif isinstance(object, blanknode.BlankNode):
-            objStr = 'bnode:%s' % object
-        elif isinstance(object, literal.Literal):
-            objStr = '"%s"' % object
-        else:
-            assert False, "Unexpected object type '%d'" \
-                   % object.__class__.__name__
-            
-        print "<%s> <%s> %s" % (subject.encode('utf8'),
-                                pred.encode('utf8'), \
-                                objStr.encode('utf8'))
 
 def parseFromUri(uriRef, base=None, sink=None):
     if sink == None:
@@ -42,4 +27,4 @@ def parseFromUri(uriRef, base=None, sink=None):
                     object)
 
 if __name__ == "__main__": 
-    parseFromUri(sys.argv[1], sink=PrintSink())
+    parseFromUri(sys.argv[1])

@@ -62,8 +62,6 @@ class SchemaBrowser(SimpleGladeApp):
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
-
-
     def setMainWindow(self, mainWindow):
         self.mainWindow = mainWindow
         self.classPopUp.mainWindow = mainWindow
@@ -147,8 +145,6 @@ class MainWindow(SimpleGladeApp):
             gtk.gdk.BUTTON1_MASK,
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
-
-
 
     def openModel(self, fileName):
         basename = os.path.basename(fileName)
@@ -273,7 +269,6 @@ class MainWindow(SimpleGladeApp):
         self.schemaBrowser.hide()
         gtk.main_quit()
 
-
     def on_mainWindow_delete_event(self, widget, *args):
         self.finalize()
         return False
@@ -353,8 +348,6 @@ class Menu1(SimpleGladeApp):
 
     def new(self):
         self.browser = None
-
-
 
     def on_queryInstances_activate(self, widget, *args):
         self.mainWindow.runQuery(

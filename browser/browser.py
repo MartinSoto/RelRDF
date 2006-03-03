@@ -7,6 +7,11 @@ glade_dir = ""
 
 import string
 
+import MySQLdb
+
+from expression import uri, blanknode, literal
+import modelfactory
+
 import prefixes
 import query
 import schema
@@ -92,7 +97,6 @@ class SchemaBrowser(SimpleGladeApp):
         (cls,) = self.classTS.get(tItr, 0)
         return cls
 
-
     def on_main_delete_event(self, widget, *args):
         self.hide()
         return True
@@ -129,9 +133,6 @@ class MainWindow(SimpleGladeApp):
         SimpleGladeApp.__init__(self, glade_path, root, domain)
 
     def new(self):
-        self.modelChooser = ModelFileChooser()
-        self.modelChooser.setMainWindow(self)
-
         self.schemaBrowser = SchemaBrowser()
         self.schemaBrowser.setMainWindow(self)
 
@@ -146,16 +147,19 @@ class MainWindow(SimpleGladeApp):
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
-    def openModel(self, fileName):
-        basename = os.path.basename(fileName)
+    def openModel(self):
+        connection = MySQLdb.connect(host='localhost', db='v-modell',
+                                     read_default_group='client')
 
-        try:
-            self.model = query.Model(fileName)
-        except Exception, e:
-            self.showMessage("Error opening RDF model '%s': %s" % \
-                             (fileName, str(e)))
+        prefixes = {
+            'ex': 'http://example.com/model#'
+            }
 
-        self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
+        self.model = modelfactory.getModel('SingleVersion', connection,
+                                           prefixes, versionId=1)
+        basename = 'V-Modell'
+
+        #self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
 
         self.main_widget.set_title("%s - %s" % (basename, self.appName))
         self.showMessage("Model '%s' opened succesfully." % basename)
@@ -187,54 +191,40 @@ class MainWindow(SimpleGladeApp):
 
         # Run the query.
         try:
-            results = self.model.query(queryString)
+            results = self.model.query('SerQL', queryString)
         except Exception, e:
             self.showMessage("Error: %s" % str(e))
             return
 
-        if results.is_bindings():
-            self.showBindingsResults(results)
-        elif results.is_graph():
-            pass
-        else:
-            if results.get_boolean():
-                self.showMessage("True")
-            else:
-                self.showMessage("False")        
+        self.showBindingsResults(results)
 
     @staticmethod
     def nodeToStr(node):
-        if node.is_resource():
-            return "%s" % prefixes.shortenUri(str(node.uri))
-        elif node.is_literal():
-            return '"%s"' % str(node)
-        elif node.is_blank():
-            return "(%s)" % node.blank_identifier
-        else:
-            return "???"
+        return node[:100]
+#         if isinstance(node, uri.Uri):
+#             return '<%s>' % prefixes.shortenUri(node)
+#         elif isinstance(node, blanknode.BlankNode):
+#             return 'bnode:%s' % node
+#         elif isinstance(node, literal.Literal):
+#             return '"%s"' % node
+#         else:
+#             return "???"
 
     def showBindingsResults(self, results):
         """Display the query results object as table."""
-        assert results.is_bindings()
-
         # Create a list store for the results:
 
-        # Retrieve the column names:
-        columnNames = []
-        for i in xrange(results.get_bindings_count()):
-            columnNames.append(results.get_binding_name(i))
-
         # Create the list store. All columns contain strings.
-        self.resultLS = gtk.ListStore(*([str] * len(columnNames)))
+        self.resultLS = gtk.ListStore(*([str] * len(results.columnNames)))
 
-        if len(results) == 0:
-            self.showMessage("No results found")
-            return
+#         if len(results) == 0:
+#             self.showMessage("No results found")
+#             return
 
         # Move the query results to the list store.
         for result in results:
-            self.resultLS.append([self.nodeToStr(result[var])
-                                  for var in columnNames])
+            self.resultLS.append([self.nodeToStr(node)
+                                  for node in result])
 
         # Disconect the view from its old model (we don't want any
         # funny repainting.)
@@ -246,7 +236,7 @@ class MainWindow(SimpleGladeApp):
 
         # Add new columns for the new results.
         pos = 0
-        for name in columnNames:
+        for name in results.columnNames:
             # Create the column.
             col = gtk.TreeViewColumn(name)
             self.resultsView.append_column(col)
@@ -274,7 +264,7 @@ class MainWindow(SimpleGladeApp):
         return False
 
     def on_open_activate(self, widget, *args):
-        self.modelChooser.show()
+        self.openModel()
 
     def on_quit_activate(self, widget, *args):
         self.finalize()
@@ -302,45 +292,6 @@ class MainWindow(SimpleGladeApp):
         selection.set(selection.target, 8, string.join(entries, ' '))
 
 
-class ModelFileChooser(SimpleGladeApp):
-    def __init__(self, glade_path="browser.glade", root="modelFileChooser",
-                 domain=None):
-        glade_path = os.path.join(glade_dir, glade_path)
-        SimpleGladeApp.__init__(self, glade_path, root, domain)
-
-    def new(self):
-        self.mainWindow = None
-
-        # Define some filters.
-        filter = gtk.FileFilter()
-        filter.set_name("RDF XML files")
-        filter.add_pattern("*.rdf")
-        filter.add_pattern("*.kaon")
-        filter.add_pattern("*.owl")
-        self.main_widget.add_filter(filter)
-
-        filter = gtk.FileFilter()
-        filter.set_name("Generic XML files")
-        filter.add_pattern("*.xml")
-        self.main_widget.add_filter(filter)
-
-        filter = gtk.FileFilter()
-        filter.set_name("All files")
-        filter.add_pattern("*")
-        self.main_widget.add_filter(filter)
-
-    def setMainWindow(self, mainWindow):
-        self.mainWindow = mainWindow
-
-
-    def on_modelChooserCancel_clicked(self, widget, *args):
-        self.hide()
-
-    def on_modelChooserOpen_clicked(self, widget, *args):
-        self.hide()
-        self.mainWindow.openModel(self.main_widget.get_filename())
-
-
 class Menu1(SimpleGladeApp):
     def __init__(self, glade_path="browser.glade", root="menu1", domain=None):
         glade_path = os.path.join(glade_dir, glade_path)
@@ -358,7 +309,7 @@ class Menu1(SimpleGladeApp):
 def main():
     schema_browser = SchemaBrowser()
     main_window = MainWindow()
-    model_file_chooser = ModelFileChooser()
+    main_window.openModel()
     menu1 = Menu1()
 
     schema_browser.run()

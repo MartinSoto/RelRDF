@@ -31,6 +31,8 @@ class SqlBasedResults(object):
             yield row
             row = self.cursor.fetchone()
 
+    __iter__ = iterAll
+
 
 class SqlMappedModel(object):
     """An RDF model defined through a certain mapping from relational

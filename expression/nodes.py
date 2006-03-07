@@ -161,9 +161,6 @@ class ExpressionNode(list):
 
         return res
 
-    def copyNode(self, *subexprs):
-        return self.__class__(*subexprs)
-
     def __repr__(self):
         attribs = self.attributesRepr()
         subexprs = ', '.join([repr(subexpr) for subexpr in self])
@@ -219,9 +216,6 @@ class Uri(ExpressionNode):
         else:
             self.uri = uri.Uri(uriVal)
 
-    def copyNode(self):
-        return self.__class__(self.uri)
-
     def attributesRepr(self):
         return repr(self.uri)
 
@@ -258,9 +252,6 @@ class Literal(ExpressionNode):
             self.literal = literalVal
         else:
             self.literal = literal.Literal(literalVal)
-
-    def copyNode(self):
-        return self.__class__(self.literal)
 
     def attributesRepr(self):
         return repr(self.literal)
@@ -300,9 +291,6 @@ class FieldRef(ExpressionNode):
         self.incarnation = incarnation
         self.fieldId = fieldId
 
-    def copyNode(self):
-        return self.__class__(self.relName, self.incarnation, self.fieldId)
-
     def attributesRepr(self):
         return '%s, %s, %s' % (repr(self.relName),
                                repr(self.incarnation),
@@ -320,9 +308,6 @@ class StatementPattern(ExpressionNode):
     def __init__(self, subj, pred, obj):
         super(StatementPattern, self).__init__(subj, pred, obj)
 
-    def copyNode(self, subj, pred, obj):
-        return self.__class__(subj, pred, obj)
-
 
 class ReifStmtPattern(ExpressionNode):
     """An expression node representing a reified statement pattern."""
@@ -331,9 +316,6 @@ class ReifStmtPattern(ExpressionNode):
 
     def __init__(self, var, subj, pred, obj):
         super(ReifStmtPattern, self).__init__(var, subj, pred, obj)
-
-    def copyNode(self, var, subj, pred, obj):
-        return self.__class__(var, subj, pred, obj)
 
 
 class Operation(ExpressionNode):
@@ -350,9 +332,6 @@ class UnaryOperation(Operation):
     def __init__(self, operand):
         super(UnaryOperation, self).__init__(operand)
 
-    def copyNode(self, operand):
-        return self.__class__(operand)
-
 
 class BinaryOperation(Operation):
     """A node representing a binary operation."""
@@ -361,9 +340,6 @@ class BinaryOperation(Operation):
 
     def __init__(self, operand1, operand2):
         super(BinaryOperation, self).__init__(operand1, operand2)
-
-    def copyNode(self, operand1, operand2):
-        return self.__class__(operand1, operand2)
 
 
 class Comparison(Operation):
@@ -444,9 +420,6 @@ class Relation(ExpressionNode):
         self.name = name
         self.incarnation = incarnation
 
-    def copyNode(self):
-        return self.__class__(self.name, self.incarnation)
-
     def attributesRepr(self):
         return '%s, %s' % (repr(self.name), repr(self.incarnation))
 
@@ -461,9 +434,6 @@ class Optional(ExpressionNode):
 
     def __init__(self, baseRel):
         super(Optional, self).__init__(baseRel)
-
-    def copyNode(self, baseRel):
-        return self.__class__(baseRel)
 
 
 class Product(ExpressionNode):
@@ -484,9 +454,6 @@ class Select(ExpressionNode):
     def __init__(self, rel, predicate):
         super(Select, self).__init__(rel, predicate)
 
-    def copyNode(self, rel, predicate):
-        return self.__class__(rel, predicate)
-
 
 class MapResult(ExpressionNode):
     """Specify the column names of a result table, together with the
@@ -503,9 +470,6 @@ class MapResult(ExpressionNode):
         # The incarnation can be used to give the resulting table a
         # name while generating SQL expressions.
         self.incarnation = None
-
-    def copyNode(self, rel, *mappingExprs):
-        return self.__class__(self.columnNames, rel, *mappingExprs)
 
     def attributesRepr(self):
         return repr(self.columnNames)
@@ -525,11 +489,6 @@ class SetOperation(Operation):
         super(SetOperation, self).__init__(*subexprs)
 
         self.columnNames = []
-
-    def copyNode(self, *subexprs):
-        cp = self.__class__(*subexprs)
-        cp.columnNames = self.columnNames
-        return cp
 
     def attributesRepr(self):
         return repr(self.columnNames)

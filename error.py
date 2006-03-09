@@ -4,7 +4,7 @@ from expression import nodes
 
 
 class Error(Exception):
-    """Base class for exceptions raised when parsing SerQL queries."""
+    """Base class for exceptions raised when parsing queries."""
 
     def __init__(self, msg):
         Exception.__init__(self, msg)
@@ -13,7 +13,7 @@ class Error(Exception):
 
 
 class PositionError(Error):
-    """Base class for SerQL exceptions containing an error position."""
+    """Base class for exceptions containing an error position."""
 
     def __init__(self, extents=None, **kwargs):
         Error.__init__(self, **kwargs)
@@ -51,7 +51,7 @@ class PositionError(Error):
 
 
 class SyntaxError(PositionError):
-    """A SerQL syntax error."""
+    """A syntax error."""
 
     @staticmethod
     def create(orig):
@@ -93,5 +93,5 @@ class SyntaxError(PositionError):
 
 
 class SemanticError(PositionError):
-    """A SerQL semantic error."""
+    """A semantic error."""
     pass

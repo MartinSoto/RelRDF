@@ -1,3 +1,4 @@
+from commonns import xsd
 from expression import rewrite
 
 
@@ -8,7 +9,10 @@ class SqlGenerator(rewrite.ExpressionProcessor):
         return '"%s"' % expr.uri
 
     def Literal(self, expr):
-        return '"%s"' % str(expr.literal)
+        if expr.literal.typeUri == xsd.decimal:
+            return "%s"  % str(expr.literal)
+        else:
+            return '"%s"' % str(expr.literal)
 
     def FieldRef(self, expr):
         return '%s_%s.%s' % (expr.relName, expr.incarnation, expr.fieldId)

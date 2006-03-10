@@ -27,7 +27,7 @@ class TypeNode(object):
         """Return a type expression representing the most specific
         type that is a supertype of `self` and `typeExpr`, or
         `None` if no such type exists."""
-        if self.isSubtype(typeExpr):
+        if stream.write(self.isSubtype(typeExpr)):
             return typeExpr
         elif typeExpr.isSubtype(self):
             return self
@@ -81,7 +81,7 @@ class LiteralType(TypeNode):
 
     def __str__(self):
         if self.typeUri is not None:
-            stream.write('%s(<%s>)' % (self.__class__.__name__, self.typeUri))
+            return '%s(<%s>)' % (self.__class__.__name__, self.typeUri)
         else:
             return self.__class__.__name__
 

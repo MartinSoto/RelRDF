@@ -7,6 +7,7 @@ import error
 import commonns
 from expression import nodes
 from expression import rewrite
+from expression import literal
 from expression import uri
 
 
@@ -329,3 +330,18 @@ class Parser(antlr.LLkParser):
             raise error.SyntaxError(msg=_("Invalid namespace prefix '_'"),
                                     extents=extents)
         return token.getText()
+
+
+    #
+    # Token Postprocessing
+    #
+
+    def convertLiteral(self, text):
+        if text[0] == '@':
+            return literal.Literal(text[3:], lang=text[1:3])
+        elif text[0] == '<':
+            endUri = text.find('>')
+            return literal.Literal(text[endUri+1:],
+                                   typeUri=uri.Uri(text[1:endUri]))
+        else:
+            assert False

@@ -184,7 +184,7 @@ class VersionMapper(RelationalMapper):
             nodes.And(
                 nodes.Equal(
                     nodes.FieldRef('version_statement', verIncr, 'version_id'),
-                    nodes.Literal(str(self.versionNumber))),
+                    nodes.Literal(self.versionNumber)),
                 nodes.Equal(
                     nodes.FieldRef('version_statement', verIncr, 'stmt_id'),
                     nodes.FieldRef('statements', stmtIncr, 'id'))))

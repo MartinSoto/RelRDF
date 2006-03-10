@@ -186,11 +186,11 @@ andExpr returns [expr]
 
 booleanElem returns [expr]
     :   lp:"(" expr=booleanExpr rp:")"
-        { expr.setStartExtentsFromToken(lp, self); \
-          expr.setEndExtentsFromToken(rp, self) }
+        { expr.setExtentsStartFromToken(lp, self); \
+          expr.setExtentsEndFromToken(rp) }
     |   notOp:"not" expr1=booleanElem
         { expr = nodes.Not(expr1); \
-          expr.setStartExtentsFromToken(notOp, self) }
+          expr.setExtentsStartFromToken(notOp, self) }
     |   expr1=varOrValue factory=compOp expr2=varOrValue
         { expr = factory(expr1, expr2) }
     ;
@@ -247,7 +247,7 @@ literal returns [expr]
         { expr = nodes.Literal(str.getText()); \
           expr.setExtentsFromToken(str, self) }
     |   lt:LITERAL
-        { expr = nodes.Literal(lt.getText()); \
+        { expr = nodes.Literal(self.convertLiteral(lt.getText())); \
           expr.setExtentsFromToken(lt, self) }
     |   { sign = 1 }
         (   MINUS
@@ -419,10 +419,12 @@ QNAME_OR_BNODE_OR_NC_NAME
 
 protected
 LITERAL
-    :   STRING
-        (   '@' lang:LANG
-        |   "^^"
+    :   str:STRING
+        (   '@'! lang:LANG
+            { $setText("@" + lang.getText() + str.getText()) }
+        |   "^^"!
             (   uri:FULL_URI
+                { $setText("<" + uri.getText() + ">" + str.getText()) }
             |   qname:QNAME
             )
         )?

@@ -95,3 +95,8 @@ class SyntaxError(PositionError):
 class SemanticError(PositionError):
     """A semantic error."""
     pass
+
+
+class TypeCheckError(PositionError):
+    """A type checking error."""
+    pass

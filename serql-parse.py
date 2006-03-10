@@ -4,7 +4,9 @@ import sys
 import gettext
 gettext.install('relrdf')
 
+import error
 import serql
+import typecheck
 from sqlmap import map
 from sqlmap import generate
 
@@ -16,21 +18,16 @@ prefixes = {
 parser = serql.Parser(prefixes)
 
 try:
-    if len(sys.argv) > 1:
-        query = ''.join(sys.stdin)
-        for i in xrange(int(sys.argv[1])):
-            parser.parse(query, "sys.stdin")
-    else:
-        expr = parser.parse(sys.stdin, "sys.stdin")
-        expr.prettyPrint()
-        print
+    expr = parser.parse(sys.stdin, "sys.stdin")
+    typecheck.typeCheck(expr)
+    expr.prettyPrint()
 
-        mapper = map.VersionMapper(17)
-        #mapper = map.MultiVersionMapper('http://ex.com/versions#')
-        expr = mapper.mapExpression(expr)
-        expr.prettyPrint()
-        print
+    mapper = map.VersionMapper(1)
+    #mapper = map.MultiVersionMapper('http://ex.com/versions#')
+    expr = mapper.mapExpression(expr)
+    #expr.prettyPrint()
+    print
 
-        print generate.generate(expr)
-except serql.Error, e:
+    print generate.generate(expr)
+except error.Error, e:
     print >> sys.stderr, "Error:", str(e)

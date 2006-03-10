@@ -61,7 +61,10 @@ class ExpressionNode(list):
 
     __slots__ = ('extents',
                  'startSubexpr',
-                 'endSubexpr')
+                 'endSubexpr',
+
+                 'staticType',
+                 'dynamicType')
 
     def __init__(self, *subexprs):
         super(ExpressionNode, self).__init__(subexprs)
@@ -77,6 +80,19 @@ class ExpressionNode(list):
         # used.
         self.startSubexpr = None
         self.endSubexpr = None
+
+        # Static type of the expression, e.g., the most specific type
+        # that can be determined for an expression at translation
+        # time. If None, no type checking has been performed on the
+        # expression.
+        self.staticType = None
+
+        # Dynamic type of the expression, a second expression telling
+        # how to calculate the type in run-time, when the static type
+        # is too generic. If the dynamic type is None, it is always
+        # equal to the static type (i.e., it is known at translation
+        # time and doesn't have to be calculated dynamically at all.)
+        self.dynamicType = None
 
     def _checkSubexprs(self):
         for i, subexpr in enumerate(self):
@@ -187,6 +203,11 @@ class ExpressionNode(list):
         stream.write(self.__class__.__name__)
 
         self.prettyPrintAttributes(stream, indentLevel)
+
+        if self.staticType is not None:
+            stream.write(' st:<<%s>>' % self.staticType)
+        if self.dynamicType is not None:
+            stream.write(' dyn:<<%s>>' % self.dynamicType)
 
         stream.write('\n')
         for subexpr in self:
@@ -514,3 +535,18 @@ class Intersection(SetOperation):
 
     __slots__ = ()
 
+
+#
+# Type Related Nodes
+#
+
+class VarDynType(Var):
+    """An expression node representing the dynamic type of a
+    variable. This is intended to be replaced by the database
+    mapper. The replacement is an expression that produces an
+    internal, run-time representation of the data type."""
+
+    # For practical purposes, this can be derived from the Variable
+    # class.
+
+    __slots = ()

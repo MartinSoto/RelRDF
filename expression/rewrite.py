@@ -89,7 +89,7 @@ class ExpressionProcessor(object):
                hasattr(self, prePrefix + expr.__class__.__name__):
             # Invoke the preorder method.
             method = getattr(self, prePrefix + expr.__class__.__name__)
-            procSubexpr = method(expr)
+            procSubexprs = method(expr)
         else:
             # Process the subexpressions recursively and collect the values.
             procSubexprs = []

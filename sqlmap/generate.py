@@ -1,7 +1,7 @@
 from expression import rewrite
 
 
-class SqlGenerator(object):
+class SqlGenerator(rewrite.ExpressionProcessor):
     __slots__ = ()
 
     def Uri(self, expr):
@@ -78,7 +78,8 @@ class SqlGenerator(object):
     def SetDifference(self, *args):
         return self._setDiffOrIntersect('NOT IN', *args)
 
+generator = SqlGenerator()
+
 
 def generate(expr):
-    generator = SqlGenerator()
-    return rewrite.mapObject(generator, expr)
+    return generator.process(expr)

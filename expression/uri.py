@@ -1,8 +1,12 @@
 class Uri(unicode):
+    __slots__ = ()
+
     def __add__(self, string):
         return Uri(super(Uri, self).__add__(string))
 
 class Namespace(Uri):
+    __slots__ = ()
+
     def __getitem__(self, localPart):
         return self + localPart
 

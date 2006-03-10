@@ -1,4 +1,7 @@
 class Literal(unicode):
+    __slots__ = ('typeUri',
+                 'lang')
+
     def __new__(cls, value, typeUri=None, lang=None):
         self = super(Literal, cls).__new__(cls, value)
 

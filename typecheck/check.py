@@ -1,8 +1,10 @@
+from commonns import xsd
+
 from error import TypeCheckError
 from expression import nodes, rewrite
 
-from typeexpr import rdfNodeType, LiteralType, genericLiteralType, \
-     resourceType, RelationType
+from typeexpr import rdfNodeType, LiteralType, booleanLiteralType, \
+     genericLiteralType, ResourceType, resourceType, RelationType
 
 
 def error(expr, msg):
@@ -17,6 +19,8 @@ class TypeChecker(rewrite.ExpressionProcessor):
     __slots__ = ('scopeStack')
 
     def __init__(self):
+        super(TypeChecker, self).__init__(prePrefix="pre")
+
         # A stack of RelationType objects for processing nested
         # Select and MapResult nodes.
         self.scopeStack = []
@@ -37,9 +41,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
                 expr.staticType = typeExpr
                 expr.dynamicType = nodes.VarDynType(expr.name)
 
-    def StatementPattern(self, expr, subjTp, predTp, objTp):
+    def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()
-        for i, subexpr in enumerate(expr):
+        for i, subexpr in enumerate(subexprs):
             if i <= 1:
                 if isinstance(subexpr, nodes.Var):
                     typeExpr.addColumn(subexpr.name, resourceType)
@@ -50,32 +54,66 @@ class TypeChecker(rewrite.ExpressionProcessor):
                 typeExpr.addColumn(subexpr.name, rdfNodeType)
         expr.staticType = typeExpr
 
+    def StatementPattern(self, expr, subjTp, predTp, objTp):
+        self._checkPattern(expr, expr)
+
     def ReifStmtPattern(self, expr, varTp, subjTp, predTp, objTp):
-        pass
+        self._checkPattern(expr, expr[1:])
+        expr.staticType.addColumn(expr[0].name, resourceType)
+
+    def _checkScalarOperands(self, expr, opName):
+        for i, subexpr in enumerate(expr):
+            if isinstance(subexpr.staticType, RelationType):
+                error(expr,
+                      _("Operand %d to '%s' must be scalar") % \
+                      (i + 1, opName))
 
     def Equal(self, expr, *operands):
-        pass
-
-    def LessThan(self, expr, operand1, operand2):
-        pass
-
-    def GreaterThan(self, expr, operand1, operand2):
-        pass
-
-    def GreaterThanOrEqual(self, expr, operand1, operand2):
-        pass
+        self._checkScalarOperands(expr, '=')
+        expr.staticType = booleanLiteralType
 
     def Different(self, expr, *operands):
-        pass
+        self._checkScalarOperands(expr, '!=')
+        expr.staticType = booleanLiteralType
+
+    def _checkNoResourceOperands(self, expr, opName):
+        for i, subexpr in enumerate(expr):
+            if isinstance(subexpr.staticType, ResourceType):
+                error(expr,
+                      _("Operand %d to '%s' is not allowed to be a resource") % \
+                      (i + 1, opName))
+
+    def LessThan(self, expr, operand1, operand2):
+        self._checkScalarOperands(expr, '<')
+        self._checkNoResourceOperands(expr, '<')
+        expr.staticType = booleanLiteralType
+
+    def LessThanOrEqual(self, expr, operand1, operand2):
+        self._checkScalarOperands(expr, '<=')
+        self._checkNoResourceOperands(expr, '<=')
+        expr.staticType = booleanLiteralType
+
+    def GreaterThan(self, expr, operand1, operand2):
+        self._checkScalarOperands(expr, '>')
+        self._checkNoResourceOperands(expr, '>')
+        expr.staticType = booleanLiteralType
+
+    def GreaterThanOrEqual(self, expr, operand1, operand2):
+        self._checkScalarOperands(expr, '>=')
+        self._checkNoResourceOperands(expr, '>=')
+        expr.staticType = booleanLiteralType
 
     def Or(self, expr, *operands):
-        pass
+        self._checkScalarOperands(expr, 'OR')
+        expr.staticType = booleanLiteralType
 
     def And(self, expr, *operands):
-        pass
+        self._checkScalarOperands(expr, 'AND')
+        expr.staticType = booleanLiteralType
 
     def Not(self, expr, operand):
-        pass
+        self._checkScalarOperands(expr, 'NOT')
+        expr.staticType = booleanLiteralType
 
     def Product(self, expr, *operands):
         typeExpr = RelationType()
@@ -85,8 +123,8 @@ class TypeChecker(rewrite.ExpressionProcessor):
             for columnName in subexprType.getColumnNames():
                 if typeExpr.hasColumn(columnName):
                     columnType = typeExpr.getColumnType(columnName). \
-                                 commonType(subexprType. \
-                                            getColumnType(columnName))
+                                 intersectType(subexprType. \
+                                               getColumnType(columnName))
                     if columnType is None:
                         error(expr, _("Incompatible types for variable '%s'")
                               % columnName)
@@ -105,14 +143,15 @@ class TypeChecker(rewrite.ExpressionProcessor):
         # Now process the condition.
         self.process(expr[1])
 
-        # FIXME: Check for boolean type in the condition.
-
         # Remove the scope.
         self.scopeStack.pop()
 
         return (None,) * len(expr)
 
     def Select(self, expr, rel, predicate):
+        if not isinstance(expr[1].staticType, LiteralType) or \
+           expr[1].staticType.typeUri != xsd.boolean:
+            error(expr, _("Condition must be boolean"))
         expr.staticType = expr[0].staticType
 
     def preMapResult(self, expr):
@@ -131,11 +170,14 @@ class TypeChecker(rewrite.ExpressionProcessor):
         return (None,) * len(expr)
 
     def MapResult(self, expr, rel, *mappingExprs):
-        expr.staticType = expr[0].staticType
+        typeExpr = RelationType()
+        for colName, colExpr in zip(expr.columnNames, expr[1:]):
+            typeExpr.addColumn(colName, colExpr.staticType)
+        expr.staticType = typeExpr
 
     def _setOperationType(self, expr, *operands):
-        typeExpr = operands[0].staticType
-        for subexpr in operands[1:]:
+        typeExpr = expr[0].staticType
+        for subexpr in expr[1:]:
             typeExpr.generalizeType(subexpr.staticType)
             if typeExpr is None:
                 error(expr, _("Incompatible types in set operation"))
@@ -145,15 +187,14 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._setOperationType(expr, *operands)
 
     def SetDifference(self, expr, operand1, operand2):
-        self._setOperationType(expr, *operands)
+        self._setOperationType(expr, operand1, operand2)
 
     def Intersection(self, expr, *operands):
         self._setOperationType(expr, *operands)
-
-checker = TypeChecker()
 
 
 def typeCheck(expr):
     """Type check `expr`. This function sets the `staticType` and
     `dynamicType` fields in all nodes in `expr`."""
-    checker.process(expr, prePrefix="pre")
+    checker = TypeChecker()
+    checker.process(expr)

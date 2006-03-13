@@ -1,3 +1,6 @@
+from commonns import xsd
+
+
 class TypeNode(object):
     """A node in a type expression."""
 
@@ -8,11 +11,12 @@ class TypeNode(object):
 
     def isSubtype(self, typeExpr):
         """Return `True` iff `self` is a subtype of `typeExpr`."""
-        while typeExpr != None and self != typeExpr:
-            typeExpr = typeExpr.supertype
-        return typeExpr != None
+        curType = self
+        while curType != None and curType != typeExpr:
+            curType = curType.supertype
+        return curType != None
 
-    def commonType(self, typeExpr):
+    def intersectType(self, typeExpr):
         """Return a type expression corresponding to the most specific
         type between `self` and `typeExpr`, or `None` if they don't
         belong to the same line of the type hierarchy."""
@@ -27,7 +31,7 @@ class TypeNode(object):
         """Return a type expression representing the most specific
         type that is a supertype of `self` and `typeExpr`, or
         `None` if no such type exists."""
-        if stream.write(self.isSubtype(typeExpr)):
+        if self.isSubtype(typeExpr):
             return typeExpr
         elif typeExpr.isSubtype(self):
             return self
@@ -86,6 +90,7 @@ class LiteralType(TypeNode):
             return self.__class__.__name__
 
 genericLiteralType = LiteralType()
+booleanLiteralType = LiteralType(xsd.boolean)
 
 
 class BlankNodeType(TypeNode):

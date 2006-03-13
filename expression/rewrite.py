@@ -49,9 +49,14 @@ class ExpressionProcessor(object):
     """A generic processor for expression trees. See the `process`
     method for more details."""
 
-    __slots__ = ()
+    __slots__ = ('prePrefix',
+                 'postPrefix')
 
-    def process(self, expr, prePrefix=None, postPrefix=""):
+    def __init__(self, prePrefix=None, postPrefix=""):
+        self.prePrefix = prePrefix
+        self.postPrefix = postPrefix
+
+    def process(self, expr):
         """Calculate (build) a value from an expression tree `expr` using
         this object's methods.
 
@@ -60,19 +65,19 @@ class ExpressionProcessor(object):
         in an undefined order before the expression itself is
         processed. For each expression node in the tree, the method of
         `self` will be fetched whose name is identical to the node's
-        class name with the value of `postPrefix` prepended to it (if
-        no such method exists, a method with name `postPrefix +
-        'Default'` will be used.) The method will be called with the
+        class name with the value of `self.postPrefix` prepended to it
+        (if no such method exists, a method with name `self.postPrefix
+        + 'Default'` will be used.) The method will be called with the
         expression node and the values already calculated for the
         subexpressions as parameters. The returned value will be
         passed, in the same fashion, to the method invoked for the
-        parent node of the expression, or returned by this method
-        for the root node.
+        parent node of the expression, or returned by this method for
+        the root node.
 
         In some cases, it is necessary to prevent certain
         subexpressions from being processed, to force a certain order
         for their processing, or to perform additional operations in
-        between. If `prePrefix` is not `None`, its value will be
+        between. If `self.prePrefix` is not `None`, its value will be
         prepended to each nodes's class name. If there's a method in
         `self` with that name, it will be called before any
         subexpressions of the corresponding node have been processed,
@@ -85,10 +90,10 @@ class ExpressionProcessor(object):
         assert isinstance(expr, nodes.ExpressionNode)
 
         # Calculate the values for the subexpressions.
-        if prePrefix is not None and \
-               hasattr(self, prePrefix + expr.__class__.__name__):
+        if self.prePrefix is not None and \
+            hasattr(self, self.prePrefix + expr.__class__.__name__):
             # Invoke the preorder method.
-            method = getattr(self, prePrefix + expr.__class__.__name__)
+            method = getattr(self, self.prePrefix + expr.__class__.__name__)
             procSubexprs = method(expr)
         else:
             # Process the subexpressions recursively and collect the values.
@@ -96,10 +101,10 @@ class ExpressionProcessor(object):
             for subexpr in expr:
                 procSubexprs.append(self.process(subexpr))
 
-        if hasattr(self, postPrefix + expr.__class__.__name__):
-            method = getattr(self, postPrefix + expr.__class__.__name__)
+        if hasattr(self, self.postPrefix + expr.__class__.__name__):
+            method = getattr(self, self.postPrefix + expr.__class__.__name__)
         else:
-            method = getattr(self, postPrefix + "Default")
+            method = getattr(self, self.postPrefix + "Default")
 
         # Invoke the postorder method.
         return method(expr, *procSubexprs)

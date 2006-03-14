@@ -6,7 +6,6 @@ gettext.install('relrdf')
 
 import error
 import serql
-import typecheck
 from sqlmap import map
 from sqlmap import generate
 
@@ -19,8 +18,6 @@ parser = serql.Parser(prefixes)
 
 try:
     expr = parser.parse(sys.stdin, "sys.stdin")
-    typecheck.typeCheck(expr)
-    expr = typecheck.addDynTypeChecks(expr)
     expr.prettyPrint()
 
     #mapper = map.VersionMapper(1)

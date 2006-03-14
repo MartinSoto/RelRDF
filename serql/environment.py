@@ -2,10 +2,13 @@ import StringIO
 
 import antlr
 
+import error
+
 from expression import nodes
 from expression import rewrite
 
-import error
+import typecheck
+
 import SerQLLexer
 import SerQLParser
 
@@ -53,5 +56,9 @@ class ParseEnvironment(object):
                 raise new
             else:
                 raise e
+
+        # Type check the expression.
+        expr = typecheck.typeCheck(expr)
+        expr = typecheck.addDynTypeChecks(expr)
 
         return expr

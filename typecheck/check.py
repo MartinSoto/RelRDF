@@ -194,6 +194,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
 def typeCheck(expr):
     """Type check `expr`. This function sets the `staticType` and
-    `dynamicType` fields in all nodes in `expr`."""
+    `dynamicType` fields in all nodes in `expr`. `expr` will be
+    modified in place, but the return value must be used since the
+    root node may change."""
     checker = TypeChecker()
     checker.process(expr)
+    return expr
+

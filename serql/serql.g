@@ -105,7 +105,6 @@ projectionElem returns [nameBinding]
 
 graphPattern returns [expr]
     :   expr=pathExprList
-        { expr = self.graphPatternExpr(expr) }
     ;
 
 pathExprList returns [expr]

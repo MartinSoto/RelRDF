@@ -34,15 +34,15 @@ class SelectContext(object):
     def addBound(self, varName):
         self.bound.add(varName)
 
-    def addIndependentPair(self, var1, var2):
-        if var1.name == var2.name:
+    def addIndependentPair(self, varName1, varName2):
+        if varName1 == varName2:
             return
 
-        group1 = self.indepMapping.get(var1.name)
-        group2 = self.indepMapping.get(var2.name)
+        group1 = self.indepMapping.get(varName1)
+        group2 = self.indepMapping.get(varName2)
 
         if not group1 and not group2:
-            group = frozenset((var1, var2))
+            group = frozenset((varName1, varName2))
         elif group1 and not group2:
             group = group1
         elif not group1 and group2:
@@ -50,11 +50,11 @@ class SelectContext(object):
         else:
             # Merge both groups.
             group = group1.union(group2)
-            for var in group:
-                self.indepMapping[var.name] = group
+            for varName in group:
+                self.indepMapping[varName] = group
 
-        self.indepMapping[var1.name] = group
-        self.indepMapping[var2.name] = group
+        self.indepMapping[varName1] = group
+        self.indepMapping[varName2] = group
 
     def addReifPattern(self, subject, predicate, object):
         # Use a variable name that isn't allowed in SerQL.
@@ -76,7 +76,8 @@ class SelectContext(object):
 
         for group in self.independent:
             if len(group) >= 2:
-                subconds.append(nodes.Different(*group))
+                subconds.append(nodes.Different(*[nodes.Var(n)
+                                                  for n in group]))
 
         if len(subconds) == 0:
             return None
@@ -205,9 +206,9 @@ class Parser(antlr.LLkParser):
 
                 if isinstance(node1, nodes.Var):
                     self.currentContext().addBound(node1.name)
-                    if indepVar1:
+                    if indepVar1 is not None:
                         self.currentContext() \
-                            .addIndependentPair(indepVar1, node1)
+                            .addIndependentPair(indepVar1.name, node1.name)
                     else:
                         indepVar1 = node1
 
@@ -216,9 +217,9 @@ class Parser(antlr.LLkParser):
 
                 if isinstance(node2, nodes.Var):
                     self.currentContext().addBound(node2.name)
-                    if indepVar2:
+                    if indepVar2 is not None:
                         self.currentContext() \
-                            .addIndependentPair(indepVar2, node2)
+                            .addIndependentPair(indepVar2.name, node2.name)
                     else:
                         indepVar2 = node2
 
@@ -240,9 +241,9 @@ class Parser(antlr.LLkParser):
 
                 if isinstance(node1, nodes.Var):
                     self.currentContext().addBound(node1.name)
-                    if indepVar1:
+                    if indepVar1 is not None:
                         self.currentContext() \
-                            .addIndependentPair(indepVar1, node1)
+                            .addIndependentPair(indepVar1.name, node1.name)
                     else:
                         indepVar1 = node1
 
@@ -251,19 +252,13 @@ class Parser(antlr.LLkParser):
 
                 if isinstance(node2, nodes.Var):
                     self.currentContext().addBound(node2.name)
-                    if indepVar2:
+                    if indepVar2 is not None:
                         self.currentContext() \
-                            .addIndependentPair(indepVar2, node2)
+                            .addIndependentPair(indepVar2.name, node2.name)
                     else:
                         indepVar2 = node2
 
         return vars
-
-    def graphPatternExpr(self, node):
-        cond = self.currentContext().getCondition()
-        if cond:
-            node = nodes.Select(node, cond)
-        return node
 
     def selectQueryExpr(self, (columnNames, mappingExprs), patternExpr,
                         condExpr):
@@ -275,7 +270,11 @@ class Parser(antlr.LLkParser):
             # expression.
             current = nodes.Product(current, *patterns)
 
-        if condExpr:
+        indepCond = self.currentContext().getCondition()
+        if indepCond is not None:
+            current = nodes.Select(current, indepCond)
+
+        if condExpr is not None:
             self.currentContext().checkVariables(condExpr)
             current = nodes.Select(current, condExpr)
 

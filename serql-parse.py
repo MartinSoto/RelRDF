@@ -20,14 +20,15 @@ parser = serql.Parser(prefixes)
 try:
     expr = parser.parse(sys.stdin, "sys.stdin")
     typecheck.typeCheck(expr)
+    expr = typecheck.addDynTypeChecks(expr)
     expr.prettyPrint()
 
-    mapper = map.VersionMapper(1)
+    #mapper = map.VersionMapper(1)
     #mapper = map.MultiVersionMapper('http://ex.com/versions#')
-    expr = mapper.mapExpression(expr)
+    #expr = mapper.mapExpression(expr)
     #expr.prettyPrint()
-    print
+    #print
 
-    print generate.generate(expr)
+    #print generate.generate(expr)
 except error.Error, e:
     print >> sys.stderr, "Error:", str(e)

@@ -540,13 +540,10 @@ class Intersection(SetOperation):
 # Type Related Nodes
 #
 
-class VarDynType(Var):
-    """An expression node representing the dynamic type of a
-    variable. This is intended to be replaced by the database
-    mapper. The replacement is an expression that produces an
-    internal, run-time representation of the data type."""
-
-    # For practical purposes, this can be derived from the Variable
-    # class.
+class DynType(UnaryOperation):
+    """An expression node representing the dynamic type of an
+    arbitrary expression. This is intended to be replaced by the
+    database mapper. The replacement is an expression that produces an
+    internal, runtime representation of the data type."""
 
     __slots = ()

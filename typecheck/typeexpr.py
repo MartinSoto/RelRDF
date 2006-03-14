@@ -42,6 +42,20 @@ class TypeNode(object):
         return self.__class__.__name__
 
 
+def commonType(*exprs):
+    """Return a type expression representing the most specific type
+    that is a supertype of the types of all elements in `exprs`, or
+    `None` if no such type exists."""
+    if len(exprs) == 0:
+        return None
+
+    genType = exprs[0].staticType
+    for expr in exprs[1:]:
+        genType = genType.generalizeType(expr.staticType)
+
+    return genType
+
+
 class RdfNodeType(TypeNode):
     """A type node representing the generic type of RDF nodes. This is
     considered a supertype encompassing literals, blank nodes and

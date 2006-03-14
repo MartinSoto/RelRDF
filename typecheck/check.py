@@ -39,7 +39,6 @@ class TypeChecker(rewrite.ExpressionProcessor):
             typeExpr = self.scopeStack[-1].getColumnType(expr.name)
             if typeExpr is not None:
                 expr.staticType = typeExpr
-                expr.dynamicType = nodes.VarDynType(expr.name)
 
     def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()

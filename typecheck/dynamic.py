@@ -3,7 +3,7 @@ from expression import nodes, rewrite
 from typeexpr import commonType, LiteralType, BlankNodeType, ResourceType
 
 
-class DynTypeCheckTransl(rewrite.ExpressionProcessor):
+class DynTypeCheckTransl(rewrite.ExpressionTransformer):
     """An expression translator that adds generic dynamic type checks
     to a relational expression."""
 
@@ -36,10 +36,6 @@ class DynTypeCheckTransl(rewrite.ExpressionProcessor):
         diffTypesExpr = nodes.Different(*[nodes.DynType(e)
                                           for e in transfSubexprs])
         return nodes.Or(diffTypesExpr, expr)
-
-    def Default(self, expr, *transfSubexprs):
-        expr[:] = transfSubexprs
-        return expr
 
 
 def addDynTypeChecks(expr):

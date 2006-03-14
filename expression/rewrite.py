@@ -110,6 +110,19 @@ class ExpressionProcessor(object):
         return method(expr, *procSubexprs)
 
 
+class ExpressionTransformer(ExpressionProcessor):
+    """A generic tranformer for expression trees. The only difference
+    with respect to `ExpressionProcessor` is that the default
+    operation expects that the calculated values are transformed
+    subexpressions."""
+
+    def Default(self, expr, *transfSubexprs):
+        """Set `transfSubexprs`as the subexpressions of `expr` and
+        return `expr`."""
+        expr[:] = transfSubexprs
+        return expr
+
+
 def flattenAssoc(nodeType, expr):
     def postOp(expr, subexprsModif):
         i = 0

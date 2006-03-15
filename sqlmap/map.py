@@ -7,13 +7,13 @@ from expression import rewrite
 from expression import literal, uri
 
 from typecheck.typeexpr import LiteralType, BlankNodeType, ResourceType, \
-     resourceType, rdfNodeType
+     RdfNodeType, resourceType, rdfNodeType
 import typecheck 
 
 
-TYPE_ID_RESOURCE = literal.Literal("1", xsd.decimal)
-TYPE_ID_BLANKNODE = literal.Literal("2", xsd.decimal)
-TYPE_ID_LITERAL = literal.Literal("3", xsd.decimal)
+TYPE_ID_RESOURCE = literal.Literal(1)
+TYPE_ID_BLANKNODE = literal.Literal(2)
+TYPE_ID_LITERAL = literal.Literal(3)
 
 
 def makeFieldRef(relation, incarnation, col):
@@ -76,10 +76,24 @@ class Scope(dict):
         pprint.pprint(self, stream, indent + 2)
 
 
-class AbstractSqlMapper(rewrite.ExpressionTransformer):
+class BasicMapper(rewrite.ExpressionTransformer):
 
-    __slots__ = ('scopeStack',
-                 'currentIncarnation')
+    __slots__ = ('currentIncarnation')
+
+    def __init__(self, prePrefix=None, postPrefix=""):
+        super(BasicMapper, self).__init__(prePrefix=prePrefix,
+                                          postPrefix=postPrefix)
+
+        self.currentIncarnation = 0
+
+    def makeIncarnation(self):
+        self.currentIncarnation += 1
+        return self.currentIncarnation
+
+
+class AbstractSqlMapper(BasicMapper):
+
+    __slots__ = ('scopeStack')
 
     RDF_TYPE = nodes.Uri(rdf.type)
     RDF_STATEMENT = nodes.Uri(rdf.Statement)
@@ -90,8 +104,6 @@ class AbstractSqlMapper(rewrite.ExpressionTransformer):
 
     def __init__(self):
         super(AbstractSqlMapper, self).__init__(prePrefix='pre')
-
-        self.currentIncarnation = 0
 
         # A stack of Scope objects, to handle nested variable
         # scopes.
@@ -109,10 +121,6 @@ class AbstractSqlMapper(rewrite.ExpressionTransformer):
     def currentScope(self):
         """Return the current (topmost) scope."""
         return self.scopeStack[-1]
-
-    def makeIncarnation(self):
-        self.currentIncarnation += 1
-        return self.currentIncarnation
 
     def StatementPattern(self, expr, subject, pred, object):
         incarnation = self.makeIncarnation()
@@ -181,67 +189,93 @@ class AbstractSqlMapper(rewrite.ExpressionTransformer):
         return self.currentScope().expandVariable(expr)
 
 
-#     @staticmethod
-#     def getConstantTypeExpr(typeExpr):
-#         if isinstance(typeExpr, LiteralType):
+class VersionMapper(rewrite.ExpressionTransformer):
+    
+    __slots__ = ('versionNumber')
+
+    def __init__(self, versionNumber):
+        super(VersionMapper, self).__init__(prePrefix='pre')
+
+        self.versionNumber = versionNumber
+
+    def Relation(self, expr):
+        if expr.name != 'S':
+            return expr
+
+        incr = expr.incarnation
+
+        rel = nodes.Product(nodes.Relation('version_statement', incr),
+                            nodes.Relation('statements', incr))
+
+        cond = nodes.And(
+            nodes.Equal(
+                nodes.FieldRef('version_statement', incr, 'version_id'),
+                nodes.Literal(self.versionNumber)),
+            nodes.Equal(
+                nodes.FieldRef('version_statement', incr, 'stmt_id'),
+                nodes.FieldRef('statements', incr, 'id')))
+
+        return nodes.Select(rel, cond)
+
+    def FieldRef(self, expr):
+        if expr.relName != 'S':
+            return expr
+
+        return nodes.FieldRef('statements', expr.incarnation, expr.fieldId)
+
+    def _dynTypeExpr(self, expr):
+        typeExpr = expr.staticType
+
+        if isinstance(typeExpr, LiteralType):
 #             if typeExpr.typeUri is not None:
 #                 # Search for the actual type id.
 #                 incarnation = self.makeIncarnation()
 #                 cond = nodes.Equal(nodes.FieldRef('data_types',
 #                                                   incarnation, 'uri'),
-#                                    nodes.Uri(typeUri))
+#                                    nodes.Uri(typeExpr.typeUri))
 #                 select = nodes.Select(nodes.Relation('data_types',
 #                                                      incarnation),
 #                                       cond)
-#                 return nodes.Mapping(['id'],
+#                 return nodes.MapResult(['id'],
 #                                      nodes.FieldRef('data_types',
 #                                                     incarnation, 'id'))
 #             else:
 #                 return TYPE_ID_LITERAL
-#         elif isinstance(typeExpr, BlankNodeType):
-#             return TYPE_ID_BLANKNODE
-#         elif isinstance(typeExpr, TYPE_ID_RESOURCE):
-#             return TYPE_ID_RESOURCE
-#         else:
-#             assert False, "Type is not constant"
+            return nodes.Literal(TYPE_ID_LITERAL)
+        elif isinstance(typeExpr, BlankNodeType):
+            return nodes.Literal(TYPE_ID_BLANKNODE)
+        elif isinstance(typeExpr, ResourceType):
+            return nodes.Literal(TYPE_ID_RESOURCE)
+        elif isinstance(typeExpr, RdfNodeType) and \
+             isinstance(expr, nodes.FieldRef) and \
+             expr.relName == 'S' and expr.fieldId == 'object':
+            return nodes.FieldRef('statements', expr.incarnation,
+                                  'object_type')
+        else:
+            assert False, "Cannot determine type"
 
+    def preDynType(self, expr):
+        return self._dynTypeExpr(expr[0]),
 
-class VersionMapper(object):
-    __slots__ = ('versionNumber')
+    def DynType(self, expr, subexpr):
+        return subexpr
 
-    def __init__(self, versionNumber):
-        super(VersionMapper, self).__init__()
+    def MapResult(self, expr, relExpr, *mappingExprs):
+        expr[0] = relExpr
+        for i, mappingExpr in enumerate(mappingExprs):
+            expr.columnNames[i*2+1:i*2+1] = 'type__' + expr.columnNames[i*2],
+            expr[i*2+2:i*2+2] = self._dynTypeExpr(expr[i*2+1]),
+            expr[i*2+1] = mappingExpr
+        return expr
 
-        self.versionNumber = versionNumber
+    def _setOperation(self, expr, *operands):
+        expr.columnNames = list(operands[0].columnNames)
+        expr[:] = operands
+        return expr
 
-    def mapPattern(self, subject, pred, object):
-        stmtIncr = self.makeIncarnation()
-        verIncr = self.makeIncarnation()
-
-        conds = []
-        for id, node in (('subject', subject), ('predicate', pred),
-                         ('object', object)):
-            if isinstance(node, nodes.Var):
-                self.currentScope().addBinding(node.name, 'statements',
-                                               
-                                               stmtIncr, id)
-            else:
-                ref = nodes.FieldRef('statements', stmtIncr, id)
-                conds.append(nodes.Equal(ref, node))
-
-        rel = nodes.Product(nodes.Relation('version_statement', verIncr),
-                            nodes.Relation('statements', stmtIncr))
-
-        conds.append(
-            nodes.And(
-                nodes.Equal(
-                    nodes.FieldRef('version_statement', verIncr, 'version_id'),
-                    nodes.Literal(self.versionNumber)),
-                nodes.Equal(
-                    nodes.FieldRef('version_statement', verIncr, 'stmt_id'),
-                    nodes.FieldRef('statements', stmtIncr, 'id'))))
-
-        return nodes.Select(rel, nodes.And(*conds)), True
+    Union = _setOperation
+    SetDifference = _setOperation
+    Intersection = _setOperation
 
 
 class MultiVersionMapper(object):

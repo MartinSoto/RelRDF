@@ -318,7 +318,7 @@ class FieldRef(ExpressionNode):
                                repr(self.fieldId))
 
     def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s' % str(self))
+        stream.write(' %s' % self.attributesRepr())
 
 
 class StatementPattern(ExpressionNode):

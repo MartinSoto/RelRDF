@@ -1,10 +1,33 @@
 import re
 import pprint
 
-from commonns import rdf, relrdf
+from commonns import xsd, rdf, relrdf
 from expression import nodes
 from expression import rewrite
-from expression import uri
+from expression import literal, uri
+
+from typecheck.typeexpr import LiteralType, BlankNodeType, ResourceType, \
+     resourceType, rdfNodeType
+import typecheck 
+
+
+TYPE_ID_RESOURCE = literal.Literal("1", xsd.decimal)
+TYPE_ID_BLANKNODE = literal.Literal("2", xsd.decimal)
+TYPE_ID_LITERAL = literal.Literal("3", xsd.decimal)
+
+
+def makeFieldRef(relation, incarnation, col):
+    ref = nodes.FieldRef(relation, incarnation, col)
+    if col == 'object':
+        ref.staticType = rdfNodeType
+    else:
+        ref.staticType = resourceType
+    return ref
+
+def typeCheck(expr):
+    expr = typecheck.typeCheck(expr)
+    expr = typecheck.addDynTypeChecks(expr)
+    return expr
 
 
 class Scope(dict):
@@ -21,7 +44,8 @@ class Scope(dict):
             varBindings = []
             self[varName] = varBindings
 
-        varBindings.append(nodes.FieldRef(relName, incarnation, columnId))
+        varBindings.append(makeFieldRef(relName, incarnation,
+                                        columnId))
 
     def getCondition(self):
         subconds = []
@@ -33,16 +57,16 @@ class Scope(dict):
         if len(subconds) == 0:
             return None
         elif len(subconds) == 1:
-            return subconds[0]
+            return typeCheck(subconds[0])
         else:
-            return nodes.And(*subconds)
+            return typeCheck(nodes.And(*subconds))
 
-    def expandVariables(self, expr):
-        def preOp(expr):
+    def expandVariable(self, var):
+        try:
             # Select an arbitrary binding.
-            return iter(self[expr.name]).next(), True
-
-        return rewrite.exprMatchApply(expr, nodes.Var, preOp=preOp)
+            return iter(self[var.name]).next()
+        except KeyError:
+            return var
 
     def prettyPrint(self, stream=None, indent=0):
         if stream == None:
@@ -52,7 +76,7 @@ class Scope(dict):
         pprint.pprint(self, stream, indent + 2)
 
 
-class RelationalMapper(object):
+class AbstractSqlMapper(rewrite.ExpressionTransformer):
 
     __slots__ = ('scopeStack',
                  'currentIncarnation')
@@ -65,6 +89,8 @@ class RelationalMapper(object):
 
 
     def __init__(self):
+        super(AbstractSqlMapper, self).__init__(prePrefix='pre')
+
         self.currentIncarnation = 0
 
         # A stack of Scope objects, to handle nested variable
@@ -88,7 +114,7 @@ class RelationalMapper(object):
         self.currentIncarnation += 1
         return self.currentIncarnation
 
-    def mapPattern(self, subject, pred, object):
+    def StatementPattern(self, expr, subject, pred, object):
         incarnation = self.makeIncarnation()
 
         conds = []
@@ -98,63 +124,89 @@ class RelationalMapper(object):
                 self.currentScope().addBinding(node.name, 'S',
                                                incarnation, id)
             else:
-                ref = nodes.FieldRef('S', incarnation, id)
+                ref = makeFieldRef('S', incarnation, id)
                 conds.append(nodes.Equal(ref, node))
 
         rel = nodes.Relation('S', incarnation)
         if conds == []:
-            return rel, True
+            return rel
         else:
-            return nodes.Select(rel, nodes.And(*conds)), True
+            return nodes.Select(rel, nodes.And(*conds))
 
-    def mapReifPattern(self, var, subject, pred, object):
-        return nodes.Product(self.mapPattern(var, self.RDF_TYPE,
-                                             self.RDF_STATEMENT)[0],
-                             self.mapPattern(var, self.RDF_SUBJECT,
-                                             subject)[0],
-                             self.mapPattern(var, self.RDF_PREDICATE,
-                                             pred)[0],
-                             self.mapPattern(var, self.RDF_OBJECT,
-                                             object)[0]), True
+    def ReifStmtPattern(self, expr, var, subject, pred, object):
+        return nodes.Product(self.StatementPattern(expr, var, self.RDF_TYPE,
+                                                   self.RDF_STATEMENT),
+                             self.StatementPattern(expr, var,
+                                                   self.RDF_SUBJECT, subject),
+                             self.StatementPattern(expr, var,
+                                                   self.RDF_PREDICATE, pred),
+                             self.StatementPattern(expr, var,
+                                                   self.RDF_OBJECT, object))
 
-    def mapExpression(self, expr):
-        def preOp(expr):
-            if isinstance(expr, nodes.MapResult):
-                self.pushScope()
-            return expr, False
+    def preSelect(self, expr):
+        # Process the relation subexpression before the condition.
+        expr[0] = self.process(expr[0])
+        expr[1] = self.process(expr[1])
+        return expr
 
-        def postOp(expr, subexprsModif):
-            if isinstance(expr, nodes.MapResult):
-                # Close the scope and expand the variables.
-                scope = self.popScope()
-                expr, modif = scope.expandVariables(expr)
+    def preMapResult(self, expr):
+        # Create a separate scope for the expression.
+        self.pushScope()
 
-                # Add the binding condition if necessary.
-                cond = scope.getCondition()
-                if cond != None:
-                    expr[0] = nodes.Select(expr[0], cond)
-                    modif = True
+        # Process the relation subexpression first.
+        expr[0] = self.process(expr[0])
 
-                # Add an unique incarnation identifier.
-                expr.incarnation = self.makeIncarnation()
+        # Add the binding condition if necessary.
+        cond = self.currentScope().getCondition()
+        if cond != None:
+            expr[0] = nodes.Select(expr[0], cond)
 
-                return expr, True
-            elif isinstance(expr, nodes.StatementPattern):
-                return self.mapPattern(*expr)
-            elif isinstance(expr, nodes.ReifStmtPattern):
-                return self.mapReifPattern(*expr)
-            else:
-                return expr, subexprsModif
+        # Now process the mapping expressions.
+        expr[1:] = [self.process(mappingExpr)
+                    for mappingExpr in expr[1:]]
 
-        expr = rewrite.exprApply(expr, preOp=preOp, postOp=postOp)[0]
-        return rewrite.simplify(expr)
+        # Remove the scope.
+        scope = self.popScope()
 
-    def prettyPrint(self, stream=None, indent=0):
-        if stream == None:
-            stream = sys.stdout
+        return expr
+
+    def MapResult(self, expr, *transfSubexprs):
+        # Add an unique incarnation identifier.
+        expr.incarnation = self.makeIncarnation()
+
+        # FIXME: Add this mapping's columns to the current scope.
+        return expr
+
+    def Var(self, expr):
+        return self.currentScope().expandVariable(expr)
 
 
-class VersionMapper(RelationalMapper):
+#     @staticmethod
+#     def getConstantTypeExpr(typeExpr):
+#         if isinstance(typeExpr, LiteralType):
+#             if typeExpr.typeUri is not None:
+#                 # Search for the actual type id.
+#                 incarnation = self.makeIncarnation()
+#                 cond = nodes.Equal(nodes.FieldRef('data_types',
+#                                                   incarnation, 'uri'),
+#                                    nodes.Uri(typeUri))
+#                 select = nodes.Select(nodes.Relation('data_types',
+#                                                      incarnation),
+#                                       cond)
+#                 return nodes.Mapping(['id'],
+#                                      nodes.FieldRef('data_types',
+#                                                     incarnation, 'id'))
+#             else:
+#                 return TYPE_ID_LITERAL
+#         elif isinstance(typeExpr, BlankNodeType):
+#             return TYPE_ID_BLANKNODE
+#         elif isinstance(typeExpr, TYPE_ID_RESOURCE):
+#             return TYPE_ID_RESOURCE
+#         else:
+#             assert False, "Type is not constant"
+
+
+class VersionMapper(object):
     __slots__ = ('versionNumber')
 
     def __init__(self, versionNumber):
@@ -192,7 +244,7 @@ class VersionMapper(RelationalMapper):
         return nodes.Select(rel, nodes.And(*conds)), True
 
 
-class MultiVersionMapper(RelationalMapper):
+class MultiVersionMapper(object):
     """
     <version> relrdf:contains <stmt>
 

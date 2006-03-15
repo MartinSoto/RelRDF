@@ -20,10 +20,11 @@ try:
     expr = parser.parse(sys.stdin, "sys.stdin")
     expr.prettyPrint()
 
+    mapper = map.AbstractSqlMapper()
     #mapper = map.VersionMapper(1)
     #mapper = map.MultiVersionMapper('http://ex.com/versions#')
-    #expr = mapper.mapExpression(expr)
-    #expr.prettyPrint()
+    expr = mapper.process(expr)
+    expr.prettyPrint()
     #print
 
     #print generate.generate(expr)

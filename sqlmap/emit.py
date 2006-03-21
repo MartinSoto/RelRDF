@@ -2,7 +2,7 @@ from commonns import xsd
 from expression import rewrite
 
 
-class SqlGenerator(rewrite.ExpressionProcessor):
+class SqlEmitter(rewrite.ExpressionProcessor):
     __slots__ = ()
 
     def Uri(self, expr):
@@ -82,8 +82,8 @@ class SqlGenerator(rewrite.ExpressionProcessor):
     def SetDifference(self, *args):
         return self._setDiffOrIntersect('NOT IN', *args)
 
-generator = SqlGenerator()
+emitter = SqlEmitter()
 
 
-def generate(expr):
-    return generator.process(expr)
+def emit(expr):
+    return emitter.process(expr)

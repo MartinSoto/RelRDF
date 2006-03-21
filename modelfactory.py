@@ -2,8 +2,7 @@ import gettext
 gettext.install('relrdf')
 
 import serql
-from sqlmap import map
-from sqlmap import generate
+import sqlmap
 
 
 def getQueryParser(queryLanguage, prefixes=None):
@@ -51,17 +50,16 @@ class SqlMappedModel(object):
         parser = getQueryParser(queryLanguage, self.prefixes)
         expr = parser.parse(queryText, fileName)
         columnNames = expr.columnNames
-        expr = self.mapper.mapExpression(expr)
-        return SqlBasedResults(self.connection, columnNames,
-                               generate.generate(expr))
+        sqlQuery = self.mapper(expr)
+        return SqlBasedResults(self.connection, columnNames, sqlQuery)
 
 
 def getModel(modelType, connection, prefixes=None, **kwargs):
     modelTypeNorm = modelType.lower()
     if modelTypeNorm == 'singleversion':
-        mapper = map.VersionMapper(kwargs['versionId'])
-    elif modelTypeNorm == 'multiversion':
-        mapper = map.MultiVersionMapper(kwargs['versionUri'])
+        mapper = sqlmap.VersionMapper(kwargs['versionId'])
+#    elif modelTypeNorm == 'multiversion':
+#        mapper = map.MultiVersionMapper(kwargs['versionUri'])
     else:
         assert False, "invalid model type '%s'" % modelType
 

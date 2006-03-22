@@ -13,7 +13,6 @@ from expression import uri, blanknode, literal
 import modelfactory
 
 import prefixes
-import query
 import schema
 
 
@@ -148,7 +147,7 @@ class MainWindow(SimpleGladeApp):
             gtk.gdk.ACTION_COPY)
 
     def openModel(self):
-        connection = MySQLdb.connect(host='localhost', db='v-modell',
+        connection = MySQLdb.connect(host='localhost', db='dc',
                                      read_default_group='client')
 
         prefixes = {
@@ -200,15 +199,14 @@ class MainWindow(SimpleGladeApp):
 
     @staticmethod
     def nodeToStr(node):
-        return node[:100]
-#         if isinstance(node, uri.Uri):
-#             return '<%s>' % prefixes.shortenUri(node)
-#         elif isinstance(node, blanknode.BlankNode):
-#             return 'bnode:%s' % node
-#         elif isinstance(node, literal.Literal):
-#             return '"%s"' % node
-#         else:
-#             return "???"
+        if isinstance(node, uri.Uri):
+            return '<%s>' % prefixes.shortenUri(node)
+        elif isinstance(node, blanknode.BlankNode):
+            return 'bnode:%s' % node
+        elif isinstance(node, literal.Literal):
+            return '"%s"' % str(node.value)[:100]
+        else:
+            return "???"
 
     def showBindingsResults(self, results):
         """Display the query results object as table."""

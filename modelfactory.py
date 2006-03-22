@@ -17,17 +17,23 @@ class SqlBasedResults(object):
     """A query that gets processed by translating it to SQL."""
 
     __slots__ = ('cursor',
-                 'columnNames')
+                 'columnNames',
+                 'mapper')
 
-    def __init__(self, connection, columnNames, queryString):
+    def __init__(self, connection, columnNames, mapper, expr):
         self.cursor = connection.cursor()
-        self.columnNames = columnNames
-        self.cursor.execute(queryString)
+        self.columnNames = columnNames[::2]
+        self.mapper = mapper
+        self.cursor.execute(mapper.mapExpr(expr))
 
     def iterAll(self):
         row = self.cursor.fetchone()
         while row is not None:
-            yield row
+            result = []
+            for rawValue, typeId in zip(row[0::2], row[1::2]):
+                result.append(self.mapper.convertResult(rawValue, typeId))
+            yield tuple(result)
+
             row = self.cursor.fetchone()
 
     __iter__ = iterAll
@@ -50,8 +56,8 @@ class SqlMappedModel(object):
         parser = getQueryParser(queryLanguage, self.prefixes)
         expr = parser.parse(queryText, fileName)
         columnNames = expr.columnNames
-        sqlQuery = self.mapper(expr)
-        return SqlBasedResults(self.connection, columnNames, sqlQuery)
+        return SqlBasedResults(self.connection, columnNames,
+                               self.mapper, expr)
 
 
 def getModel(modelType, connection, prefixes=None, **kwargs):

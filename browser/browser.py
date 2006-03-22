@@ -147,7 +147,7 @@ class MainWindow(SimpleGladeApp):
             gtk.gdk.ACTION_COPY)
 
     def openModel(self):
-        connection = MySQLdb.connect(host='localhost', db='dc',
+        connection = MySQLdb.connect(host='localhost', db='v-modell',
                                      read_default_group='client')
 
         prefixes = {

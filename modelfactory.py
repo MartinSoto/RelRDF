@@ -22,8 +22,13 @@ class SqlBasedResults(object):
 
     def __init__(self, connection, columnNames, mapper, expr):
         self.cursor = connection.cursor()
+
+        # Make sure MySQL send us UTF8.
+        self.cursor.execute('set names "utf8"')
+
         self.columnNames = columnNames
         self.mapper = mapper
+
         self.cursor.execute(mapper.mapExpr(expr))
 
     def iterAll(self):

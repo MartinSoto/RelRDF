@@ -22,7 +22,7 @@ class SqlBasedResults(object):
 
     def __init__(self, connection, columnNames, mapper, expr):
         self.cursor = connection.cursor()
-        self.columnNames = columnNames[::2]
+        self.columnNames = columnNames
         self.mapper = mapper
         self.cursor.execute(mapper.mapExpr(expr))
 
@@ -55,8 +55,8 @@ class SqlMappedModel(object):
     def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
         parser = getQueryParser(queryLanguage, self.prefixes)
         expr = parser.parse(queryText, fileName)
-        columnNames = expr.columnNames
-        return SqlBasedResults(self.connection, columnNames,
+        return SqlBasedResults(self.connection,
+                               list(expr.columnNames),
                                self.mapper, expr)
 
 

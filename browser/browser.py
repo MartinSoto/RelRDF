@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, gtk
+import os, gtk, pango
 from SimpleGladeApp import SimpleGladeApp
 
 glade_dir = ""
@@ -140,6 +140,9 @@ class MainWindow(SimpleGladeApp):
         self.model = None
         self.resultLS = None
 
+        # Set a default query.
+        self.queryText.get_buffer().set_text("select s, p, o\nfrom {s} p {o}")
+
         # Allow dragging from the query result.
         self.resultsView.enable_model_drag_source(
             gtk.gdk.BUTTON1_MASK,
@@ -200,7 +203,7 @@ class MainWindow(SimpleGladeApp):
         elif isinstance(node, blanknode.BlankNode):
             return 'bnode:%s' % node
         elif isinstance(node, literal.Literal):
-            return '"%s"' % str(node.value)[:100]
+            return '"%s"' % str(node.value)
         else:
             return "???"
 
@@ -233,10 +236,15 @@ class MainWindow(SimpleGladeApp):
         for name in results.columnNames:
             # Create the column.
             col = gtk.TreeViewColumn(name)
+            col.set_resizable(True)
+            col.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)
             self.resultsView.append_column(col)
 
             # Add a text cell renderer.
             cell = gtk.CellRendererText()
+            cell.set_property('ellipsize', pango.ELLIPSIZE_END)
+            cell.set_property('editable', True)
+            cell.set_property('width-chars', 50)
             col.pack_start(cell, True)
             col.add_attribute(cell, 'text', pos)
             col.set_sort_column_id(pos)

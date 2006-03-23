@@ -5,7 +5,6 @@ import sets
 import RDF
 
 import prefixes
-import query
 
 
 class RdfSchemaError(Exception):
@@ -80,12 +79,7 @@ class RdfSchema(object):
     __slots__ = ('classes',
                  'properties')
 
-    def __init__(self, fileNameOrModel):
-        if isinstance(fileNameOrModel, str):
-            model = query.Model(fileNameOrModel)
-        else:
-            model = fileNameOrModel
-
+    def __init__(self, model):
         # Build a table containing all defined classes.
         self.classes = {}
         for result in model.query("""SELECT ?class

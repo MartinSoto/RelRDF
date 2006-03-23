@@ -150,12 +150,8 @@ class MainWindow(SimpleGladeApp):
         connection = MySQLdb.connect(host='localhost', db='v-modell',
                                      read_default_group='client')
 
-        prefixes = {
-            'ex': 'http://example.com/model#'
-            }
-
         self.model = modelfactory.getModel('SingleVersion', connection,
-                                           prefixes, versionId=1)
+                                           prefixes.namespaces, versionId=1)
         basename = 'V-Modell'
 
         #self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
@@ -200,7 +196,7 @@ class MainWindow(SimpleGladeApp):
     @staticmethod
     def nodeToStr(node):
         if isinstance(node, uri.Uri):
-            return '<%s>' % prefixes.shortenUri(node)
+            return prefixes.shortenUri(node)
         elif isinstance(node, blanknode.BlankNode):
             return 'bnode:%s' % node
         elif isinstance(node, literal.Literal):

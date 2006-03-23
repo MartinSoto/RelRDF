@@ -43,3 +43,6 @@ class Literal(object):
 
     def __str__(self):
         return str(self.value)
+
+    def __unicode__(self):
+        return unicode(self.value)

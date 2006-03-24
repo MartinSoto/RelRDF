@@ -150,14 +150,18 @@ class MainWindow(SimpleGladeApp):
             gtk.gdk.ACTION_COPY)
 
     def openModel(self):
-        connection = MySQLdb.connect(host='localhost', db='v-modell',
+#        connection = MySQLdb.connect(host='localhost', db='v-modell',
+#                                     read_default_group='client')
+#        connection = MySQLdb.connect(host='localhost', db='dc',
+#                                     read_default_group='client')
+        connection = MySQLdb.connect(host='localhost', db='kuka',
                                      read_default_group='client')
 
         self.model = modelfactory.getModel('SingleVersion', connection,
                                            prefixes.namespaces, versionId=1)
         basename = 'V-Modell'
 
-        #self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
+        self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
 
         self.main_widget.set_title("%s - %s" % (basename, self.appName))
         self.showMessage("Model '%s' opened succesfully." % basename)
@@ -304,7 +308,7 @@ class Menu1(SimpleGladeApp):
 
     def on_queryInstances_activate(self, widget, *args):
         self.mainWindow.runQuery(
-            "SELECT ?instance\nWHERE (?instance rdf:type %s)" % \
+            "select instance\nfrom {instance} rdf:type {%s}" % \
             self.browser.getCurrentClass())
 
 

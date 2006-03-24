@@ -2,8 +2,7 @@
 
 import sets
 
-import RDF
-
+from commonns import rdfs
 import prefixes
 
 
@@ -11,16 +10,7 @@ class RdfSchemaError(Exception):
     pass
 
 
-class Literal(object):
-    __slots__ = ()
-
-    URI = 'http://www.w3.org/2000/01/rdf-schema#Literal'
-
-    def __str__(self):
-        return self.URI
-
-# Singleton object.
-LITERAL = Literal()
+LITERAL = rdfs.Literal
 
 
 class RdfObject(object):
@@ -30,7 +20,7 @@ class RdfObject(object):
         self.node = node
 
     def __str__(self):
-        return prefixes.shortenUri(str(self.node.uri))
+        return prefixes.shortenUri(self.node)
 
 
 class RdfClass(RdfObject):
@@ -82,22 +72,21 @@ class RdfSchema(object):
     def __init__(self, model):
         # Build a table containing all defined classes.
         self.classes = {}
-        for result in model.query("""SELECT ?class
-                                  WHERE (?class, rdf:type, rdfs:Class)"""):
-           node = result['class']
+        for node, in model.query('SerQL',
+                                 """select class
+                                 from {class} rdf:type {rdfs:Class}"""):
            self.classes[node] = RdfClass(node)
 
-        for result in model.query("""SELECT ?class, ?subclass
-                                  WHERE (?subclass, rdfs:subClassOf, ?class)"""):
-            node = result['class']
-            nodeSub = result['subclass']
-
+        for node, nodeSub in \
+                model.query('SerQL',
+                            """select class, subclass
+                            from {subclass} rdfs:subClassOf {class}"""):
             try:
                 cls = self.classes[node]
                 clsSub = self.classes[nodeSub]
             except KeyError:
                 print "Ignoring: %s is subclass of %s" \
-                      % (nodeSub.uri, node.uri)
+                      % (nodeSub, node)
                 continue
 
             cls.addDescendant(clsSub)
@@ -106,45 +95,43 @@ class RdfSchema(object):
         # Build a table containing all defined properties.
         self.properties = {}
 
-        for result in model.query("""SELECT ?prop
-                                  WHERE (?prop, rdf:type, rdf:Property)"""):
-           node = result['prop']
+        for node, in model.query('SerQL',
+                                 """select prop
+                                 from {prop} rdf:type {rdf:Property}"""):
            self.properties[node] = RdfProperty(node)
 
-        for result in model.query("""SELECT ?prop, ?class
-                                  WHERE (?prop, rdfs:domain, ?class)"""):
-            nodeProp = result['prop']
-            nodeCls = result['class']
-
+        for nodeProp, nodeCls in \
+                model.query('SerQL',
+                            """select prop, class
+                            from {prop} rdfs:domain {class}"""):
             try:
                 prop = self.properties[nodeProp]
 
-                if str(nodeCls.uri) == str(LITERAL):
+                if nodeCls == LITERAL:
                     cls = LITERAL
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:
-                print "Ignoring: %s is in domain from %s" % (nodeCls.uri,
-                                                             nodeProp.uri)
+                print "Ignoring: %s is in domain from %s" % (nodeCls,
+                                                             nodeProp)
                 continue
 
             prop.addToDomain(cls)
 
-        for result in model.query("""SELECT ?prop, ?class
-                                  WHERE (?prop, rdfs:range, ?class)"""):
-            nodeProp = result['prop']
-            nodeCls = result['class']
-
+        for nodeProp, nodeCls in \
+                model.query('SerQL',
+                            """select prop, class
+                            from {prop} rdfs:range {class}"""):
             try:
                 prop = self.properties[nodeProp]
 
-                if str(nodeCls.uri) == str(LITERAL):
+                if nodeCls == LITERAL:
                     cls = LITERAL
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:
-                print "Ignoring: %s is in range from %s" % (nodeCls.uri,
-                                                             nodeProp.uri)
+                print "Ignoring: %s is in range from %s" % (nodeCls,
+                                                            nodeProp)
                 continue
 
             prop.addToRange(cls)

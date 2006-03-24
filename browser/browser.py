@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
-import os, gtk, pango
+import sys
+import os
+
+import gtk
+import pango
+
 from SimpleGladeApp import SimpleGladeApp
 
 glade_dir = ""
@@ -149,12 +154,8 @@ class MainWindow(SimpleGladeApp):
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
-    def openModel(self):
-#        connection = MySQLdb.connect(host='localhost', db='v-modell',
-#                                     read_default_group='client')
-#        connection = MySQLdb.connect(host='localhost', db='dc',
-#                                     read_default_group='client')
-        connection = MySQLdb.connect(host='localhost', db='kuka',
+    def openModel(self, host, db):
+        connection = MySQLdb.connect(host=host, db=db,
                                      read_default_group='client')
 
         self.model = modelfactory.getModel('SingleVersion', connection,
@@ -269,9 +270,6 @@ class MainWindow(SimpleGladeApp):
         self.finalize()
         return False
 
-    def on_open_activate(self, widget, *args):
-        self.openModel()
-
     def on_quit_activate(self, widget, *args):
         self.finalize()
 
@@ -312,13 +310,16 @@ class Menu1(SimpleGladeApp):
             self.browser.getCurrentClass())
 
 
-def main():
+if __name__ == "__main__":
+    try:
+        host, db = sys.argv[1:]
+    except:
+        print >> sys.stderr, 'usage: browser <host> <database>'
+        sys.exit(1)
+
     schema_browser = SchemaBrowser()
     main_window = MainWindow()
-    main_window.openModel()
+    main_window.openModel(host, db)
     menu1 = Menu1()
 
     schema_browser.run()
-
-if __name__ == "__main__":
-    main()

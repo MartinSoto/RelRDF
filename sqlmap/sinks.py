@@ -1,3 +1,5 @@
+import md5
+
 from expression import uri, blanknode, literal
 
 
@@ -25,6 +27,13 @@ class VersionRdfSink(object):
         else:
             assert False, "Unexpected object type '%d'" \
                    % object.__class__.__name__
+
+        # Calculate a hash value for the statement.
+        m = md5.new()
+        m.update(unicode(subject))
+        m.update(unicode(pred))
+        m.update(unicode(objectType))
+        m.update(unicode(object))
             
         self.cursor.execute(
             """
@@ -34,11 +43,12 @@ class VersionRdfSink(object):
             (unicode(objectType)))
         self.cursor.execute(
             """
-            INSERT INTO statements (subject, predicate, object_type, object)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO statements (hash, subject, predicate, object_type,
+                                    object)
+            VALUES (%s,%s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE subject = subject""",
-            (unicode(subject), unicode(pred), self.cursor.lastrowid,
-             unicode(object)))
+            (m.digest(), unicode(subject), unicode(pred),
+             self.cursor.lastrowid, unicode(object)))
         self.cursor.execute(
             """
             INSERT INTO version_statement (version_id, stmt_id)

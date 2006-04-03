@@ -2,7 +2,9 @@ DROP TABLE IF EXISTS statements;
 
 CREATE TABLE statements (
   id integer unsigned NOT NULL auto_increment
-	 COMMENT 'Arbitrary numeric statement identifier.',
+	 COMMENT 'Arbitrary numeric statement identifier',
+  hash binary(16) NOT NULL
+	 COMMENT '128 bit hash value',
   subject varchar(255) NOT NULL
 	 COMMENT 'Statement subject',
   predicate varchar(255) NOT NULL
@@ -14,7 +16,7 @@ CREATE TABLE statements (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Available statements';
 
 CREATE UNIQUE INDEX statements_unique
-  ON statements (subject(60), predicate(60), object_type, object(100));
+  ON statements (id, hash);
 
 
 DROP TABLE IF EXISTS data_types;

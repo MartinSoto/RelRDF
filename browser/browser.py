@@ -2,17 +2,15 @@
 
 import sys
 import os
+import string
 
 import gtk
 import pango
 
-from SimpleGladeApp import SimpleGladeApp
-
-glade_dir = ""
-
-import string
-
 import MySQLdb
+
+from kiwi.ui.delegates import Delegate
+from kiwi.ui.gadgets import quit_if_last
 
 from expression import uri, blanknode, literal
 import modelfactory
@@ -22,17 +20,17 @@ import schema
 from schemapane import SchemaBrowser
 
 
-class MainWindow(SimpleGladeApp):
-    def __init__(self, glade_path="browser.glade", root="mainWindow",
-                 domain=None):
-        glade_path = os.path.join(glade_dir, glade_path)
-        SimpleGladeApp.__init__(self, glade_path, root, domain)
+class MainWindow(Delegate):
+    """Main browser window."""
 
-    def new(self):
+    def __init__(self):
+        Delegate.__init__(self, gladefile="browser",
+                          toplevel_name='mainWindow')
+
         self.schemaBrowser = SchemaBrowser()
         self.schemaBrowser.setMainWindow(self)
 
-        self.appName = self.main_widget.get_title()
+        self.appName = self.mainWindow.get_title()
 
         self.model = None
         self.resultLS = None
@@ -46,18 +44,17 @@ class MainWindow(SimpleGladeApp):
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
-    def openModel(self, host, db):
+    def openDatabase(self, host, db):
         connection = MySQLdb.connect(host=host, db=db,
                                      read_default_group='client')
 
         self.model = modelfactory.getModel('SingleVersion', connection,
                                            prefixes.namespaces, versionId=1)
-        basename = 'V-Modell'
 
         self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
 
-        self.main_widget.set_title("%s - %s" % (basename, self.appName))
-        self.showMessage("Model '%s' opened succesfully." % basename)
+        self.mainWindow.set_title("%s - %s" % (db, self.appName))
+        self.showMessage("Model '%s' opened succesfully." % db)
 
     def showResults(self):
         """Show the results list in the window."""
@@ -158,29 +155,26 @@ class MainWindow(SimpleGladeApp):
         self.schemaBrowser.hide()
         gtk.main_quit()
 
-    def on_mainWindow_delete_event(self, widget, *args):
+    def on_mainWindow__delete_event(self, widget, *args):
         self.finalize()
         return False
 
-    def on_quit_activate(self, widget, *args):
+    def on_Quit__activate(self, widget, *args):
         self.finalize()
 
-    def on_viewSchema_activate(self, widget, *args):
+    def on_ViewSchema__activate(self, widget, *args):
         self.schemaBrowser.show()
 
-    def on_about_activate(self, widget, *args):
-        print "on_about_activate called with self.%s" % widget.get_name()
-
-    def on_clearButton_clicked(self, widget, *args):
+    def on_clearButton__clicked(self, widget, *args):
         buffer = self.queryText.get_buffer()
         buffer.delete(buffer.get_start_iter(),
                       buffer.get_end_iter())
 
-    def on_queryButton_clicked(self, widget, *args):
+    def on_queryButton__clicked(self, widget, *args):
         self.runQuery()
 
-    def on_resultsView_drag_data_get(self, widget, context, selection,
-                                     targetType, eventTime):
+    def on_resultsView__drag_data_get(self, widget, context, selection,
+                                      targetType, eventTime):
         (path, col) = self.resultsView.get_cursor()
         tItr = self.resultLS.get_iter(path)
         entries = self.resultLS.get(tItr, *range(self. \
@@ -195,8 +189,10 @@ if __name__ == "__main__":
         print >> sys.stderr, 'usage: browser <host> <database>'
         sys.exit(1)
 
-    schema_browser = SchemaBrowser()
     main_window = MainWindow()
-    main_window.openModel(host, db)
+    main_window.openDatabase(host, db)
 
-    schema_browser.run()
+    main_window.show()
+
+    gtk.main()
+

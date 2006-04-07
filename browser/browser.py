@@ -10,6 +10,7 @@ import pango
 import MySQLdb
 
 from kiwifixes import UiManagerDelegate
+from kiwi.ui.delegates import Delegate, SlaveDelegate
 
 from expression import uri, blanknode, literal
 import modelfactory
@@ -22,6 +23,17 @@ from schemapane import SchemaBrowser
 class MainWindow(UiManagerDelegate):
     """Main browser window."""
 
+    mainGroup__actions = [('file', None, _('_File'), None, None),
+                          ('quit', gtk.STOCK_QUIT, None, None, None)]
+
+    uiDefinition = '''<ui>
+    <menubar name="menuBar">
+      <menu action="file">
+        <menuitem action="quit"/>
+      </menu>
+    </menubar>
+    </ui>'''
+
     def __init__(self):
         UiManagerDelegate.__init__(self, gladefile="browser",
                                    toplevel_name='mainWindow')
@@ -29,6 +41,10 @@ class MainWindow(UiManagerDelegate):
         self.schemaBrowser = SchemaBrowser()
         self.schemaBrowser.setMainWindow(self)
         self.attach_slave('sidePane', self.schemaBrowser)
+
+        menu = self.uiManager.get_widget('/menuBar')
+        menuSlave = SlaveDelegate(toplevel=menu)
+        self.attach_slave('menuBar', menuSlave)
 
         self.appName = self.mainWindow.get_title()
 
@@ -158,11 +174,8 @@ class MainWindow(UiManagerDelegate):
         self.finalize()
         return False
 
-    def on_Quit__activate(self, widget, *args):
+    def on_quit__activate(self, widget, *args):
         self.finalize()
-
-    def on_ViewSchema__activate(self, widget, *args):
-        self.schemaBrowser.show()
 
     def on_clearButton__clicked(self, widget, *args):
         buffer = self.queryText.get_buffer()

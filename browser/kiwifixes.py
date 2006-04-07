@@ -14,9 +14,12 @@ class UiManagerSignalBroker(object):
         for group in  view.uiManager.get_action_groups():
             for action in group.list_actions():
                 methodName = 'on_%s__activate' % action.get_name()
-                method = getattr(view, methodName)
-                action.connect('activate', method)
-                del methods[methodName]
+                try:
+                    method = getattr(view, methodName)
+                    action.connect('activate', method)
+                    del methods[methodName]
+                except AttributeError:
+                    pass
 
 
 class SignalBroker(UiManagerSignalBroker,
@@ -30,7 +33,7 @@ class GladeSignalBroker(UiManagerSignalBroker,
 
 class UiManagerSlaveView(object):
     """A view extension that adds a GTK UIManager and configures and
-    connects it automatically based on object/class attibutes."""
+    connects it automatically based on object/class attributes."""
 
     _actionRegex = re.compile(r'^(\w+)__actions$')
 

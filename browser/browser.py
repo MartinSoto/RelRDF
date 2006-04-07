@@ -9,8 +9,7 @@ import pango
 
 import MySQLdb
 
-from kiwi.ui.delegates import Delegate
-from kiwi.ui.gadgets import quit_if_last
+from kiwifixes import UiManagerDelegate
 
 from expression import uri, blanknode, literal
 import modelfactory
@@ -20,12 +19,12 @@ import schema
 from schemapane import SchemaBrowser
 
 
-class MainWindow(Delegate):
+class MainWindow(UiManagerDelegate):
     """Main browser window."""
 
     def __init__(self):
-        Delegate.__init__(self, gladefile="browser",
-                          toplevel_name='mainWindow')
+        UiManagerDelegate.__init__(self, gladefile="browser",
+                                   toplevel_name='mainWindow')
 
         self.schemaBrowser = SchemaBrowser()
         self.schemaBrowser.setMainWindow(self)

@@ -2,13 +2,22 @@ import os
 
 import gtk
 
-from kiwi.ui.delegates import SlaveDelegate
+from kiwifixes import UiManagerSlaveDelegate
 
 
-class SchemaBrowser(SlaveDelegate):
+class SchemaBrowser(UiManagerSlaveDelegate):
+    popupGroup__actions = [('showInstances', None,
+                            _('Show _Instances'), None, None)]
+
+    uiDefinition = '''<ui>
+    <popup name="classPopUp">
+      <menuitem action="showInstances"/>
+    </popup>
+    </ui>'''
+
     def __init__(self):
-        SlaveDelegate.__init__(self, gladefile="browser",
-                               toplevel_name='schemaBrowser')
+        UiManagerSlaveDelegate.__init__(self, gladefile="browser",
+                                        toplevel_name='schemaBrowser')
 
         self.mainWindow = None
 
@@ -24,7 +33,7 @@ class SchemaBrowser(SlaveDelegate):
         self.classTS = None
 
         # The class browser's popup menu.
-        self.createPopup()
+        self.classPopUp = self.uiManager.get_widget('/classPopUp')
 
         # Set up the property browser.
         self.propNameCol = gtk.TreeViewColumn('Property')
@@ -50,30 +59,6 @@ class SchemaBrowser(SlaveDelegate):
             gtk.gdk.BUTTON1_MASK,
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
-
-    menuDef = '''<ui>
-    <popup name="classPopUp">
-      <menuitem action="ShowInstances"/>
-    </popup>
-    </ui>'''
-
-    def createPopup(self):
-        self.uimanager = gtk.UIManager()
-
-        self.schemaBrowser.add_accel_group(self.uimanager.get_accel_group())
-
-        actiongroup = gtk.ActionGroup('UIManagerExample')
-        self.actiongroup = actiongroup
-        actiongroup.add_actions([('ShowInstances', None,
-                                  _('Show _Instances'), None, None,
-                                  self.showInstancesCb)])
-        self.uimanager.insert_action_group(actiongroup, 0)
-
-        self.uimanager.add_ui_from_string(self.menuDef)
-
-        self.classPopUp = self.uimanager.get_widget('/classPopUp')
-        self.classPopUp.browser = self
-        self.classPopUp.mainWindow = None
 
     def setMainWindow(self, mainWindow):
         self.mainWindow = mainWindow
@@ -135,7 +120,7 @@ class SchemaBrowser(SlaveDelegate):
             self.classPopUp.popup(None, None, None,
                                   event.button, event.time)
 
-    def showInstancesCb(self, widget, *args):
+    def on_showInstances__activate(self, widget, *args):
         self.mainWindow.runQuery(
             "select instance\nfrom {instance} rdf:type {%s}" % \
             self.getCurrentClass())

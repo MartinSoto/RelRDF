@@ -23,13 +23,20 @@ from schemapane import SchemaBrowser
 class MainWindow(UiManagerDelegate):
     """Main browser window."""
 
-    mainGroup__actions = [('file', None, _('_File'), None, None),
-                          ('quit', gtk.STOCK_QUIT, None, None, None)]
+    mainGroup__actions = [('fileAction', None, _('_File'), None, None),
+                          ('quitAction', gtk.STOCK_QUIT, None, None, None),
+                          ('viewAction', None, _('_View'), None, None)]
+
+    mainGroup__toggleActions = [('viewSideBarAction', None, _('_Side Bar'),
+                                 'F9', None, None, True)]
 
     uiDefinition = '''<ui>
     <menubar name="menuBar">
-      <menu action="file">
-        <menuitem action="quit"/>
+      <menu action="fileAction">
+        <menuitem action="quitAction"/>
+      </menu>
+      <menu action="viewAction">
+        <menuitem action="viewSideBarAction"/>
       </menu>
     </menubar>
     </ui>'''
@@ -37,6 +44,10 @@ class MainWindow(UiManagerDelegate):
     def __init__(self):
         UiManagerDelegate.__init__(self, gladefile="browser",
                                    toplevel_name='mainWindow')
+
+        # Add the accelerator group to the toplevel window
+        accelgroup = self.uiManager.get_accel_group()
+        self.toplevel.add_accel_group(accelgroup)
 
         self.schemaBrowser = SchemaBrowser()
         self.schemaBrowser.setMainWindow(self)
@@ -174,7 +185,7 @@ class MainWindow(UiManagerDelegate):
         self.finalize()
         return False
 
-    def on_quit__activate(self, widget, *args):
+    def on_quitAction__activate(self, widget, *args):
         self.finalize()
 
     def on_clearButton__clicked(self, widget, *args):
@@ -192,6 +203,12 @@ class MainWindow(UiManagerDelegate):
         entries = self.resultLS.get(tItr, *range(self. \
                                                  resultLS.get_n_columns()))
         selection.set(selection.target, 8, string.join(entries, ' '))
+
+    def on_viewSideBarAction__toggled(self, action):
+        if action.get_active():
+            self.sidePane.show()
+        else:
+            self.sidePane.hide()
 
 
 if __name__ == "__main__":

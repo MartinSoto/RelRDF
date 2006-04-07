@@ -11,15 +11,23 @@ class UiManagerSignalBroker(object):
         super(UiManagerSignalBroker, self)._do_connections(view, methods)
 
     def _autoconnectUiManager(self, view, methods):
-        for group in  view.uiManager.get_action_groups():
+        for group in view.uiManager.get_action_groups():
             for action in group.list_actions():
-                methodName = 'on_%s__activate' % action.get_name()
-                try:
+                pattern = re.compile(r'^(on|after)_%s__(\w+)' %
+                                     action.get_name())
+                for methodName in tuple(methods.keys()):
+                    match = pattern.match(methodName)
+                    if match is None:
+                        continue
+
+                    after, signal = match.groups()
                     method = getattr(view, methodName)
-                    action.connect('activate', method)
+                    if after == 'after':
+                        action.connect_after(signal, method)
+                    else:
+                        action.connect(signal, method)
+
                     del methods[methodName]
-                except AttributeError:
-                    pass
 
 
 class SignalBroker(UiManagerSignalBroker,
@@ -36,6 +44,7 @@ class UiManagerSlaveView(object):
     connects it automatically based on object/class attributes."""
 
     _actionRegex = re.compile(r'^(\w+)__actions$')
+    _toggleActionRegex = re.compile(r'^(\w+)__toggleActions$')
 
     def __init__(self, *args, **kwargs):
         self.uiManager = gtk.UIManager()
@@ -46,9 +55,19 @@ class UiManagerSlaveView(object):
             match = self._actionRegex.match(name)
             if match is not None:
                 groupName, = match.groups()
-                actionGroup = gtk.ActionGroup(groupName)
+                actionGroup = self._getActionGroup(groupName)
                 actionGroup.add_actions(getattr(self, name))
-                self.uiManager.insert_action_group(actionGroup, 0)
+
+            match = self._toggleActionRegex.match(name)
+            if match is not None:
+                groupName, = match.groups()
+                actionGroup = self._getActionGroup(groupName)
+                actionGroup.add_toggle_actions(getattr(self, name))
+
+        # Add all actions as attributes.
+        for group in self.uiManager.get_action_groups():
+            for action in group.list_actions():
+                setattr(self, action.get_name(), action)
 
         super(UiManagerSlaveView, self).__init__(*args, **kwargs)
 

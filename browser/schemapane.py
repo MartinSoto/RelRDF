@@ -18,7 +18,6 @@ class SchemaBrowser(UiManagerSlaveDelegate):
     def __init__(self):
         UiManagerSlaveDelegate.__init__(self, gladefile="browser",
                                         toplevel_name='schemaBrowser')
-
         self.mainWindow = None
 
         # Set up the class browser.

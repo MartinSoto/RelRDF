@@ -23,10 +23,8 @@ class SchemaBrowser(Delegate):
 
         self.classTS = None
 
-#         # The class browser's popup menu.
-#         self.classPopUp = Menu1()
-#         self.classPopUp.browser = self
-#         self.classPopUp.mainWindow = None
+        # The class browser's popup menu.
+        self.createPopup()
 
         # Set up the property browser.
         self.propNameCol = gtk.TreeViewColumn('Property')
@@ -53,9 +51,33 @@ class SchemaBrowser(Delegate):
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
+    menuDef = '''<ui>
+    <popup name="classPopUp">
+      <menuitem action="ShowInstances"/>
+    </popup>
+    </ui>'''
+
+    def createPopup(self):
+        self.uimanager = gtk.UIManager()
+
+        self.schemaBrowser.add_accel_group(self.uimanager.get_accel_group())
+
+        actiongroup = gtk.ActionGroup('UIManagerExample')
+        self.actiongroup = actiongroup
+        actiongroup.add_actions([('ShowInstances', None,
+                                  _('Show _Instances'), None, None,
+                                  self.showInstancesCb)])
+        self.uimanager.insert_action_group(actiongroup, 0)
+
+        self.uimanager.add_ui_from_string(self.menuDef)
+
+        self.classPopUp = self.uimanager.get_widget('/classPopUp')
+        self.classPopUp.browser = self
+        self.classPopUp.mainWindow = None
+
     def setMainWindow(self, mainWindow):
         self.mainWindow = mainWindow
-        #self.classPopUp.mainWindow = mainWindow
+        self.classPopUp.mainWindow = mainWindow
 
     def setSchema(self, sch):
         self.schema = sch
@@ -106,21 +128,14 @@ class SchemaBrowser(Delegate):
         cls = self.getCurrentClass()
         selection.set(selection.target, 8, str(cls))
 
-#     def on_classView_button_press_event(self, widget, event):
-#         if event.button == 3:
-#             self.classPopUp.main_widget.popup( None, None, None,
-#                                                event.button, event.time)
+    # FIXME: This should be button_press but something in
+    # Kiwi/Gazpacho seems to be trapping the event.
+    def on_classView__button_release_event(self, widget, event):
+        if event.button == 3:
+            self.classPopUp.popup(None, None, None,
+                                  event.button, event.time)
 
-
-# class Menu1(SimpleGladeApp):
-#     def __init__(self, glade_path="browser.glade", root="menu1", domain=None):
-#         glade_path = os.path.join(glade_dir, glade_path)
-#         SimpleGladeApp.__init__(self, glade_path, root, domain)
-
-#     def new(self):
-#         self.browser = None
-
-#     def on_queryInstances_activate(self, widget, *args):
-#         self.mainWindow.runQuery(
-#             "select instance\nfrom {instance} rdf:type {%s}" % \
-#             self.browser.getCurrentClass())
+    def showInstancesCb(self, widget, *args):
+        self.mainWindow.runQuery(
+            "select instance\nfrom {instance} rdf:type {%s}" % \
+            self.getCurrentClass())

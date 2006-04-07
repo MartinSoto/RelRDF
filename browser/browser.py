@@ -29,6 +29,7 @@ class MainWindow(Delegate):
 
         self.schemaBrowser = SchemaBrowser()
         self.schemaBrowser.setMainWindow(self)
+        self.attach_slave('sidePane', self.schemaBrowser)
 
         self.appName = self.mainWindow.get_title()
 
@@ -152,7 +153,6 @@ class MainWindow(Delegate):
         self.showResults()
 
     def finalize(self):
-        self.schemaBrowser.hide()
         gtk.main_quit()
 
     def on_mainWindow__delete_event(self, widget, *args):

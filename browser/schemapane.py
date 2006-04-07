@@ -2,13 +2,13 @@ import os
 
 import gtk
 
-from kiwi.ui.delegates import Delegate
+from kiwi.ui.delegates import SlaveDelegate
 
 
-class SchemaBrowser(Delegate):
+class SchemaBrowser(SlaveDelegate):
     def __init__(self):
-        Delegate.__init__(self, gladefile="browser",
-                          toplevel_name='schemaBrowser')
+        SlaveDelegate.__init__(self, gladefile="browser",
+                               toplevel_name='schemaBrowser')
 
         self.mainWindow = None
 

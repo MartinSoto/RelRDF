@@ -102,6 +102,17 @@ class ExpressionNode(list):
 
         return True
 
+    def checkTree(self):
+        """Check the expression to guarantee that it is a tree."""
+        self._recursiveCheckTree(set())
+
+    def _recursiveCheckTree(self, nodeSet):
+        if id(self) in nodeSet:
+            assert False, 'Node %d multiply referenced' % id(self)
+        nodeSet.add(id(self))
+        for subexpr in self:
+            subexpr._recursiveCheckTree(nodeSet)
+
     def _getExplicitExtents(self):
         if self.extents == None:
             self.extents = NodeExtents()
@@ -200,6 +211,7 @@ class ExpressionNode(list):
 
         #self.getExtents().prettyPrint(stream)
         #stream.write(": ")
+        stream.write('[[%d]] ' % id(self))
         stream.write(self.__class__.__name__)
 
         self.prettyPrintAttributes(stream, indentLevel)
@@ -491,6 +503,12 @@ class MapResult(ExpressionNode):
         # The incarnation can be used to give the resulting table a
         # name while generating SQL expressions.
         self.incarnation = None
+
+    def _recursiveCheckTree(self, nodeSet):
+        if id(self.columnNames) in nodeSet:
+            assert False, 'Node %d multiply referenced' % id(self)
+        nodeSet.add(id(self.columnNames))
+        super(MapResult, self)._recursiveCheckTree(nodeSet)
 
     def attributesRepr(self):
         return repr(self.columnNames)

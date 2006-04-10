@@ -25,7 +25,7 @@ def Enum(*names):
             return 'enum ' + str(constants)
 
     class EnumValue(object):
-        __slots__ = ('__value')
+        __slots__ = ('__value',)
 
         def __init__(self, value):
             self.__value = value

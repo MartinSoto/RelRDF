@@ -239,7 +239,7 @@ class NotSupported(ExpressionNode):
 class Uri(ExpressionNode):
     """An expression node representing a URI reference."""
 
-    __slots__ = ('uri')
+    __slots__ = ('uri',)
 
     def __init__(self, uriVal):
         super(Uri, self).__init__()
@@ -259,7 +259,7 @@ class Uri(ExpressionNode):
 class QName(ExpressionNode):
     """An expression node representing a qualified name."""
 
-    __slots__ = ('qname')
+    __slots__ = ('qname',)
 
     def __init__(self, qname):
         super(QName, self).__init__()
@@ -276,7 +276,7 @@ class QName(ExpressionNode):
 class Literal(ExpressionNode):
     """An expression node representing a RDF literal."""
 
-    __slots__ = ('literal')
+    __slots__ = ('literal',)
 
     def __init__(self, literalVal):
         super(Literal, self).__init__()
@@ -522,7 +522,7 @@ class MapResult(ExpressionNode):
 class SetOperation(Operation):
     """A generic set operation."""
 
-    __slots__ = ('columnNames')
+    __slots__ = ('columnNames',)
 
     def __init__(self, *subexprs):
         super(SetOperation, self).__init__(*subexprs)

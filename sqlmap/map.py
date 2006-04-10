@@ -8,7 +8,7 @@ import emit
 
 
 class VersionMapper(object):
-    __slots__ = ('versionId')
+    __slots__ = ('versionId',)
 
     def __init__(self, versionId):
         self.versionId = versionId

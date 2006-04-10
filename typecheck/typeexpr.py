@@ -4,7 +4,7 @@ from commonns import xsd
 class TypeNode(object):
     """A node in a type expression."""
 
-    __slots__ = ('supertype')
+    __slots__ = ('supertype',)
 
     def __init__(self):
         self.supertype = None
@@ -71,7 +71,7 @@ class LiteralType(TypeNode):
     open (a string) or it can be constrained to a type identified by a
     URI."""
 
-    __slots__ = ('typeUri')
+    __slots__ = ('typeUri',)
 
     def __init__(self, typeUri=None):
         super(LiteralType, self).__init__()
@@ -141,7 +141,7 @@ class RelationType(TypeNode):
     mappings can use names to directly refer to entities relevant to
     the mapping, like SQL columns."""
 
-    __slots__ = ('dict')
+    __slots__ = ('dict',)
 
     def __init__(self):
         super(RelationType, self).__init__()

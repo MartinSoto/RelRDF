@@ -17,7 +17,7 @@ class ParseEnvironment(object):
     """A parsing environment for SerQL. It contains high level
     operations for obtaining expression trees out of SerQL queries."""
 
-    __slots__ = ('prefixes')
+    __slots__ = ('prefixes',)
 
     def __init__(self, prefixes={}):
         self.prefixes = prefixes

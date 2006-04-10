@@ -78,7 +78,7 @@ class Scope(dict):
 
 class BasicSqlTransformer(rewrite.ExpressionTransformer):
 
-    __slots__ = ('currentIncarnation')
+    __slots__ = ('currentIncarnation',)
 
     def __init__(self, prePrefix=None, postPrefix=""):
         super(BasicSqlTransformer, self).__init__(prePrefix=prePrefix,
@@ -112,7 +112,7 @@ class StandardReifSqlTransformer(rewrite.ExpressionTransformer):
 
 class AbstractSqlSqlTransformer(BasicSqlTransformer):
 
-    __slots__ = ('scopeStack')
+    __slots__ = ('scopeStack',)
 
     def __init__(self):
         super(AbstractSqlSqlTransformer, self).__init__(prePrefix='pre')
@@ -193,7 +193,7 @@ class AbstractSqlSqlTransformer(BasicSqlTransformer):
 
 class VersionSqlTransformer(rewrite.ExpressionTransformer):
     
-    __slots__ = ('versionNumber')
+    __slots__ = ('versionNumber',)
 
     def __init__(self, versionNumber):
         super(VersionSqlTransformer, self).__init__(prePrefix='pre')
@@ -288,7 +288,7 @@ class MultiVersionSqlTransformer(object):
     <stmt> := model:stmt_%d
     """
 
-    __slots__ = ('baseNs')
+    __slots__ = ('baseNs',)
 
     versionPattern = re.compile('version_([0-9]+)')
     stmtPattern = re.compile('stmt_([0-9]+)')

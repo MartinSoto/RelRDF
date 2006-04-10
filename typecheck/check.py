@@ -16,7 +16,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
     build any values but set them in the `staticType` and
     `dynamicType` fields of the expression."""
 
-    __slots__ = ('scopeStack')
+    __slots__ = ('scopeStack',)
 
     def __init__(self):
         super(TypeChecker, self).__init__(prePrefix="pre")

@@ -14,7 +14,7 @@ LITERAL = rdfs.Literal
 
 
 class RdfObject(object):
-    __slots__ = ('node')
+    __slots__ = ('node',)
 
     def __init__(self, node):
         self.node = node

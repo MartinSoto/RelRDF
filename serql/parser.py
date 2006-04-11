@@ -202,7 +202,9 @@ class Parser(antlr.LLkParser):
 
         for node1 in nodeList1:
             for node2 in nodeList2:
-                rels.append(nodes.StatementPattern(node1, edge, node2))
+                rels.append(nodes.StatementPattern(node1.copy(),
+                                                   edge.copy(),
+                                                   node2.copy()))
 
                 if isinstance(node1, nodes.Var):
                     self.currentContext().addBound(node1.name)

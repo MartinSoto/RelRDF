@@ -16,7 +16,7 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             expr[:] = transfSubexprs
             return expr
 
-        equalTypesExpr = nodes.Equal(*[nodes.DynType(e)
+        equalTypesExpr = nodes.Equal(*[nodes.DynType(e.copy())
                                        for e in transfSubexprs])
         return nodes.And(equalTypesExpr, expr)
 
@@ -33,7 +33,7 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             expr[:] = transfSubexprs
             return expr
 
-        diffTypesExpr = nodes.Different(*[nodes.DynType(e)
+        diffTypesExpr = nodes.Different(*[nodes.DynType(e.copy())
                                           for e in transfSubexprs])
         return nodes.Or(diffTypesExpr, expr)
 

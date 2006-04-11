@@ -64,7 +64,7 @@ class Scope(dict):
     def expandVariable(self, var):
         try:
             # Select an arbitrary binding.
-            return iter(self[var.name]).next()
+            return iter(self[var.name]).next().copy()
         except KeyError:
             return var
 
@@ -96,16 +96,16 @@ class StandardReifSqlTransformer(rewrite.ExpressionTransformer):
     that use the standard RDF reified statement type and relations."""
 
     def ReifStmtPattern(self, expr, var, subject, pred, object):
-        return nodes.Product(nodes.StatementPattern(var,
+        return nodes.Product(nodes.StatementPattern(var.copy(),
                                                     nodes.Uri(rdf.type),
                                                     nodes.Uri(rdf.Statement)),
-                             nodes.StatementPattern(var,
+                             nodes.StatementPattern(var.copy(),
                                                     nodes.Uri(rdf.subject),
                                                     subject),
-                             nodes.StatementPattern(var,
+                             nodes.StatementPattern(var.copy(),
                                                     nodes.Uri(rdf.predicate),
                                                     pred),
-                             nodes.StatementPattern(var,
+                             nodes.StatementPattern(var.copy(),
                                                     nodes.Uri(rdf.object),
                                                     object))
 

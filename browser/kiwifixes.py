@@ -75,6 +75,14 @@ class UiManagerSlaveView(object):
         if hasattr(self, 'uiDefinition'):
             self.uiManager.add_ui_from_string(self.uiDefinition)
 
+    def _getActionGroup(self, name):
+        for group in self.uiManager.get_action_groups():
+            if group.get_name() == name:
+                return group
+        group = gtk.ActionGroup(name)
+        self.uiManager.insert_action_group(group, -1)
+        return group
+
     def _attach_callbacks(self, controller):
         if self._glade_adaptor is None:
             brokerclass = SignalBroker

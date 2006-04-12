@@ -16,8 +16,12 @@ CREATE TABLE statements (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Available statements';
 
 CREATE UNIQUE INDEX statements_unique
-  ON statements (id, hash);
+  ON statements (hash);
 
+CREATE INDEX statements_subject_index
+  ON statements (subject);
+CREATE INDEX statements_predicate_index
+  ON statements (predicate);
 
 DROP TABLE IF EXISTS data_types;
 
@@ -47,6 +51,9 @@ CREATE TABLE version_statement (
 
 CREATE UNIQUE INDEX version_statement_unique
   ON version_statement (version_id, stmt_id);
+
+CREATE INDEX version_statement_version_index
+  ON version_statement (version_id);
 
 
 DROP TABLE IF EXISTS not_versioned_statements;

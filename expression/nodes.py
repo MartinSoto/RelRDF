@@ -58,34 +58,18 @@ class NodeExtents(object):
                                             self.endColumn))
 
 
-class ExpressionNode(list):
+class BasicExpressionNode(list):
     """A node in a expression tree."""
 
-    __slots__ = ('id',
-
-                 'parent',
-                 '__weakref__',
-
-                 'extents',
+    __slots__ = ('extents',
                  'startSubexpr',
                  'endSubexpr',
 
                  'staticType',
                  'dynamicType')
 
-    _idCounter = 1
-
     def __init__(self, *subexprs):
-        self.id = ExpressionNode._idCounter
-        ExpressionNode._idCounter += 1
-
-        # A weakref proxy object pointing to the parent expression
-        # node, or `None`if this node is no subexpression of anotther
-        # node.
-        self.parent = None
-
-        super(ExpressionNode, self).__init__(subexprs)
-        self._addSubexprs(subexprs)
+        super(BasicExpressionNode, self).__init__(subexprs)
 
         # Explicit node extents. If None, extents are calculated based
         # on the subexpressions.
@@ -111,128 +95,32 @@ class ExpressionNode(list):
         # time and doesn't have to be calculated dynamically at all.)
         self.dynamicType = None
 
-    def _setParent(self, parent):
-        if parent is not None:
-            newParent = weakref.proxy(parent)
-        else:
-            newParent = None
-
-        if self.parent is not None:
-            self.parent._pruneSubexpr(self)
-        assert self.parent is None
-
-        self.parent = newParent
-
-    def _pruneSubexpr(self, subexpr):
-        # FIXME: index should work here.
-        for i, se in enumerate(self):
-            if subexpr is se:
-                pos = i
-
-        # We need to be careful not to trigger a _setParent operation
-        # on the subexpression, because that leads to a recursive
-        # infinite loop.
-        super(ExpressionNode, self).__setitem__(pos, Pruned(subexpr))
-
-        subexpr.parent = None
-
     def copy(self):
         """Return a copy of the complete expression tree."""
         cp = copy.copy(self)
 
-        cp.id = ExpressionNode._idCounter
-        ExpressionNode._idCounter += 1
-        
-        cp.parent = None
-
         for i, subexpr in enumerate(self):
             subexprCp = subexpr.copy()
-            subexprCp._setParent(self)
-            super(ExpressionNode, cp).__setitem__(i, subexprCp)
+            super(BasicExpressionNode, cp).__setitem__(i, subexprCp)
 
         return cp
-
-
-    #
-    # Basic List Operations
-    #
-
-    # Extend basic list operations to check parameters, and update the
-    # parent references as necessary.
-
-    def __setitem__(self, i, x):
-        if isinstance(i, slice):
-            self._removeSubexprs(self[i])
-            ret = super(ExpressionNode, self).__setitem__(i, x)
-            self._addSubexprs(x)
-        else:
-            self._removeSubexprs((self[i],))
-            ret = super(ExpressionNode, self).__setitem__(i, x)
-            self._addSubexprs((x,))
-        return ret
-
-    def __setslice__(self, i, j, sequence):
-        return self.__setitem__(slice(i, j), sequence)
-
-    def __delitem__(self, i):
-        if isinstance(i, slice):
-            self._removeSubexprs(self[i])
-        else:
-            self._removeSubexprs(self[i:i+1])
-        return super(ExpressionNode, self).__delitem__(i)
-
-    def __delslice__(self, i, j):
-        return self.__delitem__(slice(i, j))
-
-    def append(self, x):
-        ret = super(ExpressionNode, self).append(x)
-        self._addSubexprs((x,))
-        return ret
-
-    def insert(self, i, x):
-        ret = super(ExpressionNode, self).insert(i, x)
-        self._addSubexprs((x,))
-        return ret
-
-    def extend(self, sequence):
-        ret = super(ExpressionNode, self).extend(sequence)
-        self._addSubexprs(sequence)
-        return ret
-
-    def pop(self, i=None):
-        if i is None:
-            self._removeSubexprs(self[-1:])
-            return super(ExpressionNode, self).pop()
-        else:
-            self._removeSubexprs(self[i:i+1])
-            return super(ExpressionNode, self).pop(i)
-
-    def remove(self, x):
-        i = self.index(x)
-        self._removeSubexprs(self[x:x+1])
-        return super(ExpressionNode, self).remove(x)
-
-    def _addSubexprs(self, sequence):
-        for expr in sequence:
-            expr._setParent(self)
-
-    def _removeSubexprs(self, sequence):
-        for expr in sequence:
-            expr._setParent(None)
 
 
     #
     # Structural Checking
     #
 
+    def getId(self):
+        return id(self)
+
     def checkTree(self):
         """Check the expression to guarantee that it is a tree."""
         self._recursiveCheckTree(set())
 
     def _recursiveCheckTree(self, nodeSet):
-        if self.id in nodeSet:
-            assert False, 'Node %d multiply referenced' % self.id
-        nodeSet.add(self.id)
+        if self.getId() in nodeSet:
+            assert False, 'Node %d multiply referenced' % self.getId()
+        nodeSet.add(self.getId())
         for subexpr in self:
             subexpr._recursiveCheckTree(nodeSet)
 
@@ -344,7 +232,7 @@ class ExpressionNode(list):
 
         #self.getExtents().prettyPrint(stream)
         #stream.write(": ")
-        stream.write('[[%d]] ' % self.id)
+        stream.write('[[%d]] ' % self.getId())
         stream.write(self.__class__.__name__)
 
         self.prettyPrintAttributes(stream, indentLevel)
@@ -360,6 +248,152 @@ class ExpressionNode(list):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         pass
+
+
+class ExclusiveExpressionNode(BasicExpressionNode):
+    """A debugging extension of the basic expression node, intended to
+    detect attempts at sharing subexpressions. It works by extending
+    the basic list operations in such a way that subexpressions that
+    were attached to a tree, get detached before being attached to a
+    second tree, and their original location gets marked with a
+    `Pruned` node."""
+
+    __slots__ = ('id',
+
+                 'parent',
+                 '__weakref__')
+
+    _idCounter = 1
+
+    def __init__(self, *subexprs):
+        # An explicit id for easier debugging.
+        self.id = ExclusiveExpressionNode._idCounter
+        ExclusiveExpressionNode._idCounter += 1
+
+        # A weakref proxy object pointing to the parent expression
+        # node, or `None`if this node is no subexpression of anotther
+        # node.
+        self.parent = None
+
+        super(ExclusiveExpressionNode, self).__init__(*subexprs)
+        self._addSubexprs(subexprs)
+
+    def copy(self):
+        cp = super(ExclusiveExpressionNode, self).copy()
+
+        cp.id = ExclusiveExpressionNode._idCounter
+        ExclusiveExpressionNode._idCounter += 1
+        
+        cp.parent = None
+
+        for i, subexpr in enumerate(self):
+            subexprCp._setParent(self)
+
+        return cp
+
+    def getId(self):
+        return self.id
+
+
+    #
+    # Basic List Operations
+    #
+
+    # Extend basic list operations to check parameters, and update the
+    # parent references as necessary.
+
+    def _setParent(self, parent):
+        if parent is not None:
+            newParent = weakref.proxy(parent)
+        else:
+            newParent = None
+
+        if self.parent is not None:
+            self.parent._pruneSubexpr(self)
+        assert self.parent is None
+
+        self.parent = newParent
+
+    def _pruneSubexpr(self, subexpr):
+        # FIXME: index should work here.
+        for i, se in enumerate(self):
+            if subexpr is se:
+                pos = i
+
+        # We need to be careful not to trigger a _setParent operation
+        # on the subexpression, because that leads to a recursive
+        # infinite loop.
+        super(ExclusiveExpressionNode,
+              self).__setitem__(pos, Pruned(subexpr))
+
+        subexpr.parent = None
+
+    def _addSubexprs(self, sequence):
+        for expr in sequence:
+            expr._setParent(self)
+
+    def _removeSubexprs(self, sequence):
+        for expr in sequence:
+            expr._setParent(None)
+
+    def __setitem__(self, i, x):
+        if isinstance(i, slice):
+            self._removeSubexprs(self[i])
+            ret = super(ExclusiveExpressionNode,
+                        self).__setitem__(i, x)
+            self._addSubexprs(x)
+        else:
+            self._removeSubexprs((self[i],))
+            ret = super(ExclusiveExpressionNode,
+                        self).__setitem__(i, x)
+            self._addSubexprs((x,))
+        return ret
+
+    def __setslice__(self, i, j, sequence):
+        return self.__setitem__(slice(i, j), sequence)
+
+    def __delitem__(self, i):
+        if isinstance(i, slice):
+            self._removeSubexprs(self[i])
+        else:
+            self._removeSubexprs(self[i:i+1])
+        return super(ExclusiveExpressionNode, self).__delitem__(i)
+
+    def __delslice__(self, i, j):
+        return self.__delitem__(slice(i, j))
+
+    def append(self, x):
+        ret = super(ExclusiveExpressionNode, self).append(x)
+        self._addSubexprs((x,))
+        return ret
+
+    def insert(self, i, x):
+        ret = super(ExclusiveExpressionNode, self).insert(i, x)
+        self._addSubexprs((x,))
+        return ret
+
+    def extend(self, sequence):
+        ret = super(ExclusiveExpressionNode, self).extend(sequence)
+        self._addSubexprs(sequence)
+        return ret
+
+    def pop(self, i=None):
+        if i is None:
+            self._removeSubexprs(self[-1:])
+            return super(ExclusiveExpressionNode, self).pop()
+        else:
+            self._removeSubexprs(self[i:i+1])
+            return super(ExclusiveExpressionNode, self).pop(i)
+
+    def remove(self, x):
+        i = self.index(x)
+        self._removeSubexprs(self[x:x+1])
+        return super(ExclusiveExpressionNode, self).remove(x)
+
+
+#class ExpressionNode(BasicExpressionNode):
+class ExpressionNode(ExclusiveExpressionNode):
+    __slots__ = ()
 
 
 class Pruned(ExpressionNode):

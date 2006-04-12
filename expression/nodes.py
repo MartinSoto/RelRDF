@@ -100,8 +100,7 @@ class BasicExpressionNode(list):
         cp = copy.copy(self)
 
         for i, subexpr in enumerate(self):
-            subexprCp = subexpr.copy()
-            super(BasicExpressionNode, cp).__setitem__(i, subexprCp)
+            self[i] = subexpr.copy()
 
         return cp
 
@@ -281,13 +280,13 @@ class ExclusiveExpressionNode(BasicExpressionNode):
     def copy(self):
         cp = super(ExclusiveExpressionNode, self).copy()
 
+        for subexpr in cp:
+            assert subexpr.parent.getId() == self.getId()
+
         cp.id = ExclusiveExpressionNode._idCounter
         ExclusiveExpressionNode._idCounter += 1
         
         cp.parent = None
-
-        for i, subexpr in enumerate(self):
-            subexprCp._setParent(self)
 
         return cp
 
@@ -401,7 +400,7 @@ class Pruned(ExpressionNode):
     i.e. subexpressions that were moved to another node and thus
     cannot remain as subexpressions of the current one."""
 
-    __slots__ = ('prunedExpr')
+    __slots__ = ('prunedExpr',)
 
     def __init__(self, prunedExpr):
         super(Pruned, self).__init__()
@@ -414,6 +413,7 @@ class Pruned(ExpressionNode):
     def prettyPrint(self, stream=None, indentLevel=0):
         super(Pruned, self).prettyPrint(stream, indentLevel)
         self.prunedExpr.prettyPrint(stream, indentLevel + 1)
+
 
 class NotSupported(ExpressionNode):
     """An expression node representing a subexpression that is not

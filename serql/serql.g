@@ -20,7 +20,7 @@ options {
 
 
 query returns [expr]
-    :   expr=tableQuerySet ( namespaceList )?
+    :   expr=querySet ( namespaceList )?
         { expr = self.expandQNames(expr) }
     ;
 
@@ -42,16 +42,17 @@ prefixName returns [prefix]
     ;
 
 
-tableQuerySet returns [expr]
-    :   expr = tableQuery
-        (   factory=setOperator expr2=tableQuerySet
+querySet returns [expr]
+    :   expr = simpleQuery
+        (   factory=setOperator expr2=querySet
             { return self.setOperationExpr(factory, expr, expr2) }
         )?
     ;
 
-tableQuery returns [expr]
-    :   "(" expr=tableQuerySet ")"
+simpleQuery returns [expr]
+    :   "(" expr=querySet ")"
     |   expr=selectQuery
+    |   expr=constructQuery
     ;
 
 setOperator returns [factory]
@@ -100,6 +101,23 @@ projectionElem returns [nameBinding]
         { nameBinding = columnName, mappingExpr }
     |   mappingExpr=value "as" str2:STRING
         { nameBinding = str2.getText(), mappingExpr }
+    ;
+
+
+constructQuery returns [expr]
+        { self.pushContext() }
+    :   construct:"construct" resultExpr=constructClause
+        "from" patternExpr=graphPattern
+        { expr = self.constructQueryExpr(resultExpr, patternExpr); \
+          expr.setExtentsStartFromToken(construct, self); \
+          expr.setEndSubexpr(patternExpr); \
+          self.popContext() }
+    ;
+
+constructClause returns [expr]
+    :   "*"
+        { expr = None }
+    |   expr=pathExprList
     ;
 
 

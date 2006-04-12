@@ -6,9 +6,9 @@ import antlr
 import error
 import commonns
 from expression import nodes
-from expression import rewrite
 from expression import literal
 from expression import uri
+from expression import rewrite, simplify
 
 
 class SelectContext(object):
@@ -285,6 +285,29 @@ class Parser(antlr.LLkParser):
         current = nodes.MapResult(columnNames, current, *mappingExprs)
         return current
 
+    def constructQueryExpr(self, resultExpr, patternExpr):
+        if resultExpr is None:
+            resultExpr = patternExpr.copy()
+        resultExpr = simplify.simplify(resultExpr)
+
+        # The result expression must be a product of patterns.
+        parts = []
+        for pattern in resultExpr:
+            if isinstance(pattern, nodes.StatementPattern):
+                part = nodes.MapResult(['subject', 'predicate', 'object'],
+                                       patternExpr.copy(),
+                                       *[c.copy() for c in pattern])
+                parts.append(part)
+            else:
+                raise error.SemanticError(
+                    msg=_("Invalid or unsupported element in result pattern"),
+                    extents=pattern.getExtents())
+
+        expr = nodes.Union(*parts)
+        expr.columnNames = ['subject', 'predicate', 'object']
+
+        return expr
+
     def setOperationExpr(self, factory, expr1, expr2):
         expr = factory(expr1, expr2)
 
@@ -293,7 +316,7 @@ class Parser(antlr.LLkParser):
                 msg=_("Invalid set operation: result columns do not match"),
                 extents=expr.getExtents())
 
-        expr.columnNames = expr1.columnNames
+        expr.columnNames = list(expr1.columnNames)
 
         return expr
 

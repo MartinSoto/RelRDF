@@ -97,12 +97,7 @@ class BasicExpressionNode(list):
 
     def copy(self):
         """Return a copy of the complete expression tree."""
-        cp = copy.copy(self)
-
-        for i, subexpr in enumerate(self):
-            self[i] = subexpr.copy()
-
-        return cp
+        return copy.deepcopy(self)
 
 
     #
@@ -270,18 +265,29 @@ class ExclusiveExpressionNode(BasicExpressionNode):
         ExclusiveExpressionNode._idCounter += 1
 
         # A weakref proxy object pointing to the parent expression
-        # node, or `None`if this node is no subexpression of anotther
+        # node, or `None`if this node is no subexpression of another
         # node.
         self.parent = None
 
         super(ExclusiveExpressionNode, self).__init__(*subexprs)
         self._addSubexprs(subexprs)
 
-    def copy(self):
-        cp = super(ExclusiveExpressionNode, self).copy()
+    def __deepcopy__(self, memoDict):
+        # The basic copy.copy operation calls our own overwritten list
+        # operations when copying the subexpressions, which means they
+        # will be stolen from this object.
+        cp = copy.copy(self)
 
-        for subexpr in cp:
-            assert subexpr.parent.getId() == self.getId()
+        for i, subexpr in enumerate(self):
+            # Restore the subexpression.
+            assert isinstance(subexpr, Pruned)
+            subexpr = subexpr.prunedExpr
+            super(ExclusiveExpressionNode, self).__setitem__(i, subexpr)
+
+            # Copy the subexpression.
+            subexprCp = subexpr.copy()
+            super(ExclusiveExpressionNode, cp).__setitem__(i, subexprCp)
+            subexprCp.parent = weakref.proxy(self)
 
         cp.id = ExclusiveExpressionNode._idCounter
         ExclusiveExpressionNode._idCounter += 1

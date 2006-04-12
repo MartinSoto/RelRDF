@@ -1,7 +1,7 @@
 """SQL mapping objects."""
 
 from expression import uri, blanknode, literal
-from expression import rewrite
+from expression import simplify
 
 import transform
 import emit
@@ -20,7 +20,7 @@ class VersionMapper(object):
         transf = transform.VersionSqlTransformer(self.versionId)
         expr = transf.process(expr)
 
-        expr = rewrite.simplify(expr)
+        expr = simplify.simplify(expr)
 
         return emit.emit(expr)
 

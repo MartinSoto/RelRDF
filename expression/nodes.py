@@ -283,11 +283,12 @@ class ExclusiveExpressionNode(BasicExpressionNode):
             assert isinstance(subexpr, Pruned)
             subexpr = subexpr.prunedExpr
             super(ExclusiveExpressionNode, self).__setitem__(i, subexpr)
+            subexpr.parent = weakref.proxy(self)
 
             # Copy the subexpression.
             subexprCp = subexpr.copy()
             super(ExclusiveExpressionNode, cp).__setitem__(i, subexprCp)
-            subexprCp.parent = weakref.proxy(self)
+            subexprCp.parent = weakref.proxy(cp)
 
         cp.id = ExclusiveExpressionNode._idCounter
         ExclusiveExpressionNode._idCounter += 1

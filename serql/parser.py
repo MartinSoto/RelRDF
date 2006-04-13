@@ -290,6 +290,10 @@ class Parser(antlr.LLkParser):
             resultExpr = patternExpr.copy()
         resultExpr = simplify.simplify(resultExpr)
 
+        # The result expression can be a single pattern.
+        if not isinstance(resultExpr, nodes.Product):
+            resultExpr = (resultExpr,)
+
         # The result expression must be a product of patterns.
         parts = []
         for pattern in resultExpr:

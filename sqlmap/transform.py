@@ -8,7 +8,6 @@ from expression import literal, uri
 
 from typecheck.typeexpr import LiteralType, BlankNodeType, ResourceType, \
      RdfNodeType, resourceType, rdfNodeType
-import typecheck 
 
 
 TYPE_ID_RESOURCE = literal.Literal(1)
@@ -16,18 +15,71 @@ TYPE_ID_BLANKNODE = literal.Literal(2)
 TYPE_ID_LITERAL = literal.Literal(3)
 
 
-def makeFieldRef(relation, incarnation, col):
-    ref = nodes.FieldRef(relation, incarnation, col)
-    if col == 'object':
-        ref.staticType = rdfNodeType
-    else:
-        ref.staticType = resourceType
-    return ref
+class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
+    """Add explicit columns to all MapResult subexpressions
+    corresponding to tzhe dynamic data type of each one of the
+    original columns."""
 
-def typeCheck(expr):
-    expr = typecheck.typeCheck(expr)
-    expr = typecheck.addDynTypeChecks(expr)
-    return expr
+    def MapResult(self, expr, relExpr, *mappingExprs):
+        expr[0] = relExpr
+        for i, mappingExpr in enumerate(mappingExprs):
+            expr.columnNames[i*2+1:i*2+1] = 'type__' + expr.columnNames[i*2],
+            expr[i*2+2:i*2+2] = nodes.DynType(expr[i*2+1].copy()),
+            expr[i*2+1] = mappingExpr
+        return expr
+
+    def _setOperation(self, expr, *operands):
+        expr.columnNames = list(operands[0].columnNames)
+        expr[:] = operands
+        return expr
+
+    Union = _setOperation
+    SetDifference = _setOperation
+    Intersection = _setOperation
+
+
+class Incarnator(object):
+    """A singleton used to generate unique relation incarnations."""
+
+    currentIncarnation = 1
+
+    @classmethod
+    def makeIncarnation(cls):
+        cls.currentIncarnation += 1
+        return cls.currentIncarnation
+
+    @classmethod
+    def reincarnate(cls, *exprs):
+        """Replaces the incarnations present in a set of expression by
+        fresh incarnations. The purpose is to obtain new incarnations
+        of complete sets of expressions, that are equivalent to, but
+        independent from the originals.
+
+        Returns a list of copied and reincarnated expressions."""
+
+        # A dictionary of equivalences between old and new
+        # incarnations.
+        equiv = {}
+
+        def postOp(expr, subexprsModif):
+            if hasattr(expr, 'incarnation'):
+                try:
+                    newIncr = equiv[expr.incarnation]
+                except KeyError:
+                    newIncr = cls.makeIncarnation()
+                    equiv[expr.incarnation] = newIncr
+
+                expr.incarnation = newIncr
+
+                return expr, True
+            else:
+                return expr, subexprsModif
+
+        ret = []
+        for expr in exprs:
+            ret.append(rewrite.exprApply(expr.copy(), postOp=postOp)[0])
+
+        return ret
 
 
 class Scope(dict):
@@ -37,34 +89,49 @@ class Scope(dict):
 
     __slots__ = ()
 
-    def addBinding(self, varName, relName, incarnation, columnId):
+    def addBinding(self, varName, valueExpr, dynTypeExpr):
+        """Bind a variable name with a pair of expressions, one
+        corresponding to its value and one corresponding to its
+        dynamic type. Many bindings can be done for a single variable
+        name."""
         try:
             varBindings = self[varName]
         except KeyError:
-            varBindings = []
+            varBindings = ([], [])
             self[varName] = varBindings
 
-        varBindings.append(makeFieldRef(relName, incarnation,
-                                        columnId))
+        varBindings[0].append(valueExpr)
+        varBindings[1].append(dynTypeExpr)
 
     def getCondition(self):
+        """Returns a condition expression, stating the fact that all
+        bindings of a variable are equal."""
         subconds = []
 
-        for binding in self.values():
-            if len(binding) >= 2:
-                subconds.append(nodes.Equal(*binding))
+        for valueExprs, dynTypeExprs in self.values():
+            # Both lists should have the same lenght.
+            if len(valueExprs) >= 2:
+                subconds.append(nodes.And(nodes.Equal(*dynTypeExprs),
+                                          nodes.Equal(*valueExprs)))
 
         if len(subconds) == 0:
             return None
         elif len(subconds) == 1:
-            return typeCheck(subconds[0])
+            return subconds[0]
         else:
-            return typeCheck(nodes.And(*subconds))
+            return nodes.And(*subconds)
 
-    def expandVariable(self, var):
+    def variableValue(self, var):
         try:
             # Select an arbitrary binding.
-            return iter(self[var.name]).next().copy()
+            return iter(self[var.name][0]).next()
+        except KeyError:
+            return var
+
+    def variableDynType(self, var):
+        try:
+            # Select an arbitrary binding.
+            return iter(self[var.name][1]).next()
         except KeyError:
             return var
 
@@ -76,46 +143,14 @@ class Scope(dict):
         pprint.pprint(self, stream, indent + 2)
 
 
-class BasicSqlTransformer(rewrite.ExpressionTransformer):
-
-    __slots__ = ('currentIncarnation',)
-
-    def __init__(self, prePrefix=None, postPrefix=""):
-        super(BasicSqlTransformer, self).__init__(prePrefix=prePrefix,
-                                                  postPrefix=postPrefix)
-
-        self.currentIncarnation = 0
-
-    def makeIncarnation(self):
-        self.currentIncarnation += 1
-        return self.currentIncarnation
-
-
-class StandardReifSqlTransformer(rewrite.ExpressionTransformer):
-    """Map reified statement patterns to simple statement patterns
-    that use the standard RDF reified statement type and relations."""
-
-    def ReifStmtPattern(self, expr, var, subject, pred, object):
-        return nodes.Product(nodes.StatementPattern(var.copy(),
-                                                    nodes.Uri(rdf.type),
-                                                    nodes.Uri(rdf.Statement)),
-                             nodes.StatementPattern(var.copy(),
-                                                    nodes.Uri(rdf.subject),
-                                                    subject),
-                             nodes.StatementPattern(var.copy(),
-                                                    nodes.Uri(rdf.predicate),
-                                                    pred),
-                             nodes.StatementPattern(var.copy(),
-                                                    nodes.Uri(rdf.object),
-                                                    object))
-
-
-class AbstractSqlSqlTransformer(BasicSqlTransformer):
+class PureRelationalTransformer(rewrite.ExpressionTransformer):
+    """An abstract expression transformer that transforms an
+    expression containing patterns into a pure relational expression."""
 
     __slots__ = ('scopeStack',)
 
     def __init__(self):
-        super(AbstractSqlSqlTransformer, self).__init__(prePrefix='pre')
+        super(PureRelationalTransformer, self).__init__(prePrefix='pre')
 
         # A stack of Scope objects, to handle nested variable
         # scopes.
@@ -134,24 +169,57 @@ class AbstractSqlSqlTransformer(BasicSqlTransformer):
         """Return the current (topmost) scope."""
         return self.scopeStack[-1]
 
-    def StatementPattern(self, expr, subject, pred, object):
-        incarnation = self.makeIncarnation()
 
+    def matchPattern(self, pattern, replacementExpr, columnNames):
+        """Match a pattern to a replacement expression and produce a
+        patern-free relational expression that delivers the values the
+        pattern would deliver.
+
+        `pattern`: The expression to be interpreted as a pattern. Its
+        subexpressions should be either variables, or expressions
+        delivering constant values.
+
+        `replacementExpr`: A relational expression, corresponding to
+        all possible values the pattern could produce, i.e., if the
+        pattern would be used with different variables as
+        subexpressions, it would produce exactly the value produced by
+        replacementExpr.
+
+        `columnNames`: An iterable containing the column names to be
+        matched with the pattern's subexpressions."""
+
+        # FIXME: Lift this restriction.
+        assert isinstance(replacementExpr, nodes.MapResult)
+
+        # Reincarnate the replacement expression.
+        (replacementExpr,) = Incarnator.reincarnate(replacementExpr)
+
+        coreExpr = replacementExpr[0]
+
+        # Bind the variables and/or create the matching conditions.
         conds = []
-        for id, node in (('subject', subject), ('predicate', pred),
-                         ('object', object)):
-            if isinstance(node, nodes.Var):
-                self.currentScope().addBinding(node.name, 'S',
-                                               incarnation, id)
-            else:
-                ref = makeFieldRef('S', incarnation, id)
-                conds.append(nodes.Equal(ref, node))
+        for component, columnName in zip(pattern, columnNames):
+            valueExpr = replacementExpr.subexprByName(columnName)
+            dynTypeExpr = replacementExpr.subexprByName('type__' +
+                                                        columnName)
 
-        rel = nodes.Relation('S', incarnation)
+            if isinstance(component, nodes.Var):
+                self.currentScope().addBinding(component.name,
+                                               valueExpr,
+                                               dynTypeExpr)
+                                               
+            else:
+                conds.append(nodes.And(nodes.Equal(self.dynTypeExpr(component),
+                                                   dynTypeExpr),
+                                       nodes.Equal(component,
+                                                   valueExpr)))
+
         if conds == []:
-            return rel
+            return coreExpr
         else:
-            return nodes.Select(rel, nodes.And(*conds))
+            # Restrict the core expression with the conditions.
+            return nodes.Select(coreExpr, nodes.And(*conds))
+        
 
     def preSelect(self, expr):
         # Process the relation subexpression before the condition.
@@ -180,58 +248,115 @@ class AbstractSqlSqlTransformer(BasicSqlTransformer):
 
         return expr
 
-    def MapResult(self, expr, *transfSubexprs):
-        # Add an unique incarnation identifier.
-        expr.incarnation = self.makeIncarnation()
+    def Var(self, expr):
+        return self.currentScope().variableValue(expr).copy()
 
-        # FIXME: Add this mapping's columns to the current scope.
+    def preStatementPattern(self, expr):
+        # Don't process the subexpressions.
         return expr
 
-    def Var(self, expr):
-        return self.currentScope().expandVariable(expr)
+    def StatementPattern(self, expr, subject, pred, object):
+        return self.matchPattern(expr, *self.replStatementPattern(expr))
+
+    def preReifStmtPattern(self, expr):
+        # Don't process the subexpressions.
+        return expr
+
+    def ReifStmtPattern(self, expr, var, subject, pred, object):
+        return self.matchPattern(expr, *self.replReifStmtPattern(expr))
+
+    def preDynType(self, expr):
+        return (self.dynTypeExpr(expr[0]),)
+
+    def DynType(self, expr, subexpr):
+        return subexpr
 
 
-class VersionSqlTransformer(rewrite.ExpressionTransformer):
+class VersionSqlTransformer(PureRelationalTransformer):
     
-    __slots__ = ('versionNumber',)
+    __slots__ = ('versionNumber',
+
+                 'stmtRepl')
 
     def __init__(self, versionNumber):
-        super(VersionSqlTransformer, self).__init__(prePrefix='pre')
+        super(VersionSqlTransformer, self).__init__()
 
         self.versionNumber = versionNumber
 
-    def Relation(self, expr):
-        if expr.name != 'S':
-            return expr
+        # Cache for the statement pattern replacement expression.
+        self.stmtRepl = None
 
-        incr = expr.incarnation
+    def replStatementPattern(self, expr):
+        if self.stmtRepl is not None:
+            return self.stmtRepl
 
-        rel = nodes.Product(nodes.Relation('version_statement', incr),
-                            nodes.Relation('statements', incr))
+        rel = nodes.Product(nodes.Relation('version_statement', 1),
+                            nodes.Relation('statements', 1))
 
         cond = nodes.And(
             nodes.Equal(
-                nodes.FieldRef('version_statement', incr, 'version_id'),
+                nodes.FieldRef('version_statement', 1, 'version_id'),
                 nodes.Literal(self.versionNumber)),
             nodes.Equal(
-                nodes.FieldRef('version_statement', incr, 'stmt_id'),
-                nodes.FieldRef('statements', incr, 'id')))
+                nodes.FieldRef('version_statement', 1, 'stmt_id'),
+                nodes.FieldRef('statements', 1, 'id')))
 
-        return nodes.Select(rel, cond)
+        patternExpr = nodes.Select(rel, cond)
 
-    def FieldRef(self, expr):
-        if expr.relName != 'S':
-            return expr
+        replExpr = \
+          nodes.MapResult(['subject', 'type__subject',
+                           'predicate', 'type__predicate',
+                           'object', 'type__object'],
+                          patternExpr,
+                          nodes.FieldRef('statements', 1,
+                                         'subject'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          nodes.FieldRef('statements', 1,
+                                         'predicate'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          nodes.FieldRef('statements', 1,
+                                         'object'),
+                          nodes.FieldRef('statements', 1,
+                                         'object_type'))
 
-        return nodes.FieldRef('statements', expr.incarnation, expr.fieldId)
+        self.stmtRepl = (replExpr,
+                         ('subject', 'predicate', 'object'))
 
-    def _dynTypeExpr(self, expr):
+        return self.stmtRepl
+
+    @staticmethod
+    def makeUriNode(uri):
+        uriNode = nodes.Uri(uri)
+        uriNode.staticType = resourceType
+        return uriNode
+
+    def ReifStmtPattern(self, expr, var, subject, pred, object):
+        # Express in terms of normal patterns.
+        pattern1 = nodes.StatementPattern(var,
+                                          self.makeUriNode(rdf.type),
+                                          self.makeUriNode(rdf.Statement))
+        pattern2 = nodes.StatementPattern(var.copy(),
+                                          self.makeUriNode(rdf.subject),
+                                          subject)
+        pattern3 = nodes.StatementPattern(var.copy(),
+                                          self.makeUriNode(rdf.predicate),
+                                          pred)
+        pattern4 = nodes.StatementPattern(var.copy(),
+                                          self.makeUriNode(rdf.object),
+                                          object)
+
+        return nodes.Product(self.StatementPattern(pattern1, *pattern1),
+                             self.StatementPattern(pattern2, *pattern2),
+                             self.StatementPattern(pattern3, *pattern3),
+                             self.StatementPattern(pattern4, *pattern4))
+
+    def dynTypeExpr(self, expr):
         typeExpr = expr.staticType
 
         if isinstance(typeExpr, LiteralType):
 #             if typeExpr.typeUri is not None:
 #                 # Search for the actual type id.
-#                 incarnation = self.makeIncarnation()
+#                 incarnation = Incarnator.makeIncarnation()
 #                 cond = nodes.Equal(nodes.FieldRef('data_types',
 #                                                   incarnation, 'uri'),
 #                                    nodes.Uri(typeExpr.typeUri))
@@ -253,134 +378,12 @@ class VersionSqlTransformer(rewrite.ExpressionTransformer):
              expr.relName == 'S' and expr.fieldId == 'object':
             return nodes.FieldRef('statements', expr.incarnation,
                                   'object_type')
+        elif isinstance(expr, nodes.Var):
+            # FIXME: Eventually, we need recursive dynamic type
+            # expression creation.
+            return self.currentScope().variableDynType(expr).copy()
         else:
-            assert False, "Cannot determine type"
-
-    def preDynType(self, expr):
-        return self._dynTypeExpr(expr[0]),
-
-    def DynType(self, expr, subexpr):
-        return subexpr
-
-    def MapResult(self, expr, relExpr, *mappingExprs):
-        expr[0] = relExpr
-        for i, mappingExpr in enumerate(mappingExprs):
-            expr.columnNames[i*2+1:i*2+1] = 'type__' + expr.columnNames[i*2],
-            expr[i*2+2:i*2+2] = self._dynTypeExpr(expr[i*2+1]),
-            expr[i*2+1] = mappingExpr
-        return expr
-
-    def _setOperation(self, expr, *operands):
-        expr.columnNames = list(operands[0].columnNames)
-        expr[:] = operands
-        return expr
-
-    Union = _setOperation
-    SetDifference = _setOperation
-    Intersection = _setOperation
-
-
-class MultiVersionSqlTransformer(object):
-    """
-    <version> relrdf:contains <stmt>
-
-    <version> := model:version_%d
-    <stmt> := model:stmt_%d
-    """
-
-    __slots__ = ('baseNs',)
-
-    versionPattern = re.compile('version_([0-9]+)')
-    stmtPattern = re.compile('stmt_([0-9]+)')
-
-
-    def __init__(self, baseUri):
-        super(MultiVersionSqlTransformer, self).__init__()
-
-        self.baseNs = uri.Namespace(baseUri)
-
-    def mapContainsRel(self, subject, object):
-        verIncr = self.makeIncarnation()
-
-        conds = []
-
-        # 0 is never used as version or statement id.
-
-        for col, pattern, node in (('version_id', self.versionPattern,
-                                    subject),
-                                   ('stmt_id', self.stmtPattern, object)):
-            if isinstance(node, nodes.Uri):
-                local = self.baseNs.getLocal(node.uri)
-                if local is not None:
-                    m = pattern.match(local)
-                    if m is not None:
-                        numId = int(m.group(1))
-                    else:
-                        numId = 0
-                else:
-                    numId = 0
-
-                ref = nodes.FieldRef('version_statement', verIncr, col)
-                conds.append(nodes.Equal(ref, nodes.Literal(numId)))
-        else:
-            self.currentScope().addBinding(node.name, 'version_statement',
-                                           verIncr, col)
-
-        rel = nodes.Relation('version_statement', verIncr)
-
-        if len(conds) == 0:
-            return rel, True
-        else:
-            return nodes.Select(rel, nodes.And(*conds)), True
-
-    def mapPattern(self, subject, pred, object):
-        if isinstance(pred, nodes.Uri):
-            if pred.uri == relrdf.contains:
-                return self.mapContainsRel(subject, object)
-
-        stmtIncr = self.makeIncarnation()
-        verIncr = self.makeIncarnation()
-
-        conds = []
-        for col, node in (('subject', subject), ('predicate', pred),
-                          ('object', object)):
-            if isinstance(node, nodes.Var):
-                self.currentScope().addBinding(node.name, 'statements',
-                                               stmtIncr, col)
+            if hasattr(expr, 'id'):
+                assert False, "Cannot determine type from [[%s]]" % expr.id
             else:
-                ref = nodes.FieldRef('statements', stmtIncr, col)
-                conds.append(nodes.Equal(ref, node))
-
-        rel = nodes.Product(nodes.Relation('not_versioned_statements',
-                                           verIncr),
-                            nodes.Relation('statements', stmtIncr))
-
-        conds.append(
-            nodes.Equal(
-            nodes.FieldRef('not_versioned_statements', verIncr, 'stmt_id'),
-            nodes.FieldRef('statements', stmtIncr, 'id')))
-
-        return nodes.Select(rel, nodes.And(*conds)), True
-
-    def mapReifPattern(self, var, subject, pred, object):
-        stmtIncr = self.makeIncarnation()
-
-        self.currentScope().addBinding(var.name, 'statements',
-                                       stmtIncr, 'id')
-
-        conds = []
-        for col, node in (('subject', subject), ('predicate', pred),
-                          ('object', object)):
-            if isinstance(node, nodes.Var):
-                self.currentScope().addBinding(node.name, 'statements',
-                                               stmtIncr, col)
-            else:
-                ref = nodes.FieldRef('statements', stmtIncr, col)
-                conds.append(nodes.Equal(ref, node))
-
-        rel = nodes.Relation('statements', stmtIncr)
-
-        if len(conds) == 0:
-            return rel, True
-        else:
-            return nodes.Select(rel, nodes.And(*conds)), True
+                assert False, "Cannot determine type"

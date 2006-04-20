@@ -14,7 +14,7 @@ class VersionMapper(object):
         self.versionId = versionId
         
     def mapExpr(self, expr):
-        transf = transform.AbstractSqlSqlTransformer()
+        transf = transform.ExplicitTypeTransformer()
         expr = transf.process(expr)
 
         transf = transform.VersionSqlTransformer(self.versionId)

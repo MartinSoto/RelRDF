@@ -315,7 +315,10 @@ class ExclusiveExpressionNode(BasicExpressionNode):
             newParent = None
 
         if self.parent is not None:
-            self.parent._pruneSubexpr(self)
+            try:
+                self.parent._pruneSubexpr(self)
+            except ReferenceError:
+                self.parent = None
         assert self.parent is None
 
         self.parent = newParent
@@ -696,6 +699,10 @@ class MapResult(ExpressionNode):
         # The incarnation can be used to give the resulting table a
         # name while generating SQL expressions.
         self.incarnation = None
+
+    def subexprByName(self, columnName):
+        """Return the subexpression bound a to a particular column name."""
+        return self[self.columnNames.index(columnName) + 1]
 
     def _recursiveCheckTree(self, nodeSet):
         if id(self.columnNames) in nodeSet:

@@ -43,22 +43,27 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()
         for i, subexpr in enumerate(subexprs):
-            if i <= 1:
+            if i <= 2:
                 if isinstance(subexpr, nodes.Var):
                     typeExpr.addColumn(subexpr.name, resourceType)
+                elif isinstance(subexpr, nodes.Joker):
+                    pass
                 elif subexpr.staticType != resourceType:
                     error(subexpr, _("Pattern %s can only be a resource") %
-                          (i == 0 and "subject" or "predicate"))
+                          ('context', 'subject', 'predicate')[i])
             elif isinstance(subexpr, nodes.Var):
                 typeExpr.addColumn(subexpr.name, rdfNodeType)
         expr.staticType = typeExpr
 
-    def StatementPattern(self, expr, subjTp, predTp, objTp):
+    def StatementPattern(self, expr, ctxTp, subjTp, predTp, objTp):
         self._checkPattern(expr, expr)
 
-    def ReifStmtPattern(self, expr, varTp, subjTp, predTp, objTp):
-        self._checkPattern(expr, expr[1:])
-        expr.staticType.addColumn(expr[0].name, resourceType)
+    def ReifStmtPattern(self, expr, ctxTp, stmtTp, subjTp, predTp, objTp):
+        self._checkPattern(expr, expr[0:1] + expr[2:])
+        expr.staticType.addColumn(expr[1].name, resourceType)
+
+    def Joker(self, expr):
+        pass
 
     def _checkScalarOperands(self, expr, opName):
         for i, subexpr in enumerate(expr):

@@ -171,7 +171,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
 
 
     def matchPattern(self, pattern, replacementExpr, columnNames):
-        """Match a pattern to a replacement expression and produce a
+        """Match a pattern with a replacement expression and produce a
         patern-free relational expression that delivers the values the
         pattern would deliver.
 
@@ -207,7 +207,8 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
                 self.currentScope().addBinding(component.name,
                                                valueExpr,
                                                dynTypeExpr)
-                                               
+            elif isinstance(component, nodes.Joker):
+                pass
             else:
                 conds.append(nodes.And(nodes.Equal(self.dynTypeExpr(component),
                                                    dynTypeExpr),
@@ -255,14 +256,14 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         # Don't process the subexpressions.
         return expr
 
-    def StatementPattern(self, expr, subject, pred, object):
+    def StatementPattern(self, expr, context, subject, pred, object):
         return self.matchPattern(expr, *self.replStatementPattern(expr))
 
     def preReifStmtPattern(self, expr):
         # Don't process the subexpressions.
         return expr
 
-    def ReifStmtPattern(self, expr, var, subject, pred, object):
+    def ReifStmtPattern(self, expr, context, stmt, subject, pred, object):
         return self.matchPattern(expr, *self.replReifStmtPattern(expr))
 
     def preDynType(self, expr):
@@ -304,10 +305,14 @@ class VersionSqlTransformer(PureRelationalTransformer):
         patternExpr = nodes.Select(rel, cond)
 
         replExpr = \
-          nodes.MapResult(['subject', 'type__subject',
+          nodes.MapResult(['context', 'type__context',
+                           'subject', 'type__subject',
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
                           patternExpr,
+                          nodes.Uri(relrdf.version +
+                                    str(self.versionNumber)),
+                          nodes.Literal(TYPE_ID_RESOURCE),
                           nodes.FieldRef('statements', 1,
                                          'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
@@ -320,7 +325,7 @@ class VersionSqlTransformer(PureRelationalTransformer):
                                          'object_type'))
 
         self.stmtRepl = (replExpr,
-                         ('subject', 'predicate', 'object'))
+                         ('context', 'subject', 'predicate', 'object'))
 
         return self.stmtRepl
 
@@ -330,18 +335,22 @@ class VersionSqlTransformer(PureRelationalTransformer):
         uriNode.staticType = resourceType
         return uriNode
 
-    def ReifStmtPattern(self, expr, var, subject, pred, object):
+    def ReifStmtPattern(self, expr,  context, stmt, subject, pred, object):
         # Express in terms of normal patterns.
-        pattern1 = nodes.StatementPattern(var,
+        pattern1 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
                                           self.makeUriNode(rdf.type),
                                           self.makeUriNode(rdf.Statement))
-        pattern2 = nodes.StatementPattern(var.copy(),
+        pattern2 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
                                           self.makeUriNode(rdf.subject),
                                           subject)
-        pattern3 = nodes.StatementPattern(var.copy(),
+        pattern3 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
                                           self.makeUriNode(rdf.predicate),
                                           pred)
-        pattern4 = nodes.StatementPattern(var.copy(),
+        pattern4 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
                                           self.makeUriNode(rdf.object),
                                           object)
 

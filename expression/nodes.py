@@ -534,8 +534,8 @@ class StatementPattern(ExpressionNode):
 
     __slots__ = ()
 
-    def __init__(self, subj, pred, obj):
-        super(StatementPattern, self).__init__(subj, pred, obj)
+    def __init__(self, context, subj, pred, obj):
+        super(StatementPattern, self).__init__(context, subj, pred, obj)
 
 
 class ReifStmtPattern(ExpressionNode):
@@ -543,8 +543,18 @@ class ReifStmtPattern(ExpressionNode):
 
     __slots__ = ()
 
-    def __init__(self, var, subj, pred, obj):
-        super(ReifStmtPattern, self).__init__(var, subj, pred, obj)
+    def __init__(self, context, stmt, subj, pred, obj):
+        super(ReifStmtPattern, self).__init__(context, stmt, subj, pred, obj)
+
+
+class Joker(ExpressionNode):
+    """An expression node representing a joker, i.e., an open
+    possition in a pattern tha can be filled with everything."""
+
+    __slots__ = ()
+
+    def __init__(self):
+        super(Joker, self).__init__()
 
 
 class Operation(ExpressionNode):

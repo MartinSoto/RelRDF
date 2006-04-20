@@ -69,8 +69,18 @@ selectQuery returns [expr]
         { self.pushContext(); \
           condExpr = None}
     :   select:"select" nameBindings=projection
-        "from" patternExpr=graphPattern
-        { endSubexpr = patternExpr }
+        (   "from"
+            (
+                (   "context"
+                    (   context=var
+                    |   context=uri
+                    |   context=bnode )
+                    patternExpr=graphPattern[context]
+                )
+            |   patternExpr=graphPattern[nodes.Joker()]
+            )
+            { endSubexpr = patternExpr }
+        )+
         (   "where" condExpr=booleanExpr
             { endSubexpr = condExpr }
         )?
@@ -107,48 +117,59 @@ projectionElem returns [nameBinding]
 constructQuery returns [expr]
         { self.pushContext() }
     :   construct:"construct" resultExpr=constructClause
-        "from" patternExpr=graphPattern
+        (   "from"
+            (
+                (   "context"
+                    (   context=var
+                    |   context=uri
+                    |   context=bnode )
+                    patternExpr=graphPattern[context]
+                )
+            |   patternExpr=graphPattern[nodes.Joker()]
+            )
+            { endSubexpr = patternExpr }
+        )+
         { expr = self.constructQueryExpr(resultExpr, patternExpr); \
           expr.setExtentsStartFromToken(construct, self); \
-          expr.setEndSubexpr(patternExpr); \
+          expr.setEndSubexpr(endSubexpr); \
           self.popContext() }
     ;
 
 constructClause returns [expr]
     :   "*"
         { expr = None }
-    |   expr=pathExprList
+    |   expr=pathExprList[nodes.Joker()]
     ;
 
 
-graphPattern returns [expr]
-    :   expr=pathExprList
+graphPattern [context] returns [expr]
+    :   expr=pathExprList[context]
     ;
 
-pathExprList returns [expr]
+pathExprList [context] returns [expr]
     :
-        expr=pathExpr
-        (   "," expr2=pathExpr
+        expr=pathExpr[context]
+        (   "," expr2=pathExpr[context]
             { expr = nodes.Product(expr, expr2) }
         )*
     ;
 
-pathExpr returns [expr]
-    :   n1=node e=edge n2=node
-        { expr = self.exprFromPattern(n1, e, n2) }
-        (   expr2=pathExprTail[n2]
+pathExpr [context] returns [expr]
+    :   n1=node[context] e=edge n2=node[context]
+        { expr = self.exprFromPattern(context, n1, e, n2) }
+        (   expr2=pathExprTail[context, n2]
             { expr = nodes.Product(expr, expr2) }
-        |   ";" expr2=pathExprTail[n1]
+        |   ";" expr2=pathExprTail[context, n1]
             { expr = nodes.Product(expr, expr2) }
         )?
     ;
 
-pathExprTail [n1] returns [expr]
-    :   e=edge n2=node
-        { expr = self.exprFromPattern(n1, e, n2) }
-        (   expr2=pathExprTail[n2]
+pathExprTail [context, n1] returns [expr]
+    :   e=edge n2=node[context]
+        { expr = self.exprFromPattern(context, n1, e, n2) }
+        (   expr2=pathExprTail[context, n2]
             { expr = nodes.Product(expr, expr2) }
-        |   ";" expr2=pathExprTail[n1]
+        |   ";" expr2=pathExprTail[context, n1]
             { expr = nodes.Product(expr, expr2) }
         )?
     ;
@@ -158,19 +179,19 @@ edge returns [expr]
     |   expr=uri
     ;
 
-node returns [exprList]
-    :   "{" ( exprList=nodeElemList )? "}"
+node [context] returns [exprList]
+    :   "{" ( exprList=nodeElemList[context] )? "}"
     ;
 
-nodeElemList returns [exprList]
-    :   ne1=nodeElem
+nodeElemList [context] returns [exprList]
+    :   ne1=nodeElem[context]
         { exprList = ne1 }
-        (   "," ne=nodeElem
+        (   "," ne=nodeElem[context]
             { exprList.extend(ne) }
         )*
     ;
 
-nodeElem returns [exprList]
+nodeElem [context] returns [exprList]
     :   expr=var
         { exprList = [expr] }
     |   expr=uri
@@ -179,12 +200,12 @@ nodeElem returns [exprList]
         { exprList = [expr] }
     |   expr=literal
         { exprList = [expr] }
-    |   exprList=reifiedStat
+    |   exprList=reifiedStat[context]
     ;
 
-reifiedStat returns [exprList]
-    :   n1=node e=edge n2=node
-        { exprList = self.exprListFromReifPattern(n1, e, n2) }
+reifiedStat [context] returns [exprList]
+    :   n1=node[context] e=edge n2=node[context]
+        { exprList = self.exprListFromReifPattern(context, n1, e, n2) }
     ;
 
 booleanExpr returns [expr]

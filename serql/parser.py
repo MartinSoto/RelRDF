@@ -56,12 +56,12 @@ class SelectContext(object):
         self.indepMapping[varName1] = group
         self.indepMapping[varName2] = group
 
-    def addReifPattern(self, subject, predicate, object):
+    def addReifPattern(self, context, subject, predicate, object):
         # Use a variable name that isn't allowed in SerQL.
         var = nodes.Var('#stmt_%d#' % self.reifPatternVarNr)
         self.reifPatternVarNr += 1
 
-        expr = nodes.ReifStmtPattern(var, subject,
+        expr = nodes.ReifStmtPattern(context, var, subject,
                                      predicate, object)
         expr.setStartSubexpr(subject)
         var.setExtents(expr.getExtents())
@@ -194,7 +194,7 @@ class Parser(antlr.LLkParser):
     # Expression Construction and Transformation
     #
 
-    def exprFromPattern(self, nodeList1, edge, nodeList2):
+    def exprFromPattern(self, context, nodeList1, edge, nodeList2):
         rels = []
 
         indepVar1 = None
@@ -202,9 +202,13 @@ class Parser(antlr.LLkParser):
 
         for node1 in nodeList1:
             for node2 in nodeList2:
-                rels.append(nodes.StatementPattern(node1.copy(),
+                rels.append(nodes.StatementPattern(context.copy(),
+                                                   node1.copy(),
                                                    edge.copy(),
                                                    node2.copy()))
+
+                if isinstance(context, nodes.Var):
+                    self.currentContext().addBound(context.name)
 
                 if isinstance(node1, nodes.Var):
                     self.currentContext().addBound(node1.name)
@@ -230,7 +234,7 @@ class Parser(antlr.LLkParser):
         else:
             return rels[0]
 
-    def exprListFromReifPattern(self, nodeList1, edge, nodeList2):
+    def exprListFromReifPattern(self, context, nodeList1, edge, nodeList2):
         vars = []
 
         indepVar1 = None
@@ -238,8 +242,13 @@ class Parser(antlr.LLkParser):
 
         for node1 in nodeList1:
             for node2 in nodeList2:
-                vars.append(self.currentContext().addReifPattern(node1, edge,
+                vars.append(self.currentContext().addReifPattern(context,
+                                                                 node1,
+                                                                 edge,
                                                                  node2))
+
+                if isinstance(context, nodes.Var):
+                    self.currentContext().addBound(context.name)
 
                 if isinstance(node1, nodes.Var):
                     self.currentContext().addBound(node1.name)

@@ -30,10 +30,10 @@ class VersionRdfSink(object):
 
         # Calculate a hash value for the statement.
         m = md5.new()
-        m.update(unicode(subject))
-        m.update(unicode(pred))
-        m.update(unicode(objectType))
-        m.update(unicode(object))
+        m.update(subject.encode('utf-8'))
+        m.update(pred.encode('utf-8'))
+        m.update(objectType.encode('utf-8'))
+        m.update(unicode(object).encode('utf-8'))
             
         self.cursor.execute(
             """

@@ -309,7 +309,7 @@ class Parser(antlr.LLkParser):
             if isinstance(pattern, nodes.StatementPattern):
                 part = nodes.MapResult(['subject', 'predicate', 'object'],
                                        patternExpr.copy(),
-                                       *[c.copy() for c in pattern])
+                                       *[c.copy() for c in pattern[1:]])
                 parts.append(part)
             else:
                 raise error.SemanticError(

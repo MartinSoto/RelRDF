@@ -69,18 +69,8 @@ selectQuery returns [expr]
         { self.pushContext(); \
           condExpr = None}
     :   select:"select" nameBindings=projection
-        (   "from"
-            (
-                (   "context"
-                    (   context=var
-                    |   context=uri
-                    |   context=bnode )
-                    patternExpr=graphPattern[context]
-                )
-            |   patternExpr=graphPattern[nodes.Joker()]
-            )
-            { endSubexpr = patternExpr }
-        )+
+        patternExpr=fromClauseList
+        { endSubexpr = patternExpr }
         (   "where" condExpr=booleanExpr
             { endSubexpr = condExpr }
         )?
@@ -117,21 +107,10 @@ projectionElem returns [nameBinding]
 constructQuery returns [expr]
         { self.pushContext() }
     :   construct:"construct" resultExpr=constructClause
-        (   "from"
-            (
-                (   "context"
-                    (   context=var
-                    |   context=uri
-                    |   context=bnode )
-                    patternExpr=graphPattern[context]
-                )
-            |   patternExpr=graphPattern[nodes.Joker()]
-            )
-            { endSubexpr = patternExpr }
-        )+
+        patternExpr=fromClauseList
         { expr = self.constructQueryExpr(resultExpr, patternExpr); \
           expr.setExtentsStartFromToken(construct, self); \
-          expr.setEndSubexpr(endSubexpr); \
+          expr.setEndSubexpr(patternExpr); \
           self.popContext() }
     ;
 
@@ -141,6 +120,26 @@ constructClause returns [expr]
     |   expr=pathExprList[nodes.Joker()]
     ;
 
+
+fromClauseList returns [expr]
+    :   expr=fromClause
+        (   expr2=fromClause
+            { expr=nodes.Product(expr, expr2) }
+        )*
+    ;
+
+fromClause returns [expr]
+    :   "from"
+        (
+            (   "context"
+                (   context=var
+                |   context=uri
+                |   context=bnode )
+                expr=graphPattern[context]
+            )
+        |   expr=graphPattern[nodes.Joker()]
+        )
+    ;
 
 graphPattern [context] returns [expr]
     :   expr=pathExprList[context]

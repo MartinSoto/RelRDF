@@ -10,11 +10,6 @@ from typecheck.typeexpr import LiteralType, BlankNodeType, ResourceType, \
      RdfNodeType, resourceType, rdfNodeType
 
 
-TYPE_ID_RESOURCE = literal.Literal(1)
-TYPE_ID_BLANKNODE = literal.Literal(2)
-TYPE_ID_LITERAL = literal.Literal(3)
-
-
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions
     corresponding to tzhe dynamic data type of each one of the
@@ -273,7 +268,95 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         return subexpr
 
 
-class VersionSqlTransformer(PureRelationalTransformer):
+class StandardReifTransformer(PureRelationalTransformer):
+    """An abstract expression transformer that extends
+    `PureRelationalTransformer` to convert reified statement patterns
+    into the four standard equivalent statement patterns."""
+
+    @staticmethod
+    def makeUriNode(uri):
+        uriNode = nodes.Uri(uri)
+        uriNode.staticType = resourceType
+        return uriNode
+
+    def ReifStmtPattern(self, expr,  context, stmt, subject, pred, object):
+        # Express in terms of normal patterns.
+        pattern1 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
+                                          self.makeUriNode(rdf.type),
+                                          self.makeUriNode(rdf.Statement))
+        pattern2 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
+                                          self.makeUriNode(rdf.subject),
+                                          subject)
+        pattern3 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
+                                          self.makeUriNode(rdf.predicate),
+                                          pred)
+        pattern4 = nodes.StatementPattern(context.copy(),
+                                          stmt.copy(),
+                                          self.makeUriNode(rdf.object),
+                                          object)
+
+        return nodes.Product(self.StatementPattern(pattern1, *pattern1),
+                             self.StatementPattern(pattern2, *pattern2),
+                             self.StatementPattern(pattern3, *pattern3),
+                             self.StatementPattern(pattern4, *pattern4))
+
+
+
+TYPE_ID_RESOURCE = literal.Literal(1)
+TYPE_ID_BLANKNODE = literal.Literal(2)
+TYPE_ID_LITERAL = literal.Literal(3)
+
+
+class SqlDynTypeTransformer(PureRelationalTransformer):
+    """An abstract expression transformer that converts dynamic type
+    expressions into SQL friendly expressions."""
+
+    def dynTypeExpr(self, expr):
+        typeExpr = expr.staticType
+
+        if isinstance(typeExpr, LiteralType):
+#             if typeExpr.typeUri is not None:
+#                 # Search for the actual type id.
+#                 incarnation = Incarnator.makeIncarnation()
+#                 cond = nodes.Equal(nodes.FieldRef('data_types',
+#                                                   incarnation, 'uri'),
+#                                    nodes.Uri(typeExpr.typeUri))
+#                 select = nodes.Select(nodes.Relation('data_types',
+#                                                      incarnation),
+#                                       cond)
+#                 return nodes.MapResult(['id'],
+#                                      nodes.FieldRef('data_types',
+#                                                     incarnation, 'id'))
+#             else:
+#                 return TYPE_ID_LITERAL
+            return nodes.Literal(TYPE_ID_LITERAL)
+        elif isinstance(typeExpr, BlankNodeType):
+            return nodes.Literal(TYPE_ID_BLANKNODE)
+        elif isinstance(typeExpr, ResourceType):
+            return nodes.Literal(TYPE_ID_RESOURCE)
+        elif isinstance(typeExpr, RdfNodeType) and \
+             isinstance(expr, nodes.FieldRef) and \
+             expr.relName == 'S' and expr.fieldId == 'object':
+            return nodes.FieldRef('statements', expr.incarnation,
+                                  'object_type')
+        elif isinstance(expr, nodes.Var):
+            # FIXME: Eventually, we need recursive dynamic type
+            # expression creation.
+            return self.currentScope().variableDynType(expr).copy()
+        else:
+            if hasattr(expr, 'id'):
+                assert False, "Cannot determine type from [[%s]]" % expr.id
+            else:
+                assert False, "Cannot determine type"
+
+
+class VersionSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
+    """An expression transformer that maps an abstract relational
+    expression with patterns into an SQL friendly expression
+    presenting a single version as the whole model."""
     
     __slots__ = ('versionNumber',
 
@@ -329,70 +412,3 @@ class VersionSqlTransformer(PureRelationalTransformer):
 
         return self.stmtRepl
 
-    @staticmethod
-    def makeUriNode(uri):
-        uriNode = nodes.Uri(uri)
-        uriNode.staticType = resourceType
-        return uriNode
-
-    def ReifStmtPattern(self, expr,  context, stmt, subject, pred, object):
-        # Express in terms of normal patterns.
-        pattern1 = nodes.StatementPattern(context.copy(),
-                                          stmt.copy(),
-                                          self.makeUriNode(rdf.type),
-                                          self.makeUriNode(rdf.Statement))
-        pattern2 = nodes.StatementPattern(context.copy(),
-                                          stmt.copy(),
-                                          self.makeUriNode(rdf.subject),
-                                          subject)
-        pattern3 = nodes.StatementPattern(context.copy(),
-                                          stmt.copy(),
-                                          self.makeUriNode(rdf.predicate),
-                                          pred)
-        pattern4 = nodes.StatementPattern(context.copy(),
-                                          stmt.copy(),
-                                          self.makeUriNode(rdf.object),
-                                          object)
-
-        return nodes.Product(self.StatementPattern(pattern1, *pattern1),
-                             self.StatementPattern(pattern2, *pattern2),
-                             self.StatementPattern(pattern3, *pattern3),
-                             self.StatementPattern(pattern4, *pattern4))
-
-    def dynTypeExpr(self, expr):
-        typeExpr = expr.staticType
-
-        if isinstance(typeExpr, LiteralType):
-#             if typeExpr.typeUri is not None:
-#                 # Search for the actual type id.
-#                 incarnation = Incarnator.makeIncarnation()
-#                 cond = nodes.Equal(nodes.FieldRef('data_types',
-#                                                   incarnation, 'uri'),
-#                                    nodes.Uri(typeExpr.typeUri))
-#                 select = nodes.Select(nodes.Relation('data_types',
-#                                                      incarnation),
-#                                       cond)
-#                 return nodes.MapResult(['id'],
-#                                      nodes.FieldRef('data_types',
-#                                                     incarnation, 'id'))
-#             else:
-#                 return TYPE_ID_LITERAL
-            return nodes.Literal(TYPE_ID_LITERAL)
-        elif isinstance(typeExpr, BlankNodeType):
-            return nodes.Literal(TYPE_ID_BLANKNODE)
-        elif isinstance(typeExpr, ResourceType):
-            return nodes.Literal(TYPE_ID_RESOURCE)
-        elif isinstance(typeExpr, RdfNodeType) and \
-             isinstance(expr, nodes.FieldRef) and \
-             expr.relName == 'S' and expr.fieldId == 'object':
-            return nodes.FieldRef('statements', expr.incarnation,
-                                  'object_type')
-        elif isinstance(expr, nodes.Var):
-            # FIXME: Eventually, we need recursive dynamic type
-            # expression creation.
-            return self.currentScope().variableDynType(expr).copy()
-        else:
-            if hasattr(expr, 'id'):
-                assert False, "Cannot determine type from [[%s]]" % expr.id
-            else:
-                assert False, "Cannot determine type"

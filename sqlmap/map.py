@@ -17,7 +17,8 @@ class VersionMapper(object):
         transf = transform.ExplicitTypeTransformer()
         expr = transf.process(expr)
 
-        transf = transform.VersionSqlTransformer(self.versionId)
+        #transf = transform.VersionSqlTransformer(self.versionId)
+        transf = transform.GlobalSqlTransformer()
         expr = transf.process(expr)
 
         expr = simplify.simplify(expr)

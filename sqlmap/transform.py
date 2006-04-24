@@ -412,3 +412,58 @@ class VersionSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
 
         return self.stmtRepl
 
+
+class GlobalSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
+    """An expression transformer that maps an abstract relational
+    expression with patterns into an SQL friendly expression
+    presenting the whole version set ain such a way that every version
+    is a separate context."""
+    
+    __slots__ = ('stmtRepl')
+
+    def __init__(self):
+        super(GlobalSqlTransformer, self).__init__()
+
+        # Cache for the statement pattern replacement expression.
+        self.stmtRepl = None
+
+    def replStatementPattern(self, expr):
+        if self.stmtRepl is not None:
+            return self.stmtRepl
+
+        rel = nodes.Product(nodes.Relation('version_statement', 1),
+                            nodes.Relation('statements', 1))
+
+        cond = nodes.Equal(
+            nodes.FieldRef('version_statement', 1, 'stmt_id'),
+            nodes.FieldRef('statements', 1, 'id'))
+
+        patternExpr = nodes.Select(rel, cond)
+
+        replExpr = \
+          nodes.MapResult(['context', 'type__context',
+                           'subject', 'type__subject',
+                           'predicate', 'type__predicate',
+                           'object', 'type__object'],
+                          patternExpr,
+                          nodes.FunctionCall('concat',
+                                         nodes.Uri(relrdf.version),
+                                         nodes.FieldRef('version_statement',
+                                                        1, 'version_id')),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          nodes.FieldRef('statements', 1,
+                                         'subject'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          nodes.FieldRef('statements', 1,
+                                         'predicate'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          nodes.FieldRef('statements', 1,
+                                         'object'),
+                          nodes.FieldRef('statements', 1,
+                                         'object_type'))
+
+        self.stmtRepl = (replExpr,
+                         ('context', 'subject', 'predicate', 'object'))
+
+        return self.stmtRepl
+

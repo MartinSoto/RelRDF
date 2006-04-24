@@ -529,6 +529,23 @@ class FieldRef(ExpressionNode):
         stream.write(' %s' % self.attributesRepr())
 
 
+class FunctionCall(ExpressionNode):
+    """A function call."""
+
+    __slots__ = ('functionName',)
+
+    def __init__(self, functionName, *params):
+        super(FunctionCall, self).__init__(*params)
+       
+        self.functionName = functionName
+
+    def attributesRepr(self):
+        return self.functionName
+
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' %s' % self.functionName)
+
+
 class StatementPattern(ExpressionNode):
     """An expression node representing an statement pattern."""
 

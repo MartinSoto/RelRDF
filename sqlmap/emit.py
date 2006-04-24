@@ -17,6 +17,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def FieldRef(self, expr):
         return '%s_%s.%s' % (expr.relName, expr.incarnation, expr.fieldId)
 
+    def FunctionCall(self, expr, *params):
+        return '%s(%s)' % (expr.functionName, ', '.join(params))
+
     def Equal(self, expr, operand1, *operands):
         return ' AND '.join(['(%s) = (%s)' % (operand1, o) for o in operands])
 

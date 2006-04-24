@@ -14,9 +14,6 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         else:
             return '"%s"' % str(expr.literal)
 
-    def FieldRef(self, expr):
-        return '%s_%s.%s' % (expr.relName, expr.incarnation, expr.fieldId)
-
     def FunctionCall(self, expr, *params):
         return '%s(%s)' % (expr.functionName, ', '.join(params))
 
@@ -51,19 +48,16 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def And(self, expr, *operands):
         return '(' + ') AND ('.join(operands) + ')'
 
-    def Relation(self, expr):
-        return '%s AS %s_%s' % (expr.name, expr.name, expr.incarnation)
-
     def Product(self, expr, *operands):
         return ', '.join(operands)
 
     def Select(self, expr, rel, cond):
-        return 'FROM %s\nWHERE %s' % (rel, cond)
+        return '%s\nWHERE %s' % (rel, cond)
 
     def MapResult(self, expr, select, *columnExprs):
         columns = ', '.join(['%s AS %s' % (e, n)
                              for e, n in zip(columnExprs, expr.columnNames)])
-        return 'SELECT %s\n%s' % (columns, select)
+        return 'SELECT %s\nFROM %s' % (columns, select)
 
     def Union(self, expr, *operands):
         return '(' + ')\nUNION\n('.join(operands) + ')'
@@ -84,6 +78,12 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def SetDifference(self, *args):
         return self._setDiffOrIntersect('NOT IN', *args)
+
+    def SqlRelation(self, expr):
+        return '(%s) AS rel_%s' % (expr.sqlCode, expr.incarnation)
+
+    def SqlFieldRef(self, expr):
+        return 'rel_%s.%s' % (expr.incarnation, expr.fieldId)
 
 emitter = SqlEmitter()
 

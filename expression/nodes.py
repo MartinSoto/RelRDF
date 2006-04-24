@@ -506,29 +506,6 @@ class Var(ExpressionNode):
         stream.write(' %s' % self.name)
 
 
-class FieldRef(ExpressionNode):
-    """A reference to one particular field of a relation tuple."""
-
-    __slots__ = ('relName',
-                 'incarnation',
-                 'fieldId')
-
-    def __init__(self, relName, incarnation, fieldId):
-        super(FieldRef, self).__init__()
-
-        self.relName = relName
-        self.incarnation = incarnation
-        self.fieldId = fieldId
-
-    def attributesRepr(self):
-        return '%s, %s, %s' % (repr(self.relName),
-                               repr(self.incarnation),
-                               repr(self.fieldId))
-
-    def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s' % self.attributesRepr())
-
-
 class FunctionCall(ExpressionNode):
     """A function call."""
 
@@ -662,25 +639,6 @@ class Not(BooleanOperation, UnaryOperation):
     """A boolean 'not' operation."""
 
     __slots__ = ()
-
-
-class Relation(ExpressionNode):
-    """An incarnation of a given relation."""
-
-    __slots__ = ('name',
-                 'incarnation')
-
-    def __init__(self, name, incarnation):
-        super(Relation, self).__init__()
-
-        self.name = name
-        self.incarnation = incarnation
-
-    def attributesRepr(self):
-        return '%s, %s' % (repr(self.name), repr(self.incarnation))
-
-    def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s_%d' % (self.name, self.incarnation))
 
 
 class Optional(ExpressionNode):

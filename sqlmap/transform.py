@@ -9,6 +9,8 @@ from expression import literal, uri
 from typecheck.typeexpr import LiteralType, BlankNodeType, ResourceType, \
      RdfNodeType, resourceType, rdfNodeType
 
+import sqlnodes
+
 
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions
@@ -318,30 +320,12 @@ class SqlDynTypeTransformer(PureRelationalTransformer):
         typeExpr = expr.staticType
 
         if isinstance(typeExpr, LiteralType):
-#             if typeExpr.typeUri is not None:
-#                 # Search for the actual type id.
-#                 incarnation = Incarnator.makeIncarnation()
-#                 cond = nodes.Equal(nodes.FieldRef('data_types',
-#                                                   incarnation, 'uri'),
-#                                    nodes.Uri(typeExpr.typeUri))
-#                 select = nodes.Select(nodes.Relation('data_types',
-#                                                      incarnation),
-#                                       cond)
-#                 return nodes.MapResult(['id'],
-#                                      nodes.FieldRef('data_types',
-#                                                     incarnation, 'id'))
-#             else:
-#                 return TYPE_ID_LITERAL
+            # FIXME:Search for the actual type id.
             return nodes.Literal(TYPE_ID_LITERAL)
         elif isinstance(typeExpr, BlankNodeType):
             return nodes.Literal(TYPE_ID_BLANKNODE)
         elif isinstance(typeExpr, ResourceType):
             return nodes.Literal(TYPE_ID_RESOURCE)
-        elif isinstance(typeExpr, RdfNodeType) and \
-             isinstance(expr, nodes.FieldRef) and \
-             expr.relName == 'S' and expr.fieldId == 'object':
-            return nodes.FieldRef('statements', expr.incarnation,
-                                  'object_type')
         elif isinstance(expr, nodes.Var):
             # FIXME: Eventually, we need recursive dynamic type
             # expression creation.
@@ -374,37 +358,38 @@ class VersionSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
         if self.stmtRepl is not None:
             return self.stmtRepl
 
-        rel = nodes.Product(nodes.Relation('version_statement', 1),
-                            nodes.Relation('statements', 1))
-
-        cond = nodes.And(
-            nodes.Equal(
-                nodes.FieldRef('version_statement', 1, 'version_id'),
-                nodes.Literal(self.versionNumber)),
-            nodes.Equal(
-                nodes.FieldRef('version_statement', 1, 'stmt_id'),
-                nodes.FieldRef('statements', 1, 'id')))
-
-        patternExpr = nodes.Select(rel, cond)
-
+        rel = sqlnodes.SqlRelation(
+            1,
+            """
+            select
+              vs.version_id as version_id,
+              s.subject as subject,
+              s.predicate as predicate,
+              s.object_type as object_type,
+              s.object as object
+            from
+              version_statement vs,
+              statements s
+            where
+              vs.version_id = %d and
+              vs.stmt_id = s.id
+            """,
+            self.versionNumber)
+                     
         replExpr = \
           nodes.MapResult(['context', 'type__context',
                            'subject', 'type__subject',
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
-                          patternExpr,
-                          nodes.Literal(self.versionNumber),
+                          rel,
+                          sqlnodes.SqlFieldRef(1, 'version_id'),
                           nodes.Literal(TYPE_ID_LITERAL),
-                          nodes.FieldRef('statements', 1,
-                                         'subject'),
+                          sqlnodes.SqlFieldRef(1, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          nodes.FieldRef('statements', 1,
-                                         'predicate'),
+                          sqlnodes.SqlFieldRef(1, 'predicate'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          nodes.FieldRef('statements', 1,
-                                         'object'),
-                          nodes.FieldRef('statements', 1,
-                                         'object_type'))
+                          sqlnodes.SqlFieldRef(1, 'object'),
+                          sqlnodes.SqlFieldRef(1, 'object_type'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -430,34 +415,36 @@ class GlobalSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
         if self.stmtRepl is not None:
             return self.stmtRepl
 
-        rel = nodes.Product(nodes.Relation('version_statement', 1),
-                            nodes.Relation('statements', 1))
-
-        cond = nodes.Equal(
-            nodes.FieldRef('version_statement', 1, 'stmt_id'),
-            nodes.FieldRef('statements', 1, 'id'))
-
-        patternExpr = nodes.Select(rel, cond)
-
+        rel = sqlnodes.SqlRelation(
+            1,
+            """
+            select
+              vs.version_id as version_id,
+              s.subject as subject,
+              s.predicate as predicate,
+              s.object_type as object_type,
+              s.object as object
+            from
+              version_statement vs,
+              statements s
+            where
+              vs.stmt_id = s.id
+            """)
+                     
         replExpr = \
           nodes.MapResult(['context', 'type__context',
                            'subject', 'type__subject',
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
-                          patternExpr,
-                          nodes.FieldRef('version_statement',
-                                         1, 'version_id'),
+                          rel,
+                          sqlnodes.SqlFieldRef(1, 'version_id'),
                           nodes.Literal(TYPE_ID_LITERAL),
-                          nodes.FieldRef('statements', 1,
-                                         'subject'),
+                          sqlnodes.SqlFieldRef(1, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          nodes.FieldRef('statements', 1,
-                                         'predicate'),
+                          sqlnodes.SqlFieldRef(1, 'predicate'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          nodes.FieldRef('statements', 1,
-                                         'object'),
-                          nodes.FieldRef('statements', 1,
-                                         'object_type'))
+                          sqlnodes.SqlFieldRef(1, 'object'),
+                          sqlnodes.SqlFieldRef(1, 'object_type'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))

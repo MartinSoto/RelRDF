@@ -400,7 +400,7 @@ class VersionSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
 class GlobalSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
     """An expression transformer that maps an abstract relational
     expression with patterns into an SQL friendly expression
-    presenting the whole version set ain such a way that every version
+    presenting the whole version set in such a way that every version
     is a separate context."""
     
     __slots__ = ('stmtRepl')
@@ -438,6 +438,87 @@ class GlobalSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
                            'object', 'type__object'],
                           rel,
                           sqlnodes.SqlFieldRef(1, 'version_id'),
+                          nodes.Literal(TYPE_ID_LITERAL),
+                          sqlnodes.SqlFieldRef(1, 'subject'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(1, 'predicate'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(1, 'object'),
+                          sqlnodes.SqlFieldRef(1, 'object_type'))
+
+        self.stmtRepl = (replExpr,
+                         ('context', 'subject', 'predicate', 'object'))
+
+        return self.stmtRepl
+
+
+class ComparisonSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
+    """An expression transformer that maps an abstract relational
+    expression with patterns into an SQL friendly expression
+    presenting the two versions (versions A and B) as three contexts:
+    one containing the statements only in A, one containing the
+    statements only in B, and one containing the statements common to
+    both versions."""
+    
+    __slots__ = ('aVersionNumber',
+                 'bVersionNumber',
+
+                 'stmtRepl')
+
+    def __init__(self, aVersionNumber, bVersionNumber):
+        super(ComparisonSqlTransformer, self).__init__()
+
+        self.aVersionNumber = aVersionNumber
+        self.bVersionNumber = bVersionNumber
+
+        # Cache for the statement pattern replacement expression.
+        self.stmtRepl = None
+
+    def replStatementPattern(self, expr):
+        if self.stmtRepl is not None:
+            return self.stmtRepl
+
+        # This is a pretty sui generis way of doing this, but MySQL
+        # doesn't have a full outer join, and this solution not only
+        # works properly but seems to optimize quite well. Notice that
+        # ir relies on the fact that versions numbers are never 0.
+        rel = sqlnodes.SqlRelation(
+            1,
+            """
+            select
+              comp.context as context,
+              s.subject as subject,
+              s.predicate as predicate,
+              s.object_type as object_type,
+              s.object as object
+            from
+              ( select
+                  case sum(v.version_id)
+                    when %d then "A"
+                    when %d then "B"
+                    when %d then "AB"
+                  end as context,
+                  v.stmt_id as stmt_id
+                from version_statement v
+                where v.version_id = %d or v.version_id = %d
+                group by v.stmt_id) as comp,
+              statements s
+            where
+              comp.stmt_id = s.id
+            """,
+            self.aVersionNumber,
+            self.bVersionNumber,
+            self.aVersionNumber + self.bVersionNumber,
+            self.aVersionNumber,
+            self.bVersionNumber)
+                     
+        replExpr = \
+          nodes.MapResult(['context', 'type__context',
+                           'subject', 'type__subject',
+                           'predicate', 'type__predicate',
+                           'object', 'type__object'],
+                          rel,
+                          sqlnodes.SqlFieldRef(1, 'context'),
                           nodes.Literal(TYPE_ID_LITERAL),
                           sqlnodes.SqlFieldRef(1, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),

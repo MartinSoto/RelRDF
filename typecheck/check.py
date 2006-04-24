@@ -43,7 +43,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()
         for i, subexpr in enumerate(subexprs):
-            if i <= 2:
+            if 1 <= i <= 2:
                 if isinstance(subexpr, nodes.Var):
                     typeExpr.addColumn(subexpr.name, resourceType)
                 elif isinstance(subexpr, nodes.Joker):

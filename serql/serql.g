@@ -134,7 +134,9 @@ fromClause returns [expr]
             (   "context"
                 (   context=var
                 |   context=uri
-                |   context=bnode )
+                |   context=bnode
+                |   context=literal
+                )
                 expr=graphPattern[context]
             )
         |   expr=graphPattern[nodes.Joker()]

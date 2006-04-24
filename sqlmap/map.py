@@ -26,11 +26,12 @@ class VersionMapper(object):
         return emit.emit(expr)
 
     def convertResult(self, rawValue, typeId):
-        try:
-            rawValue = rawValue.decode('utf8')
-        except UnicodeDecodeError:
-            print "Error:", tuple(rawValue)
-            rawValue = "ERROR"
+        if isinstance(rawValue, str):
+            try:
+                rawValue = rawValue.decode('utf8')
+            except UnicodeDecodeError:
+                print "Error:", tuple(rawValue)
+                rawValue = "ERROR"
 
         # FIXME: This must be converted to using type names.
         if typeId == 1:

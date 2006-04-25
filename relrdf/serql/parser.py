@@ -3,12 +3,12 @@ import pprint
 
 import antlr
 
-import error
-import commonns
-from expression import nodes
-from expression import literal
-from expression import uri
-from expression import rewrite, simplify
+from relrdf import error
+from relrdf import commonns
+from relrdf.expression import nodes
+from relrdf.expression import literal
+from relrdf.expression import uri
+from relrdf.expression import rewrite, simplify
 
 
 class SelectContext(object):

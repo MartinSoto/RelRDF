@@ -2,7 +2,7 @@
 
 import sets
 
-from commonns import rdfs
+from relrdf.commonns import rdfs
 import prefixes
 
 

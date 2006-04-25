@@ -4,7 +4,7 @@ import MySQLdb
 
 import rdfxmlparse
 import vmodellparse
-from sqlmap import VersionRdfSink
+from relrdf.sqlmap import VersionRdfSink
 
 
 def error(msg):

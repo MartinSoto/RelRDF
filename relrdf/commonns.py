@@ -1,4 +1,4 @@
-from expression import uri
+from relrdf.expression import uri
 
 
 """Commonly used namespaces."""

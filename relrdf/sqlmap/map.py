@@ -1,7 +1,7 @@
 """SQL mapping objects."""
 
-from expression import uri, blanknode, literal
-from expression import simplify
+from relrdf.expression import uri, blanknode, literal
+from relrdf.expression import simplify
 
 import transform
 import emit

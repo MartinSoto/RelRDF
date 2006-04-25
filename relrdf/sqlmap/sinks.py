@@ -1,6 +1,6 @@
 import md5
 
-from expression import uri, blanknode, literal
+from relrdf.expression import uri, blanknode, literal
 
 
 class VersionRdfSink(object):

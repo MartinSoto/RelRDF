@@ -1,13 +1,13 @@
 import re
 import pprint
 
-from commonns import xsd, rdf, relrdf
-from expression import nodes
-from expression import rewrite
-from expression import literal, uri
+from relrdf.commonns import xsd, rdf, relrdf
+from relrdf.expression import nodes
+from relrdf.expression import rewrite
+from relrdf.expression import literal, uri
 
-from typecheck.typeexpr import LiteralType, BlankNodeType, ResourceType, \
-     RdfNodeType, resourceType, rdfNodeType
+from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
+     ResourceType, RdfNodeType, resourceType, rdfNodeType
 
 import sqlnodes
 

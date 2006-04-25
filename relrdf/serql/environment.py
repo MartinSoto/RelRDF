@@ -2,12 +2,12 @@ import StringIO
 
 import antlr
 
-import error
+from relrdf import error
 
-from expression import nodes
-from expression import rewrite
+from relrdf.expression import nodes
+from relrdf.expression import rewrite
 
-import typecheck
+from relrdf import typecheck
 
 import SerQLLexer
 import SerQLParser

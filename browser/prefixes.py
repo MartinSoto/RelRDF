@@ -1,4 +1,4 @@
-import commonns
+from relrdf import commonns
 
 namespaces = {
     'rdf': commonns.rdf,

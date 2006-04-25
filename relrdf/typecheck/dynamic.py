@@ -1,4 +1,4 @@
-from expression import nodes, rewrite
+from relrdf.expression import nodes, rewrite
 
 from typeexpr import commonType, LiteralType, BlankNodeType, ResourceType
 

@@ -1,7 +1,7 @@
-from commonns import xsd
+from relrdf.commonns import xsd
 
-from error import TypeCheckError
-from expression import nodes, rewrite
+from relrdf.error import TypeCheckError
+from relrdf.expression import nodes, rewrite
 
 from typeexpr import rdfNodeType, LiteralType, booleanLiteralType, \
      genericLiteralType, ResourceType, resourceType, RelationType

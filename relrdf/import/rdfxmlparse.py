@@ -2,7 +2,7 @@ import sys
 
 import RDF
 
-from expression import uri, blanknode, literal
+from relrdf.expression import uri, blanknode, literal
 from basesinks import PrintSink
 
 

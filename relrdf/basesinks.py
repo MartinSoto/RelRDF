@@ -1,4 +1,4 @@
-from expression import uri, blanknode, literal
+from relrdf.expression import uri, blanknode, literal
 
 
 class NullSink(object):

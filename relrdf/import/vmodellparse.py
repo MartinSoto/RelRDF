@@ -3,7 +3,7 @@ import sys
 from xml.dom import pulldom
 
 import commonns
-from expression import literal, uri
+from relrdf.expression import literal, uri
 from basesinks import PrintSink
 
 

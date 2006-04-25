@@ -1,4 +1,4 @@
-from expression import nodes
+from relrdf.expression import nodes
 
 class SqlRelation(nodes.ExpressionNode):
     """An expression node corresponding to an SQL expression producing

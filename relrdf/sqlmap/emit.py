@@ -1,5 +1,5 @@
-from commonns import xsd
-from expression import rewrite
+from relrdf.commonns import xsd
+from relrdf.expression import rewrite
 
 
 class SqlEmitter(rewrite.ExpressionProcessor):

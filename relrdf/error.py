@@ -1,6 +1,6 @@
 import antlr
 
-from expression import nodes
+from relrdf.expression import nodes
 
 
 class Error(Exception):

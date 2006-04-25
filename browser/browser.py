@@ -12,8 +12,8 @@ import MySQLdb
 from kiwifixes import UiManagerDelegate
 from kiwi.ui.delegates import Delegate, SlaveDelegate
 
-from expression import uri, blanknode, literal
-import modelfactory
+from relrdf.expression import uri, blanknode, literal
+import relrdf
 
 import prefixes
 import schema
@@ -75,9 +75,9 @@ class MainWindow(UiManagerDelegate):
         connection = MySQLdb.connect(host=host, db=db,
                                      read_default_group='client')
 
-        self.model = modelfactory.getModel(mapping, connection,
-                                           prefixes.namespaces,
-                                           **mappingArgs)
+        self.model = relrdf.getModel(mapping, connection,
+                                     prefixes.namespaces,
+                                     **mappingArgs)
 
         self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
 

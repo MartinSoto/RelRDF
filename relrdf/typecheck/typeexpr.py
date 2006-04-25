@@ -1,4 +1,4 @@
-from commonns import xsd
+from relrdf.commonns import xsd
 
 
 class TypeNode(object):

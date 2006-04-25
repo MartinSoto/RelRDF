@@ -1,5 +1,5 @@
 header {
-    from expression import nodes
+    from relrdf.expression import nodes
 
     import parser
 }

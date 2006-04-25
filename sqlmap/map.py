@@ -7,20 +7,17 @@ import transform
 import emit
 
 
-class VersionMapper(object):
-    __slots__ = ('versionId',)
+class SqlMapper(object):
+    __slots__ = ('sqlTransf',)
 
-    def __init__(self, versionId):
-        self.versionId = versionId
+    def __init__(self, sqlTransf):
+        self.sqlTransf = sqlTransf
         
     def mapExpr(self, expr):
         transf = transform.ExplicitTypeTransformer()
         expr = transf.process(expr)
 
-        #transf = transform.VersionSqlTransformer(self.versionId)
-        #transf = transform.GlobalSqlTransformer()
-        transf = transform.ComparisonSqlTransformer(1, 2)
-        expr = transf.process(expr)
+        expr = self.sqlTransf.process(expr)
 
         expr = simplify.simplify(expr)
 
@@ -46,3 +43,30 @@ class VersionMapper(object):
             value = literal.Literal(rawValue)
 
         return value
+
+
+class SingleVersionMapper(SqlMapper):
+    __slots__ = ()
+
+    def __init__(self, versionId):
+        transf = transform.SingleVersionSqlTransformer(int(versionId))
+        super(SingleVersionMapper, self).__init__(transf)
+
+
+class AllVersionsMapper(SqlMapper):
+    __slots__ = ()
+
+    def __init__(self):
+        transf = transform.AllVersionsSqlTransformer()
+        super(AllVersionsMapper, self).__init__(transf)
+
+
+class TwoWayComparisonMapper(SqlMapper):
+    __slots__ = ()
+
+    def __init__(self, versionA, versionB):
+        transf = transform.TwoWayComparisonSqlTransformer(int(versionA),
+                                                          int(versionB))
+        super(TwoWayComparisonMapper, self).__init__(transf)
+
+

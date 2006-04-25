@@ -337,7 +337,8 @@ class SqlDynTypeTransformer(PureRelationalTransformer):
                 assert False, "Cannot determine type"
 
 
-class VersionSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
+class SingleVersionSqlTransformer(StandardReifTransformer,
+                                  SqlDynTypeTransformer):
     """An expression transformer that maps an abstract relational
     expression with patterns into an SQL friendly expression
     presenting a single version as the whole model."""
@@ -347,7 +348,7 @@ class VersionSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
                  'stmtRepl')
 
     def __init__(self, versionNumber):
-        super(VersionSqlTransformer, self).__init__()
+        super(SingleVersionSqlTransformer, self).__init__()
 
         self.versionNumber = versionNumber
 
@@ -397,7 +398,8 @@ class VersionSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
         return self.stmtRepl
 
 
-class GlobalSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
+class AllVersionsSqlTransformer(StandardReifTransformer,
+                                SqlDynTypeTransformer):
     """An expression transformer that maps an abstract relational
     expression with patterns into an SQL friendly expression
     presenting the whole version set in such a way that every version
@@ -406,7 +408,7 @@ class GlobalSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
     __slots__ = ('stmtRepl')
 
     def __init__(self):
-        super(GlobalSqlTransformer, self).__init__()
+        super(AllVersionsSqlTransformer, self).__init__()
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
@@ -452,7 +454,8 @@ class GlobalSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
         return self.stmtRepl
 
 
-class ComparisonSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
+class TwoWayComparisonSqlTransformer(StandardReifTransformer,
+                                     SqlDynTypeTransformer):
     """An expression transformer that maps an abstract relational
     expression with patterns into an SQL friendly expression
     presenting the two versions (versions A and B) as three contexts:
@@ -466,7 +469,7 @@ class ComparisonSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
                  'stmtRepl')
 
     def __init__(self, aVersionNumber, bVersionNumber):
-        super(ComparisonSqlTransformer, self).__init__()
+        super(TwoWayComparisonSqlTransformer, self).__init__()
 
         self.aVersionNumber = aVersionNumber
         self.bVersionNumber = bVersionNumber
@@ -481,7 +484,7 @@ class ComparisonSqlTransformer(StandardReifTransformer, SqlDynTypeTransformer):
         # This is a pretty sui generis way of doing this, but MySQL
         # doesn't have a full outer join, and this solution not only
         # works properly but seems to optimize quite well. Notice that
-        # ir relies on the fact that versions numbers are never 0.
+        # it relies on the fact that versions numbers are never 0.
         rel = sqlnodes.SqlRelation(
             1,
             """

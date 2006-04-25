@@ -71,12 +71,13 @@ class MainWindow(UiManagerDelegate):
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
-    def openDatabase(self, host, db):
+    def openDatabase(self, host, db, mapping, **mappingArgs):
         connection = MySQLdb.connect(host=host, db=db,
                                      read_default_group='client')
 
-        self.model = modelfactory.getModel('SingleVersion', connection,
-                                           prefixes.namespaces, versionId=1)
+        self.model = modelfactory.getModel(mapping, connection,
+                                           prefixes.namespaces,
+                                           **mappingArgs)
 
         self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
 
@@ -212,14 +213,20 @@ class MainWindow(UiManagerDelegate):
 
 
 if __name__ == "__main__":
-    try:
-        host, db = sys.argv[1:]
-    except:
-        print >> sys.stderr, 'usage: browser <host> <database>'
+    if len(sys.argv) < 4:
+        print >> sys.stderr, \
+              'usage: browser <host> <database> <mapping> [<mapping params>]'
         sys.exit(1)
 
+    host, db, mapping = sys.argv[1:4]
+
+    mappingArgs = {}
+    for arg in sys.argv[4:]:
+        key, value = arg.split('=')
+        mappingArgs[key] = value
+
     main_window = MainWindow()
-    main_window.openDatabase(host, db)
+    main_window.openDatabase(host, db, mapping, **mappingArgs)
 
     main_window.show()
 

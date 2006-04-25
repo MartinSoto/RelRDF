@@ -68,9 +68,12 @@ class SqlMappedModel(object):
 def getModel(modelType, connection, prefixes=None, **kwargs):
     modelTypeNorm = modelType.lower()
     if modelTypeNorm == 'singleversion':
-        mapper = sqlmap.VersionMapper(kwargs['versionId'])
-#    elif modelTypeNorm == 'multiversion':
-#        mapper = map.MultiVersionMapper(kwargs['versionUri'])
+        mapper = sqlmap.SingleVersionMapper(kwargs['versionId'])
+    elif modelTypeNorm == 'allversions':
+        mapper = sqlmap.AllVersionsMapper()
+    elif modelTypeNorm == 'twoway':
+        mapper = sqlmap.TwoWayComparisonMapper(kwargs['versionA'],
+                                               kwargs['versionB'])
     else:
         assert False, "invalid model type '%s'" % modelType
 

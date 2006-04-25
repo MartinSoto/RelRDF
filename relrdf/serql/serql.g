@@ -181,7 +181,12 @@ edge returns [expr]
     ;
 
 node [context] returns [exprList]
-    :   "{" ( exprList=nodeElemList[context] )? "}"
+    :   "{"
+        { exprList = None }
+        (    exprList=nodeElemList[context]
+        )?
+        { exprList = self.fixNodeList(exprList) }
+        "}"
     ;
 
 nodeElemList [context] returns [exprList]

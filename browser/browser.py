@@ -7,8 +7,6 @@ import string
 import gtk
 import pango
 
-import MySQLdb
-
 from kiwifixes import UiManagerDelegate
 from kiwi.ui.delegates import Delegate, SlaveDelegate
 
@@ -71,13 +69,12 @@ class MainWindow(UiManagerDelegate):
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
-    def openDatabase(self, host, db, mapping, **mappingArgs):
-        connection = MySQLdb.connect(host=host, db=db,
-                                     read_default_group='client')
+    def openModel(self, modelBaseType, modelBaseArgs, modelType, modelArgs):
+        if not modelArgs.has_key('prefixes'):
+            modelArgs['prefixes'] = prefixes.namespaces
 
-        self.model = relrdf.getModel(mapping, connection,
-                                     prefixes.namespaces,
-                                     **mappingArgs)
+        modelBase = relrdf.getModelBase(modelBaseType, **modelBaseArgs)
+        self.model = modelBase.getModel(modelType, **modelArgs)
 
         self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
 
@@ -215,18 +212,21 @@ class MainWindow(UiManagerDelegate):
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print >> sys.stderr, \
-              'usage: browser <host> <database> <mapping> [<mapping params>]'
+              'usage: browser <host> <database> <model type> [<model params>]'
         sys.exit(1)
 
-    host, db, mapping = sys.argv[1:4]
+    host, db, modelType = sys.argv[1:4]
 
-    mappingArgs = {}
+    modelArgs = {}
     for arg in sys.argv[4:]:
         key, value = arg.split('=')
-        mappingArgs[key] = value
+        modelArgs[key] = value
 
     main_window = MainWindow()
-    main_window.openDatabase(host, db, mapping, **mappingArgs)
+    main_window.openModel('mysql',
+                          {'host': host, 'db': db,
+                           'read_default_group': 'client'},
+                          modelType, modelArgs)
 
     main_window.show()
 

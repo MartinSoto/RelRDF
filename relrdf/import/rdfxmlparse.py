@@ -3,7 +3,7 @@ import sys
 import RDF
 
 from relrdf.expression import uri, blanknode, literal
-from basesinks import PrintSink
+from relrdf.basesinks import PrintSink
 
 
 def parseFromUri(uriRef, base=None, sink=None):

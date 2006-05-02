@@ -40,15 +40,16 @@ class VersionRdfSink(object):
             INSERT INTO data_types (uri)
             VALUES (%s)
             ON DUPLICATE KEY UPDATE uri = uri""",
-            (unicode(objectType)))
+            (unicode(objectType).encode('utf-8')))
         self.cursor.execute(
             """
             INSERT INTO statements (hash, subject, predicate, object_type,
                                     object)
             VALUES (%s,%s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE subject = subject""",
-            (m.digest(), unicode(subject), unicode(pred),
-             self.cursor.lastrowid, unicode(object)))
+            (m.digest(), unicode(subject).encode('utf-8'),
+             unicode(pred).encode('utf-8'),
+             self.cursor.lastrowid, unicode(object).encode('utf-8')))
         self.cursor.execute(
             """
             INSERT INTO version_statement (version_id, stmt_id)

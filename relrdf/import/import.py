@@ -4,7 +4,7 @@ import MySQLdb
 
 import rdfxmlparse
 import vmodellparse
-from relrdf.sqlmap import VersionRdfSink
+from relrdf.sqlmap.sinks import VersionRdfSink
 
 
 def error(msg):
@@ -31,6 +31,7 @@ fileType = fileType.lower()
 
 conn = MySQLdb.connect(host='localhost', db=db, read_default_group='client')
 cursor = conn.cursor()
+cursor.execute('set names "utf8"')
 sink = VersionRdfSink(cursor, int(versionNumber))
 
 if fileType == 'rdfxml':

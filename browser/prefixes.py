@@ -19,7 +19,7 @@ namespaces = {
 
 
 def shortenUri(uri):
-    text = str(uri)
+    text = unicode(uri)
     for (abbrev, nsUri) in namespaces.items():
         if text[:len(nsUri)] == nsUri:
             return abbrev + ":" + text[len(nsUri):]

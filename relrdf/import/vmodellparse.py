@@ -2,9 +2,9 @@ import sys
 
 from xml.dom import pulldom
 
-import commonns
+from relrdf import commonns
 from relrdf.expression import literal, uri
-from basesinks import PrintSink
+from relrdf.basesinks import PrintSink
 
 
 vModellNs = uri.Namespace('http://www.v-modell.iabg.de/Schema#')

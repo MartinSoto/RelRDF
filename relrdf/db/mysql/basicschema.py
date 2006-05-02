@@ -217,7 +217,7 @@ class Results(object):
 
         self.cursor = connection.cursor()
 
-        # Make sure MySQL send us UTF8.
+        # Make sure MySQL sends us UTF8.
         self.cursor.execute('set names "utf8"')
 
         # Send the query to the database (iterating on this object

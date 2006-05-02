@@ -290,7 +290,7 @@ class Model(object):
 
         # Build a Results objects with the resulting SQL query.
         return Results(self.connection, list(expr.columnNames[::2]),
-                       sqlText)
+                       sqlText.encode('utf-8'))
 
 
 def getModel(connection, modelType, **modelArgs):

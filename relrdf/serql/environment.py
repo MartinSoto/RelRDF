@@ -29,7 +29,7 @@ class ParseEnvironment(object):
         return self.prefixes
 
     def parse(self, queryText, fileName=_("<unknown>")):
-        if isinstance(queryText, str):
+        if isinstance(queryText, str) or isinstance(queryText, unicode):
             stream = StringIO.StringIO(queryText)
         else:
             stream = queryText

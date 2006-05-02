@@ -10,8 +10,8 @@ import pango
 from kiwifixes import UiManagerDelegate
 from kiwi.ui.delegates import Delegate, SlaveDelegate
 
-from relrdf.expression import uri, blanknode, literal
 import relrdf
+from relrdf.expression import uri, blanknode, literal
 
 import prefixes
 import schema
@@ -108,8 +108,9 @@ class MainWindow(UiManagerDelegate):
 
         # Run the query.
         try:
-            results = self.model.query('SerQL', queryString)
-        except Exception, e:
+            results = self.model.query('SerQL',
+                                       unicode(queryString, 'utf-8'))
+        except relrdf.Error, e:
             self.showMessage("Error: %s" % str(e))
             return
 

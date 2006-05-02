@@ -86,7 +86,8 @@ class RdfSchema(object):
                 clsSub = self.classes[nodeSub]
             except KeyError:
                 print "Ignoring: %s is subclass of %s" \
-                      % (nodeSub, node)
+                      % (unicode(nodeSub).encode('utf-8'),
+                         unicode(node).encode('utf-8'))
                 continue
 
             cls.addDescendant(clsSub)
@@ -112,8 +113,9 @@ class RdfSchema(object):
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:
-                print "Ignoring: %s is in domain from %s" % (nodeCls,
-                                                             nodeProp)
+                print "Ignoring: %s is in domain from %s" % \
+                      (unicode(nodeCls).encode('utf-8'),
+                       unicode(nodeProp).encode('utf-8'))
                 continue
 
             prop.addToDomain(cls)
@@ -130,8 +132,9 @@ class RdfSchema(object):
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:
-                print "Ignoring: %s is in range from %s" % (nodeCls,
-                                                            nodeProp)
+                print "Ignoring: %s is in range from %s" % \
+                      (unicode(nodeCls).encode('utf-8'),
+                       unicode(nodeProp).encode('utf-8'))
                 continue
 
             prop.addToRange(cls)

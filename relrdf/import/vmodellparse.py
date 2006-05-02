@@ -57,7 +57,21 @@ class VModellParser(object):
                 if elem.uri is not None:
                     # Create a declaration for the object.
                     self.sink.triple(elem.uri, commonns.rdf.type,
-                                     literal.Literal(vModellNs[elem.name]))
+                                     uri.Uri(vModellNs[elem.name]))
+
+                    parent = None
+                    for superelem in reversed(self.elems[:-1]):
+                        if superelem.uri is not None and \
+                           superelem.name != 'V-Modell':
+                            parent = superelem
+                            break
+
+                    if parent is not None:
+                        self.sink.triple(parent.uri,
+                                         uri.Uri(vModellNs['%s_enthaelt_%s' \
+                                                           % (parent.name,
+                                                              elem.name)]),
+                                         elem.uri)
 
                 if node.hasAttribute('link'):
                     # We have a relation between objects.

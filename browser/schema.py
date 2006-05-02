@@ -10,9 +10,6 @@ class RdfSchemaError(Exception):
     pass
 
 
-LITERAL = rdfs.Literal
-
-
 class RdfObject(object):
     __slots__ = ('node',)
 
@@ -108,8 +105,8 @@ class RdfSchema(object):
             try:
                 prop = self.properties[nodeProp]
 
-                if nodeCls == LITERAL:
-                    cls = LITERAL
+                if nodeCls == rdfs.Literal:
+                    cls = prefixes.shortenUri(rdfs.Literal)
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:
@@ -127,8 +124,8 @@ class RdfSchema(object):
             try:
                 prop = self.properties[nodeProp]
 
-                if nodeCls == LITERAL:
-                    cls = LITERAL
+                if nodeCls == rdfs.Literal:
+                    cls = prefixes.shortenUri(rdfs.Literal)
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:

@@ -142,9 +142,19 @@
                                                 <property name="visible">True</property>
                                                 <property name="vscrollbar_policy">automatic</property>
                                                 <child>
-                                                    <widget class="GtkTextView" id="queryText">
-                                                        <property name="is_focus">True</property>
+                                                    <widget class="GtkViewport" id="viewport1">
                                                         <property name="visible">True</property>
+                                                        <child>
+                                                            <widget class="GtkEventBox" id="queryEditorPlaceholder">
+                                                                <property name="visible">True</property>
+                                                                <child>
+                                                                    <widget class="GtkLabel" id="label3">
+                                                                        <property name="label" context="yes" translatable="yes">Query text goes here</property>
+                                                                        <property name="visible">True</property>
+                                                                    </widget>
+                                                                </child>
+                                                            </widget>
+                                                        </child>
                                                     </widget>
                                                 </child>
                                             </widget>

@@ -16,6 +16,7 @@ from relrdf.expression import uri, blanknode, literal
 import prefixes
 import schema
 from schemapane import SchemaBrowser
+from queryeditor import QueryEditor
 
 
 class MainWindow(UiManagerDelegate):
@@ -60,8 +61,13 @@ class MainWindow(UiManagerDelegate):
         self.model = None
         self.resultLS = None
 
-        # Set a default query.
-        self.queryText.get_buffer().set_text("select s, p, o\nfrom {s} p {o}")
+        # Create the query editor and set a default query.
+        self.queryEditor = QueryEditor()
+        self.queryEditor.show()
+        editorSlave = SlaveDelegate(toplevel=self.queryEditor)
+        self.attach_slave('queryEditorPlaceholder', editorSlave)
+        self.queryEditor.get_buffer(). \
+            set_text("select s, p, o\nfrom {s} p {o}\n")
 
         # Allow dragging from the query result.
         self.resultsView.enable_model_drag_source(
@@ -97,7 +103,7 @@ class MainWindow(UiManagerDelegate):
         if self.model == None:
             return
 
-        buffer = self.queryText.get_buffer()
+        buffer = self.queryEditor.get_buffer()
         if queryString == None:
             # Retrieve the query text from the window.
             queryString = buffer.get_text(buffer.get_start_iter(),
@@ -188,7 +194,7 @@ class MainWindow(UiManagerDelegate):
         self.finalize()
 
     def on_clearButton__clicked(self, widget, *args):
-        buffer = self.queryText.get_buffer()
+        buffer = self.queryEditor.get_buffer()
         buffer.delete(buffer.get_start_iter(),
                       buffer.get_end_iter())
 

@@ -15,7 +15,9 @@ namespaces = {
     'kuka': 'http://www.kuka.de/Modale#',
     'dc': 'http://www.daimlerchrysler.de/modaleBeispiel#',
 
-    'asg': 'https://asg-platform.org/cgi-bin/twiki/viewauth/Internal/ASGDevelopmentProcess#'}
+    'asg': 'https://asg-platform.org/cgi-bin/twiki/viewauth/Internal/ASGDevelopmentProcess#',
+    'asgi': 'https://asg-platform.org/cgi-bin/twiki/viewauth/Internal/ASGDevelopmentProcess/instances#'
+    }
 
 
 def shortenUri(uri):

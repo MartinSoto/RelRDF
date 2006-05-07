@@ -80,7 +80,16 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return self._setDiffOrIntersect('NOT IN', *args)
 
     def SqlRelation(self, expr):
-        return '(%s) AS rel_%s' % (expr.sqlCode, expr.incarnation)
+        # Single relation names cannot be parenthesized.
+        try:
+            pos = expr.sqlCode.index(' ')
+        except ValueError:
+            pos = None
+
+        if pos is not None:
+            return '(%s) AS rel_%s' % (expr.sqlCode, expr.incarnation)
+        else:
+            return '%s AS rel_%s' % (expr.sqlCode, expr.incarnation)
 
     def SqlFieldRef(self, expr):
         return 'rel_%s.%s' % (expr.incarnation, expr.fieldId)

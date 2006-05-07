@@ -1,6 +1,6 @@
 from relrdf import parserfactory
 
-from relrdf.expression import uri, blanknode, literal, simplify, nodes
+from relrdf.expression import uri, blanknode, literal, simplify, nodes, build
 from relrdf.sqlmap import map, transform, sqlnodes, emit
 
 
@@ -31,24 +31,20 @@ class SingleVersionSqlTransformer(transform.StandardReifTransformer,
         if self.stmtRepl is not None:
             return self.stmtRepl
 
-        rel = sqlnodes.SqlRelation(
-            1,
-            """
-            select
-              vs.version_id as version_id,
-              s.subject as subject,
-              s.predicate as predicate,
-              s.object_type as object_type,
-              s.object as object
-            from
-              version_statement vs,
-              statements s
-            where
-              vs.version_id = %d and
-              vs.stmt_id = s.id
-            """,
-            self.versionNumber)
-                     
+        rel = build.buildExpression(
+            (nodes.Select,
+             (nodes.Product,
+              (sqlnodes.SqlRelation, 1, 'version_statement'),
+              (sqlnodes.SqlRelation, 2, 'statements')),
+             (nodes.And,
+              (nodes.Equal,
+               (sqlnodes.SqlFieldRef, 1, 'version_id'),
+               (nodes.Literal, self.versionNumber)),
+              (nodes.Equal,
+               (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+               (sqlnodes.SqlFieldRef, 2, 'id'))))
+            )
+
         replExpr = \
           nodes.MapResult(['context', 'type__context',
                            'subject', 'type__subject',
@@ -57,12 +53,12 @@ class SingleVersionSqlTransformer(transform.StandardReifTransformer,
                           rel,
                           sqlnodes.SqlFieldRef(1, 'version_id'),
                           nodes.Literal(TYPE_ID_LITERAL),
-                          sqlnodes.SqlFieldRef(1, 'subject'),
+                          sqlnodes.SqlFieldRef(2, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(1, 'predicate'),
+                          sqlnodes.SqlFieldRef(2, 'predicate'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(1, 'object'),
-                          sqlnodes.SqlFieldRef(1, 'object_type'))
+                          sqlnodes.SqlFieldRef(2, 'object'),
+                          sqlnodes.SqlFieldRef(2, 'object_type'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -89,22 +85,16 @@ class AllVersionsSqlTransformer(transform.StandardReifTransformer,
         if self.stmtRepl is not None:
             return self.stmtRepl
 
-        rel = sqlnodes.SqlRelation(
-            1,
-            """
-            select
-              vs.version_id as version_id,
-              s.subject as subject,
-              s.predicate as predicate,
-              s.object_type as object_type,
-              s.object as object
-            from
-              version_statement vs,
-              statements s
-            where
-              vs.stmt_id = s.id
-            """)
-                     
+        rel = build.buildExpression(
+            (nodes.Select,
+             (nodes.Product,
+              (sqlnodes.SqlRelation, 1, 'version_statement'),
+              (sqlnodes.SqlRelation, 2, 'statements')),
+             (nodes.Equal,
+              (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+              (sqlnodes.SqlFieldRef, 2, 'id')))
+            )
+
         replExpr = \
           nodes.MapResult(['context', 'type__context',
                            'subject', 'type__subject',
@@ -113,12 +103,12 @@ class AllVersionsSqlTransformer(transform.StandardReifTransformer,
                           rel,
                           sqlnodes.SqlFieldRef(1, 'version_id'),
                           nodes.Literal(TYPE_ID_LITERAL),
-                          sqlnodes.SqlFieldRef(1, 'subject'),
+                          sqlnodes.SqlFieldRef(2, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(1, 'predicate'),
+                          sqlnodes.SqlFieldRef(2, 'predicate'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(1, 'object'),
-                          sqlnodes.SqlFieldRef(1, 'object_type'))
+                          sqlnodes.SqlFieldRef(2, 'object'),
+                          sqlnodes.SqlFieldRef(2, 'object_type'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))

@@ -55,7 +55,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '%s\nWHERE %s' % (rel, cond)
 
     def MapResult(self, expr, select, *columnExprs):
-        columns = ', '.join(['%s AS %s' % (e, n)
+        columns = ', '.join(["%s AS '%s'" % (e, n)
                              for e, n in zip(columnExprs, expr.columnNames)])
         return 'SELECT %s\nFROM %s' % (columns, select)
 

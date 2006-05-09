@@ -46,14 +46,10 @@ CREATE TABLE version_statement (
   version_id integer unsigned NOT NULL
 	 COMMENT 'A version identifier',
   stmt_id integer unsigned NOT NULL
-	 COMMENT 'A statement identifier'
+	 COMMENT 'A statement identifier',
+  KEY (stmt_id),
+  UNIQUE KEY version_statement_unique (version_id, stmt_id)
 ) ENGINE=MyISAM COMMENT='Version version_id contains statement stmt_id';
-
-CREATE UNIQUE INDEX version_statement_unique
-  ON version_statement (version_id, stmt_id);
-
-CREATE INDEX version_statement_version_index
-  ON version_statement (version_id);
 
 
 DROP TABLE IF EXISTS not_versioned_statements;

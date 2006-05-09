@@ -310,38 +310,15 @@
         <property name="role"></property>
         <property name="title" context="yes" translatable="yes">Schema</property>
         <child>
-            <widget class="GtkVPaned" id="vpaned1">
-                <property name="position">200</property>
-                <property name="position_set">True</property>
+            <widget class="GtkScrolledWindow" id="scrolledwindow1">
+                <property name="hscrollbar_policy">automatic</property>
                 <property name="visible">True</property>
+                <property name="vscrollbar_policy">automatic</property>
                 <child>
-                    <widget class="GtkScrolledWindow" id="scrolledwindow1">
-                        <property name="hscrollbar_policy">automatic</property>
+                    <widget class="GtkTreeView" id="classView">
+                        <property name="is_focus">True</property>
                         <property name="visible">True</property>
-                        <property name="vscrollbar_policy">automatic</property>
-                        <child>
-                            <widget class="GtkTreeView" id="classView">
-                                <property name="is_focus">True</property>
-                                <property name="visible">True</property>
-                            </widget>
-                        </child>
                     </widget>
-                </child>
-                <child>
-                    <widget class="GtkScrolledWindow" id="scrolledwindow2">
-                        <property name="hscrollbar_policy">automatic</property>
-                        <property name="visible">True</property>
-                        <property name="vscrollbar_policy">automatic</property>
-                        <child>
-                            <widget class="GtkTreeView" id="propertyView">
-                                <property name="is_focus">True</property>
-                                <property name="visible">True</property>
-                            </widget>
-                        </child>
-                    </widget>
-                    <packing>
-                        <property name="resize">True</property>
-                    </packing>
                 </child>
             </widget>
         </child>

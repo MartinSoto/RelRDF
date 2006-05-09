@@ -44,6 +44,24 @@ class RdfClass(RdfObject):
         for d in self.descendants:
             d.printWithDescendants(indent + 2)
 
+    def getAllProperties(self, exclude=None):
+        """Return a set of all class properties, including those of
+        its parent classes."""
+        result = set()
+        self._getAllProperties(result, set())
+        return result
+
+    def _getAllProperties(self, result, visitedAncestors):
+        result.update(self.properties)
+        visitedAncestors.add(self)
+
+        for ancestor in self.ancestors:
+            # In case the class hierarchy has loops, we keep track of
+            # already visited ancestors.
+            if ancestor in visitedAncestors:
+                continue
+            ancestor._getAllProperties(result, visitedAncestors)
+
 
 class RdfProperty(RdfObject):
     __slots__ = ('domain',

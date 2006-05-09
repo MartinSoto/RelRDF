@@ -111,7 +111,7 @@
                     </packing>
                 </child>
                 <child>
-                    <widget class="GtkHPaned" id="hpaned1">
+                    <widget class="GtkHPaned" id="mainPaned">
                         <property name="position">200</property>
                         <property name="position_set">True</property>
                         <property name="visible">True</property>
@@ -138,6 +138,7 @@
                                         <child>
                                             <widget class="GtkScrolledWindow" id="scrolledwindow3">
                                                 <property name="hscrollbar_policy">automatic</property>
+                                                <property name="is_focus">True</property>
                                                 <property name="shadow_type">in</property>
                                                 <property name="visible">True</property>
                                                 <property name="vscrollbar_policy">automatic</property>

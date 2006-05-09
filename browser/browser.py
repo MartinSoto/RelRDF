@@ -44,6 +44,15 @@ class MainWindow(UiManagerDelegate):
         UiManagerDelegate.__init__(self, gladefile="browser",
                                    toplevel_name='mainWindow')
 
+        # Give the window a reasonable minimum size.
+        self.toplevel.set_size_request(480, 360)
+
+        # Set the initial dimensions of the window to 75% of the screen.
+        (rootWidth, rootHeight) = \
+                    self.toplevel.get_root_window().get_geometry()[2:4]
+        self.toplevel.set_default_size(int(rootWidth * 0.85),
+                                       int(rootHeight * 0.85))
+
         # Add the accelerator group to the toplevel window
         accelgroup = self.uiManager.get_accel_group()
         self.toplevel.add_accel_group(accelgroup)
@@ -185,6 +194,11 @@ class MainWindow(UiManagerDelegate):
 
     def finalize(self):
         gtk.main_quit()
+
+    def on_mainPaned__realize(self, widget, *args):
+        # Give the left pane a reazonable size.
+        self.mainPaned.set_position(int(self.mainPaned.\
+                                        get_property('max-position') * 0.3))
 
     def on_mainWindow__delete_event(self, widget, *args):
         self.finalize()

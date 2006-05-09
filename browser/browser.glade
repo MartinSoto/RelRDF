@@ -87,6 +87,17 @@
                 </child>
             </widget>
         </child>
+        <ui id="initial-state"><![CDATA[<ui>
+<toolbar action="toolbar1" name="toolbar1">
+  <toolitem action="New" name="New"/>
+  <toolitem action="Open" name="Open"/>
+  <toolitem action="Save" name="Save"/>
+  <separator/>
+  <toolitem action="Copy" name="Copy"/>
+  <toolitem action="Cut" name="Cut"/>
+  <toolitem action="Paste" name="Paste"/>
+</toolbar>
+</ui>]]></ui>
     </widget>
     <widget class="GtkWindow" id="mainWindow">
         <property name="default_height">500</property>
@@ -161,32 +172,26 @@
                                             </widget>
                                         </child>
                                         <child>
-                                            <widget class="GtkHButtonBox" id="hbuttonbox1">
-                                                <property name="border_width">5</property>
-                                                <property name="layout_style">end</property>
+                                            <widget class="GtkAlignment" id="alignment1">
                                                 <property name="visible">True</property>
+                                                <property name="xalign">1.0</property>
+                                                <property name="xscale">0.0</property>
                                                 <child>
-                                                    <widget class="GtkButton" id="clearButton">
-                                                        <property name="can_default">True</property>
-                                                        <property name="label" context="yes" translatable="yes">Clear</property>
-                                                        <property name="use_underline">True</property>
+                                                    <widget class="GtkEventBox" id="queryToolbar">
                                                         <property name="visible">True</property>
+                                                        <child>
+                                                            <widget constructor="initial-state" class="GtkToolbar" id="toolbar1">
+                                                                <property name="show_arrow">False</property>
+                                                                <property name="toolbar_style">icons</property>
+                                                                <property name="visible">True</property>
+                                                            </widget>
+                                                        </child>
                                                     </widget>
-                                                </child>
-                                                <child>
-                                                    <widget class="GtkButton" id="queryButton">
-                                                        <property name="can_default">True</property>
-                                                        <property name="label" context="yes" translatable="yes">Run</property>
-                                                        <property name="use_underline">True</property>
-                                                        <property name="visible">True</property>
-                                                    </widget>
-                                                    <packing>
-                                                        <property name="position">1</property>
-                                                    </packing>
                                                 </child>
                                             </widget>
                                             <packing>
                                                 <property name="expand">False</property>
+                                                <property name="fill">False</property>
                                                 <property name="position">1</property>
                                             </packing>
                                         </child>
@@ -310,16 +315,9 @@
         <property name="role"></property>
         <property name="title" context="yes" translatable="yes">Schema</property>
         <child>
-            <widget class="GtkScrolledWindow" id="scrolledwindow1">
-                <property name="hscrollbar_policy">automatic</property>
+            <widget class="GtkTreeView" id="classView">
+                <property name="is_focus">True</property>
                 <property name="visible">True</property>
-                <property name="vscrollbar_policy">automatic</property>
-                <child>
-                    <widget class="GtkTreeView" id="classView">
-                        <property name="is_focus">True</property>
-                        <property name="visible">True</property>
-                    </widget>
-                </child>
             </widget>
         </child>
     </widget>

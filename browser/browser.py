@@ -29,6 +29,9 @@ class MainWindow(UiManagerDelegate):
     mainGroup__toggleActions = [('viewSideBarAction', None, _('_Side Bar'),
                                  'F9', None, None, True)]
 
+    queryGroup__actions = [('executeQueryAction', gtk.STOCK_EXECUTE,
+                            None, None, None)]
+
     uiDefinition = '''<ui>
     <menubar name="menuBar">
       <menu action="fileAction">
@@ -38,6 +41,10 @@ class MainWindow(UiManagerDelegate):
         <menuitem action="viewSideBarAction"/>
       </menu>
     </menubar>
+
+    <toolbar name="queryToolbar">
+      <toolitem action="executeQueryAction"/>
+    </toolbar>
     </ui>'''
 
     def __init__(self):
@@ -64,6 +71,12 @@ class MainWindow(UiManagerDelegate):
         menu = self.uiManager.get_widget('/menuBar')
         menuSlave = SlaveDelegate(toplevel=menu)
         self.attach_slave('menuBar', menuSlave)
+
+        queryToolbar = self.uiManager.get_widget('/queryToolbar')
+        queryToolbar.set_show_arrow(False)
+        queryToolbar.set_style(gtk.TOOLBAR_ICONS)
+        queryToolbarSlave = SlaveDelegate(toplevel=queryToolbar)
+        self.attach_slave('queryToolbar', queryToolbarSlave)
 
         self.appName = self.mainWindow.get_title()
 
@@ -207,12 +220,7 @@ class MainWindow(UiManagerDelegate):
     def on_quitAction__activate(self, widget, *args):
         self.finalize()
 
-    def on_clearButton__clicked(self, widget, *args):
-        buffer = self.queryEditor.get_buffer()
-        buffer.delete(buffer.get_start_iter(),
-                      buffer.get_end_iter())
-
-    def on_queryButton__clicked(self, widget, *args):
+    def on_executeQueryAction__activate(self, widget, *args):
         self.runQuery()
 
     def on_resultsView__drag_data_get(self, widget, context, selection,

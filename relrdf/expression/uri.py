@@ -1,3 +1,6 @@
+import urllib
+
+
 class Uri(unicode):
     __slots__ = ()
 
@@ -8,7 +11,7 @@ class Namespace(Uri):
     __slots__ = ()
 
     def __getitem__(self, localPart):
-        return self + localPart
+        return self + urllib.quote(localPart)
 
     def __getattr__(self, localPart):
         return self + localPart

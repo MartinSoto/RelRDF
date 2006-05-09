@@ -162,9 +162,9 @@ class MainWindow(UiManagerDelegate):
         # Create the list store. All columns contain strings.
         self.resultLS = gtk.ListStore(*([str] * len(results.columnNames)))
 
-#         if len(results) == 0:
-#             self.showMessage("No results found")
-#             return
+        if len(results) == 0:
+            self.showMessage(_("No results found"))
+            return
 
         # Move the query results to the list store.
         for result in results:

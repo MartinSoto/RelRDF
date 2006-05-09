@@ -200,7 +200,8 @@ class TwoWayComparisonSqlTransformer(transform.StandardReifTransformer,
 
 class Results(object):
     __slots__ = ('cursor',
-                 'columnNames')
+                 'columnNames',
+                 'length')
 
     def __init__(self, connection, columnNames, sqlText):
         self.columnNames = columnNames
@@ -214,6 +215,8 @@ class Results(object):
         # will produce the actual results.)
         self.cursor.execute(sqlText)
 
+        self.length = self.cursor.rowcount
+
     def iterAll(self):
         row = self.cursor.fetchone()
         while row is not None:
@@ -225,6 +228,9 @@ class Results(object):
             row = self.cursor.fetchone()
 
     __iter__ = iterAll
+
+    def __len__(self):
+        return self.length
 
     def _convertResult(self, rawValue, typeId):
         if isinstance(rawValue, str):

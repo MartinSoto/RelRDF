@@ -30,7 +30,11 @@ class MainWindow(UiManagerDelegate):
                                  'F9', None, None, True)]
 
     queryGroup__actions = [('executeQueryAction', gtk.STOCK_EXECUTE,
-                            None, None, None)]
+                            None, None, _('Execute the query')),
+                           ('backwardHistoryAction', gtk.STOCK_GO_BACK,
+                            None, None, _('Go to previous query in history')),
+                           ('forwardHistoryAction', gtk.STOCK_GO_FORWARD,
+                            None, None, _('Go to next query in history')),]
 
     uiDefinition = '''<ui>
     <menubar name="menuBar">
@@ -43,6 +47,9 @@ class MainWindow(UiManagerDelegate):
     </menubar>
 
     <toolbar name="queryToolbar">
+      <toolitem action="backwardHistoryAction"/>
+      <toolitem action="forwardHistoryAction"/>
+      <separator/>
       <toolitem action="executeQueryAction"/>
     </toolbar>
     </ui>'''
@@ -75,6 +82,7 @@ class MainWindow(UiManagerDelegate):
         queryToolbar = self.uiManager.get_widget('/queryToolbar')
         queryToolbar.set_show_arrow(False)
         queryToolbar.set_style(gtk.TOOLBAR_ICONS)
+        queryToolbar.set_tooltips(True)
         queryToolbarSlave = SlaveDelegate(toplevel=queryToolbar)
         self.attach_slave('queryToolbar', queryToolbarSlave)
 
@@ -83,7 +91,7 @@ class MainWindow(UiManagerDelegate):
         self.model = None
         self.resultLS = None
 
-        # Create the query editor and set a default query:
+        # Create the query editor:
 
         # We need to create the scrolled window by hand, because
         # Gazpacho insists on adding a viewport, and that prevents the
@@ -98,14 +106,29 @@ class MainWindow(UiManagerDelegate):
         
         editorSlave = SlaveDelegate(toplevel=scrolled)
         self.attach_slave('queryEditorPlaceholder', editorSlave)
-        self.queryEditor.get_buffer(). \
-            set_text("select s, p, o\nfrom {s} p {o}\n")
 
         # Allow dragging from the query result.
         self.resultsView.enable_model_drag_source(
             gtk.gdk.BUTTON1_MASK,
             [('text/plain', 0, 0)],
             gtk.gdk.ACTION_COPY)
+
+        # The history of executed queries.
+        self.history = []
+
+        # Current position in the history.
+        self.historyPos = 0
+
+        # Maximum number of queries that can be stored in the history.
+        self.maxHistorySize = 100
+
+        # We set, but do not execute an initial query.
+        self._addToHistory("select c, s, p, o\nfrom context c {s} p {o}\n")
+
+
+    #
+    # RDF Model Management
+    #
 
     def openModel(self, modelBaseType, modelBaseArgs, modelType, modelArgs):
         if not modelArgs.has_key('prefixes'):
@@ -119,30 +142,22 @@ class MainWindow(UiManagerDelegate):
         self.mainWindow.set_title("%s - %s" % (db, self.appName))
         self.showMessage("Model '%s' opened succesfully." % db)
 
-    def showResults(self):
-        """Show the results list in the window."""
-        self.messageVBox.hide()
-        self.resultsScrolled.show()
 
-    def showMessage(self, msg):
-        """Show the message text in the window and display the specified
-        message."""
-        self.messageView.get_buffer().set_text(msg)
-        self.resultsScrolled.hide()
-        self.messageVBox.show()
+    #
+    # Query Execution and History
+    #
 
     def runQuery(self, queryString=None):
+        """Execute an interactive query."""
+
         if self.model == None:
             return
 
         buffer = self.queryEditor.get_buffer()
         if queryString == None:
             # Retrieve the query text from the window.
-            queryString = buffer.get_text(buffer.get_start_iter(),
-                                          buffer.get_end_iter())
-        else:
-            # Set the window to show the given query.
-            buffer.set_text(queryString)
+            queryString = self.queryEditor.getQueryString()
+        self._addToHistory(queryString)
 
         # Run the query.
         try:
@@ -157,6 +172,65 @@ class MainWindow(UiManagerDelegate):
             return
 
         self.showBindingsResults(results)
+
+    def backwardHistory(self):
+        if self.historyPos == 0:
+            return
+
+        self.history[self.historyPos] = self.queryEditor.getQueryString()
+        self.historyPos -= 1
+        self._updateHistoryState()
+
+    def forwardHistory(self):
+        if self.historyPos >= len(self.history) - 1:
+            return
+        
+        self.history[self.historyPos] = self.queryEditor.getQueryString()
+        self.historyPos += 1
+        self._updateHistoryState()
+        
+    def _addToHistory(self, queryString):
+        # Do not store repeated queries.
+        try:
+            self.history.remove(queryString)
+        except ValueError:
+            pass
+
+        while len(self.history) > self.maxHistorySize - 1:
+            self.history.pop(0)
+
+        self.history.append(queryString)
+        self.historyPos = len(self.history) - 1
+        self._updateHistoryState()
+
+    def _updateHistoryState(self):
+        # Don't touch the editor if it isn't strictly
+        # necessary. Changing the state may affect things like the
+        # cursor position and undo history.
+        if self.queryEditor.getQueryString() != \
+               self.history[self.historyPos]:
+            self.queryEditor.setQueryString(self.history[self.historyPos])
+
+        self.backwardHistoryAction.set_sensitive(self.historyPos > 0)
+        self.forwardHistoryAction.set_sensitive(self.historyPos <
+                                                len(self.history) - 1)
+
+
+    #
+    # Result Display
+    #
+
+    def showResults(self):
+        """Show the results list in the window."""
+        self.messageVBox.hide()
+        self.resultsScrolled.show()
+
+    def showMessage(self, msg):
+        """Show the message text in the window and display the specified
+        message."""
+        self.messageView.get_buffer().set_text(msg)
+        self.resultsScrolled.hide()
+        self.messageVBox.show()
 
     @staticmethod
     def nodeToStr(node):
@@ -219,6 +293,12 @@ class MainWindow(UiManagerDelegate):
         # Show the results view.
         self.showResults()
 
+
+    #
+    # Event Handling
+    #
+
+
     def finalize(self):
         gtk.main_quit()
 
@@ -236,6 +316,12 @@ class MainWindow(UiManagerDelegate):
 
     def on_executeQueryAction__activate(self, widget, *args):
         self.runQuery()
+
+    def on_backwardHistoryAction__activate(self, widget, *args):
+        self.backwardHistory()
+
+    def on_forwardHistoryAction__activate(self, widget, *args):
+        self.forwardHistory()
 
     def on_resultsView__drag_data_get(self, widget, context, selection,
                                       targetType, eventTime):

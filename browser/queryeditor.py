@@ -10,6 +10,16 @@ except DependenciesMissing:
 
 class QueryEditor(BasicQueryEditor):
 
+    __slots__ = ()
+
+    def getQueryString(self):
+        buffer = self.get_buffer()
+        return buffer.get_text(buffer.get_start_iter(),
+                               buffer.get_end_iter())
+
+    def setQueryString(self, queryString):
+        self.get_buffer().set_text(queryString)
+
     def markErrorExtents(self, extents):
         """Mark the region delimited by the given extents object as an
         error in the query editor."""

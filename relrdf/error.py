@@ -29,7 +29,7 @@ class PositionError(Error):
             else:
                 fileName = _("<unknown>")
 
-            if self.extents.endColumn is None:
+            if self.extents.endLine is None:
                 endPos = ""
             elif self.extents.endColumn is None:
                 endPos = " (ends: line %d)" % self.extents.endLine

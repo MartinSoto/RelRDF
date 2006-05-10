@@ -147,26 +147,12 @@
                                     <widget class="GtkVBox" id="vbox3">
                                         <property name="visible">True</property>
                                         <child>
-                                            <widget class="GtkScrolledWindow" id="scrolledwindow3">
-                                                <property name="hscrollbar_policy">automatic</property>
-                                                <property name="is_focus">True</property>
-                                                <property name="shadow_type">in</property>
+                                            <widget class="GtkEventBox" id="queryEditorPlaceholder">
                                                 <property name="visible">True</property>
-                                                <property name="vscrollbar_policy">automatic</property>
                                                 <child>
-                                                    <widget class="GtkViewport" id="viewport1">
+                                                    <widget class="GtkLabel" id="label3">
+                                                        <property name="label" context="yes" translatable="yes">Query text goes here</property>
                                                         <property name="visible">True</property>
-                                                        <child>
-                                                            <widget class="GtkEventBox" id="queryEditorPlaceholder">
-                                                                <property name="visible">True</property>
-                                                                <child>
-                                                                    <widget class="GtkLabel" id="label3">
-                                                                        <property name="label" context="yes" translatable="yes">Query text goes here</property>
-                                                                        <property name="visible">True</property>
-                                                                    </widget>
-                                                                </child>
-                                                            </widget>
-                                                        </child>
                                                     </widget>
                                                 </child>
                                             </widget>
@@ -266,7 +252,7 @@
         </child>
     </widget>
     <widget class="GtkFileChooserDialog" id="modelFileChooser">
-        <property name="default_height">480</property>
+        <property name="default_height">482</property>
         <property name="title" context="yes" translatable="yes">Select a Model</property>
         <property name="type_hint">normal</property>
         <property name="window_position">none</property>

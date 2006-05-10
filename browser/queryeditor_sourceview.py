@@ -10,7 +10,7 @@ except ImportError:
     raise queryeditor.DependenciesMissing
 
 
-class QueryEditor(gtksourceview.SourceView):
+class BasicQueryEditor(gtksourceview.SourceView):
     """A query editor widget based on GtkSourceView."""
 
     __slots__ = ('buffer',)
@@ -24,7 +24,7 @@ class QueryEditor(gtksourceview.SourceView):
         lang = lm.get_language_from_mime_type('text/x-serql')
         self.buffer.set_language(lang)
     
-        super(QueryEditor, self).__init__(self.buffer)
+        super(BasicQueryEditor, self).__init__(self.buffer)
 
         self.set_property('tabs-width', 4)
         self.set_property('insert-spaces-instead-of-tabs', True)

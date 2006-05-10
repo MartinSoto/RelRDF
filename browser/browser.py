@@ -83,10 +83,20 @@ class MainWindow(UiManagerDelegate):
         self.model = None
         self.resultLS = None
 
-        # Create the query editor and set a default query.
+        # Create the query editor and set a default query:
+
+        # We need to create the scrolled window by hand, because
+        # Gazpacho insists on adding a viewport, and that prevents the
+        # text view's scrolling features from working.
+        scrolled = gtk.ScrolledWindow()
+        scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolled.show()
+
         self.queryEditor = QueryEditor()
         self.queryEditor.show()
-        editorSlave = SlaveDelegate(toplevel=self.queryEditor)
+        scrolled.add(self.queryEditor)
+        
+        editorSlave = SlaveDelegate(toplevel=scrolled)
         self.attach_slave('queryEditorPlaceholder', editorSlave)
         self.queryEditor.get_buffer(). \
             set_text("select s, p, o\nfrom {s} p {o}\n")
@@ -138,6 +148,10 @@ class MainWindow(UiManagerDelegate):
         try:
             results = self.model.query('SerQL',
                                        unicode(queryString, 'utf-8'))
+        except relrdf.PositionError, e:
+            self.queryEditor.markErrorExtents(e.extents)
+            self.showMessage("Error: %s" % e.msg)
+            return
         except relrdf.Error, e:
             self.showMessage("Error: %s" % str(e))
             return

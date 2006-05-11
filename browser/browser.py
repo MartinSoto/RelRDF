@@ -12,8 +12,9 @@ from kiwi.ui.delegates import Delegate, SlaveDelegate
 
 import relrdf
 from relrdf.expression import uri, blanknode, literal
+from relrdf import commonns
+from relrdf.util import nsshortener
 
-import prefixes
 import schema
 from schemapane import SchemaBrowser
 from queryeditor import QueryEditor
@@ -133,14 +134,28 @@ class MainWindow(UiManagerDelegate):
     # RDF Model Management
     #
 
-    def openModel(self, modelBaseType, modelBaseArgs, modelType, modelArgs):
-        if not modelArgs.has_key('prefixes'):
-            modelArgs['prefixes'] = prefixes.namespaces
+    _baseNs = {
+        'rdf': commonns.rdf,
+        'rdfs': commonns.rdfs,
+        'relrdf': commonns.relrdf
+     }
 
+    def openModel(self, modelBaseType, modelBaseArgs, modelType, modelArgs):
         modelBase = relrdf.getModelBase(modelBaseType, **modelBaseArgs)
         self.model = modelBase.getModel(modelType, **modelArgs)
 
-        self.schemaBrowser.setSchema(schema.RdfSchema(self.model))
+        # Create an appropriate URI shortener.
+        self.shortener = nsshortener.NamespaceUriShortener(shortFmt='%s:%s',
+                                                           longFmt='<%s>')
+        self.shortener.addPrefix('rdf', commonns.rdf)
+        self.shortener.addPrefix('rdfs', commonns.rdfs)
+        self.shortener.addPrefix('relrdf', commonns.relrdf)
+
+        # Add the namespaces from the model.
+        self.shortener.addPrefixes(self.model.getPrefixes())
+
+        self.schemaBrowser.setSchema(schema.RdfSchema(self.model),
+                                     self.shortener)
 
         self.mainWindow.set_title("%s - %s" % (db, self.appName))
         self.showMessage("Model '%s' opened succesfully." % db)
@@ -150,22 +165,17 @@ class MainWindow(UiManagerDelegate):
     # Query Execution and History
     #
 
-    def runQuery(self, queryString=None):
-        """Execute an interactive query."""
+    def runQuery(self, queryString):
+        """Execute a query."""
 
         if self.model == None:
             return
 
-        buffer = self.queryEditor.get_buffer()
-        if queryString == None:
-            # Retrieve the query text from the window.
-            queryString = self.queryEditor.getQueryString()
         self._addToHistory(queryString)
 
         # Run the query.
         try:
-            results = self.model.query('SerQL',
-                                       unicode(queryString, 'utf-8'))
+            results = self.model.query('SerQL', queryString)
         except relrdf.PositionError, e:
             self.queryEditor.markErrorExtents(e.extents)
             self.showMessage("Error: %s" % e.msg)
@@ -231,10 +241,9 @@ class MainWindow(UiManagerDelegate):
         self.messageVBox.show()
         self.hideResultCount()
 
-    @staticmethod
-    def nodeToStr(node):
+    def nodeToStr(self, node):
         if isinstance(node, uri.Uri):
-            return prefixes.shortenUri(node)
+            return self.shortener.shortenUri(node)
         elif isinstance(node, blanknode.BlankNode):
             return 'bnode:%s' % node
         elif isinstance(node, literal.Literal):
@@ -335,7 +344,7 @@ class MainWindow(UiManagerDelegate):
         self.finalize()
 
     def on_executeQueryAction__activate(self, widget, *args):
-        self.runQuery()
+        self.runQuery(self.queryEditor.getQueryString())
 
     def on_backwardHistoryAction__activate(self, widget, *args):
         self.backwardHistory()

@@ -59,3 +59,13 @@ CREATE TABLE not_versioned_statements (
 	 COMMENT 'A statement identifier'
 ) ENGINE=MyISAM COMMENT='Statement stmt_id isn\'t versioned';
 
+
+DROP TABLE IF EXISTS prefixes;
+
+CREATE TABLE prefixes (
+  prefix varchar(31) NOT NULL
+         COMMENT 'Namespace prefix',
+  namespace varchar(255) NOT NULL
+	 COMMENT 'Namespace URI',
+  PRIMARY KEY prefix_unique (prefix)
+) ENGINE=MyISAM COMMENT='Suggested namespace prefixes';

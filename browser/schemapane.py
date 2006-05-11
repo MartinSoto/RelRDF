@@ -1,4 +1,5 @@
 import os
+import cgi
 
 import gtk
 
@@ -64,8 +65,9 @@ class SchemaBrowser(UiManagerSlaveDelegate):
         self.mainWindow = mainWindow
         self.classPopUp.mainWindow = mainWindow
 
-    def setSchema(self, sch):
-        self.schema = sch
+    def setSchema(self, schema, shortener):
+        self.schema = schema
+        self.shortener = shortener
 
         # Columns: Class/property object, icon, formatted name.
         self.classTS = gtk.TreeStore(object, gtk.gdk.Pixbuf, str)
@@ -80,7 +82,8 @@ class SchemaBrowser(UiManagerSlaveDelegate):
     def addRdfClass(self, rdfClass):
         parent = self.classTS. \
                  append(None, [rdfClass, pixmaps.classPixbuf,
-                               '<b>%s</b>' % str(rdfClass)])
+                               '<b>%s</b>' %
+                               self._prepareUri(rdfClass)])
 
         propList = list(rdfClass.getAllOutgoingProps())
         propList.sort(key=str)
@@ -88,7 +91,9 @@ class SchemaBrowser(UiManagerSlaveDelegate):
             for r in p.range:
                 self.classTS.append(parent,
                                     [p, self.forwardPixbuf,
-                                     '<b>%s</b> %s' % (str(p), str(r))])
+                                     '<b>%s</b> %s' %
+                                     (self._prepareUri(p),
+                                      self._prepareUri(r))])
 
         propList = list(rdfClass.getAllIncomingProps())
         propList.sort(key=str)
@@ -96,7 +101,12 @@ class SchemaBrowser(UiManagerSlaveDelegate):
             for r in p.domain:
                 self.classTS.append(parent,
                                     [p, self.backwardPixbuf,
-                                     '%s <b>%s</b>' % (str(r), str(p))])
+                                     '%s <b>%s</b>' %
+                                     (self._prepareUri(r),
+                                      self._prepareUri(p))])
+
+    def _prepareUri(self, rdfClass):
+        return cgi.escape(self.shortener.shortenUri(rdfClass.getUri()))
 
     def getCurrentClass(self):
         (path, col) = self.classView.get_cursor()
@@ -111,7 +121,8 @@ class SchemaBrowser(UiManagerSlaveDelegate):
     def on_classView__drag_data_get(self, widget, context, selection,
                                    targetType, eventTime):
         cls = self.getCurrentClass()
-        selection.set(selection.target, 8, str(cls))
+        selection.set(selection.target, 8,
+                      self.shortener.shortenUri(cls).encode('utf-8'))
 
     # FIXME: This should be button_press but something in
     # Kiwi/Gazpacho seems to be trapping the event.
@@ -123,4 +134,4 @@ class SchemaBrowser(UiManagerSlaveDelegate):
     def on_showInstances__activate(self, widget, *args):
         self.mainWindow.runQuery(
             "select instance\nfrom {instance} rdf:type {%s}" % \
-            self.getCurrentClass())
+            self.shortener.shortenUri(self.getCurrentClass()))

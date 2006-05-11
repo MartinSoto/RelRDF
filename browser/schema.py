@@ -3,7 +3,6 @@
 import sets
 
 from relrdf.commonns import rdfs
-import prefixes
 
 
 class RdfSchemaError(Exception):
@@ -17,7 +16,10 @@ class RdfObject(object):
         self.node = node
 
     def __str__(self):
-        return prefixes.shortenUri(self.node)
+        return self.node
+
+    def getUri(self):
+        return self.node
 
 
 class RdfClass(RdfObject):
@@ -104,8 +106,14 @@ class RdfSchema(object):
                  'properties')
 
     def __init__(self, model):
-        # Build a table containing all defined classes.
+        # Build a table containing all defined classes:
+
         self.classes = {}
+
+        # Some standard classes.
+        self.classes[rdfs.Resource] = RdfClass(rdfs.Resource)
+        self.classes[rdfs.Literal] = RdfClass(rdfs.Literal)
+
         for node, in model.query('SerQL',
                                  """select class
                                  from {class} rdf:type {rdfs:Class}"""):
@@ -142,10 +150,7 @@ class RdfSchema(object):
             try:
                 prop = self.properties[nodeProp]
 
-                if nodeCls == rdfs.Literal:
-                    cls = prefixes.shortenUri(rdfs.Literal)
-                else:
-                    cls = self.classes[nodeCls]
+                cls = self.classes[nodeCls]
             except KeyError:
                 #print "Ignoring: %s is in domain from %s" % \
                 #      (unicode(nodeCls).encode('utf-8'),
@@ -161,10 +166,7 @@ class RdfSchema(object):
             try:
                 prop = self.properties[nodeProp]
 
-                if nodeCls == rdfs.Literal:
-                    cls = prefixes.shortenUri(rdfs.Literal)
-                else:
-                    cls = self.classes[nodeCls]
+                cls = self.classes[nodeCls]
             except KeyError:
                 #print "Ignoring: %s is in range from %s" % \
                 #      (unicode(nodeCls).encode('utf-8'),

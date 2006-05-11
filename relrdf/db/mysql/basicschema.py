@@ -256,12 +256,35 @@ class Results(object):
 class Model(object):
     __slots__ = ('connection',
                  'mappingTransf',
-                 'modelArgs')
+                 'modelArgs',
+                 '_prefixes')
 
     def __init__(self, connection, mappingTransf, **modelArgs):
         self.connection = connection
         self.mappingTransf = mappingTransf
         self.modelArgs = modelArgs
+
+        # Get the prefixes from the data base. We store them in the
+        # object and add them to the model args.
+        cursor = self.connection.cursor()
+        cursor.execute("""
+        SELECT p.prefix, p.namespace
+        FROM prefixes p""")
+
+        self._prefixes = {}
+        paramPrf = modelArgs.get('prefixes', {})
+
+        row = cursor.fetchone()
+        while row is not None:
+            (prefix, namespace) = row
+            self._prefixes[prefix] = uri.Namespace(namespace)
+            paramPrf[prefix] = uri.Namespace(namespace)
+            row = cursor.fetchone()
+
+        # Add the prefixes to the modelArgs, so that the parser
+        # receives them.
+        modelArgs['prefixes'] = paramPrf
+            
 
     def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
         # Parse the query.
@@ -287,6 +310,9 @@ class Model(object):
         # Build a Results objects with the resulting SQL query.
         return Results(self.connection, list(expr.columnNames[::2]),
                        sqlText.encode('utf-8'))
+
+    def getPrefixes(self):
+        return self._prefixes
 
     def __del__(self):
         self.connection.close()

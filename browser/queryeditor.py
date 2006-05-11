@@ -14,11 +14,12 @@ class QueryEditor(BasicQueryEditor):
 
     def getQueryString(self):
         buffer = self.get_buffer()
-        return buffer.get_text(buffer.get_start_iter(),
-                               buffer.get_end_iter())
+        return unicode(buffer.get_text(buffer.get_start_iter(),
+                                       buffer.get_end_iter()),
+                       'utf-8')
 
     def setQueryString(self, queryString):
-        self.get_buffer().set_text(queryString)
+        self.get_buffer().set_text(queryString.encode('utf-8'))
 
     def markErrorExtents(self, extents):
         """Mark the region delimited by the given extents object as an

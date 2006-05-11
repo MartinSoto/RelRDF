@@ -23,12 +23,16 @@ class SchemaBrowser(UiManagerSlaveDelegate):
                                         toplevel_name='schemaBrowser')
         self.mainWindow = None
 
-        # Render the forward icon once for use in the list.
+        # Render the icons once for use in the list.
         self.forwardPixbuf = self.classView.render_icon(gtk.STOCK_GO_FORWARD,
                                                         gtk.ICON_SIZE_MENU )
+        self.backwardPixbuf = self.classView.render_icon(gtk.STOCK_GO_BACK,
+                                                         gtk.ICON_SIZE_MENU )
 
-        # Set up the class browser.
-        self.nodeCol = gtk.TreeViewColumn(_('Schema'))
+        # Set up the browser.
+        self.classView.set_headers_visible(False)
+
+        self.nodeCol = gtk.TreeViewColumn()
         self.classView.append_column(self.nodeCol)
 
         pixbufRenderer = gtk.CellRendererPixbuf()
@@ -78,13 +82,21 @@ class SchemaBrowser(UiManagerSlaveDelegate):
                  append(None, [rdfClass, pixmaps.classPixbuf,
                                '<b>%s</b>' % str(rdfClass)])
 
-        propList = list(rdfClass.getAllProperties())
+        propList = list(rdfClass.getAllOutgoingProps())
         propList.sort(key=str)
         for p in propList:
             for r in p.range:
                 self.classTS.append(parent,
                                     [p, self.forwardPixbuf,
                                      '<b>%s</b> %s' % (str(p), str(r))])
+
+        propList = list(rdfClass.getAllIncomingProps())
+        propList.sort(key=str)
+        for p in propList:
+            for r in p.domain:
+                self.classTS.append(parent,
+                                    [p, self.backwardPixbuf,
+                                     '%s <b>%s</b>' % (str(r), str(p))])
 
     def getCurrentClass(self):
         (path, col) = self.classView.get_cursor()

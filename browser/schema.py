@@ -24,35 +24,34 @@ class RdfClass(RdfObject):
     __slots__ = ('ancestors',
                  'descendants',
                  
-                 'properties')
+                 'outgoingProps',
+                 'incomingProps')
 
     def __init__(self, node):
         super(RdfClass, self).__init__(node)
         self.ancestors = sets.Set()
         self.descendants = sets.Set()
-        self.properties = sets.Set()
+        self.outgoingProps = sets.Set()
+        self.incomingProps = sets.Set()
 
     def addDescendant(self, descendant):
         self.descendants.add(descendant)
         descendant.ancestors.add(self)
-
-    def addProperty(self, property, range):
-        self.properties[property] = range
 
     def printWithDescendants(self, indent=0):
         print "%s%s" % (' ' * indent, self)
         for d in self.descendants:
             d.printWithDescendants(indent + 2)
 
-    def getAllProperties(self, exclude=None):
-        """Return a set of all class properties, including those of
+    def getAllOutgoingProps(self, exclude=None):
+        """Return a set of all outgoing properties, including those of
         its parent classes."""
         result = set()
-        self._getAllProperties(result, set())
+        self._getAllOutgoingProps(result, set())
         return result
 
-    def _getAllProperties(self, result, visitedAncestors):
-        result.update(self.properties)
+    def _getAllOutgoingProps(self, result, visitedAncestors):
+        result.update(self.outgoingProps)
         visitedAncestors.add(self)
 
         for ancestor in self.ancestors:
@@ -60,7 +59,25 @@ class RdfClass(RdfObject):
             # already visited ancestors.
             if ancestor in visitedAncestors:
                 continue
-            ancestor._getAllProperties(result, visitedAncestors)
+            ancestor._getAllOutgoingProps(result, visitedAncestors)
+
+    def getAllIncomingProps(self, exclude=None):
+        """Return a set of all Incoming properties, including those of
+        its parent classes."""
+        result = set()
+        self._getAllIncomingProps(result, set())
+        return result
+
+    def _getAllIncomingProps(self, result, visitedAncestors):
+        result.update(self.incomingProps)
+        visitedAncestors.add(self)
+
+        for ancestor in self.ancestors:
+            # In case the class hierarchy has loops, we keep track of
+            # already visited ancestors.
+            if ancestor in visitedAncestors:
+                continue
+            ancestor._getAllIncomingProps(result, visitedAncestors)
 
 
 class RdfProperty(RdfObject):
@@ -74,10 +91,12 @@ class RdfProperty(RdfObject):
 
     def addToDomain(self, cls):
         self.domain.add(cls)
-        cls.properties.add(self)
+        cls.outgoingProps.add(self)
 
     def addToRange(self, cls):
         self.range.add(cls)
+        if isinstance(cls, RdfClass):
+            cls.incomingProps.add(self)
 
 
 class RdfSchema(object):
@@ -100,9 +119,9 @@ class RdfSchema(object):
                 cls = self.classes[node]
                 clsSub = self.classes[nodeSub]
             except KeyError:
-                print "Ignoring: %s is subclass of %s" \
-                      % (unicode(nodeSub).encode('utf-8'),
-                         unicode(node).encode('utf-8'))
+                #print "Ignoring: %s is subclass of %s" \
+                #      % (unicode(nodeSub).encode('utf-8'),
+                #         unicode(node).encode('utf-8'))
                 continue
 
             cls.addDescendant(clsSub)
@@ -128,9 +147,9 @@ class RdfSchema(object):
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:
-                print "Ignoring: %s is in domain from %s" % \
-                      (unicode(nodeCls).encode('utf-8'),
-                       unicode(nodeProp).encode('utf-8'))
+                #print "Ignoring: %s is in domain from %s" % \
+                #      (unicode(nodeCls).encode('utf-8'),
+                #       unicode(nodeProp).encode('utf-8'))
                 continue
 
             prop.addToDomain(cls)
@@ -147,9 +166,9 @@ class RdfSchema(object):
                 else:
                     cls = self.classes[nodeCls]
             except KeyError:
-                print "Ignoring: %s is in range from %s" % \
-                      (unicode(nodeCls).encode('utf-8'),
-                       unicode(nodeProp).encode('utf-8'))
+                #print "Ignoring: %s is in range from %s" % \
+                #      (unicode(nodeCls).encode('utf-8'),
+                #       unicode(nodeProp).encode('utf-8'))
                 continue
 
             prop.addToRange(cls)

@@ -58,7 +58,7 @@ class SchemaBrowser(UiManagerSlaveDelegate):
         # Allow dragging from the class view.
         self.classView.enable_model_drag_source(
             gtk.gdk.BUTTON1_MASK,
-            [('text/plain', 0, 0)],
+            [('UTF8_STRING', 0, 0)],
             gtk.gdk.ACTION_COPY)
 
     def setMainWindow(self, mainWindow):

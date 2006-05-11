@@ -208,9 +208,6 @@ class Results(object):
 
         self.cursor = connection.cursor()
 
-        # Make sure MySQL sends us UTF8.
-        self.cursor.execute('set names "utf8"')
-
         # Send the query to the database (iterating on this object
         # will produce the actual results.)
         self.cursor.execute(sqlText)
@@ -252,6 +249,9 @@ class Results(object):
 
         return value
 
+    def __del__(self):
+        self.cursor.close()
+
 
 class Model(object):
     __slots__ = ('connection',
@@ -288,6 +288,9 @@ class Model(object):
         return Results(self.connection, list(expr.columnNames[::2]),
                        sqlText.encode('utf-8'))
 
+    def __del__(self):
+        self.connection.close()
+        
 
 def getModel(connection, modelType, **modelArgs):
     modelTypeNorm = modelType.lower()

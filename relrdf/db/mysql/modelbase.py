@@ -10,6 +10,11 @@ class ModelBase(object):
     def __init__(self, host, db, **mysqlParams):
         self.connection = MySQLdb.connect(host=host, db=db, **mysqlParams)
 
+        # Set the connection's character encoding to UTF-8.
+        cursor = self.connection.cursor()
+        cursor.execute('set names "utf8"')
+        cursor.close()
+
         # We have only one database schema at this time.
         self.dbSchema = basicschema
 

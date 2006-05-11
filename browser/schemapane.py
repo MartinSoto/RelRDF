@@ -23,6 +23,10 @@ class SchemaBrowser(UiManagerSlaveDelegate):
                                         toplevel_name='schemaBrowser')
         self.mainWindow = None
 
+        # Render the forward icon once for use in the list.
+        self.forwardPixbuf = self.classView.render_icon(gtk.STOCK_GO_FORWARD,
+                                                        gtk.ICON_SIZE_MENU )
+
         # Set up the class browser.
         self.nodeCol = gtk.TreeViewColumn(_('Schema'))
         self.classView.append_column(self.nodeCol)
@@ -35,9 +39,13 @@ class SchemaBrowser(UiManagerSlaveDelegate):
         self.nodeCol.pack_start(textRenderer, True)
         self.nodeCol.add_attribute(textRenderer, 'markup', 2)
 
-        self.nodeCol.set_sort_column_id(1)
-
         self.classTS = None
+
+        # Enable searching. The fourth column in the model is special
+        # for this purpose.
+        self.classView.set_enable_search(True)
+        self.classView.set_search_column(0)
+        self.classView.set_search_equal_func(self._searchEqual)
 
         # The class browser's popup menu.
         self.classPopUp = self.uiManager.get_widget('/classPopUp')
@@ -55,9 +63,12 @@ class SchemaBrowser(UiManagerSlaveDelegate):
     def setSchema(self, sch):
         self.schema = sch
 
+        # Columns: Class/property object, icon, formatted name.
         self.classTS = gtk.TreeStore(object, gtk.gdk.Pixbuf, str)
 
-        for cls in self.schema.classes.values():
+        clsList = self.schema.classes.values()
+        clsList.sort(key=str)
+        for cls in clsList:
             self.addRdfClass(cls)
 
         self.classView.set_model(self.classTS)
@@ -67,10 +78,12 @@ class SchemaBrowser(UiManagerSlaveDelegate):
                  append(None, [rdfClass, pixmaps.classPixbuf,
                                '<b>%s</b>' % str(rdfClass)])
 
-        for p in rdfClass.getAllProperties():
+        propList = list(rdfClass.getAllProperties())
+        propList.sort(key=str)
+        for p in propList:
             for r in p.range:
                 self.classTS.append(parent,
-                                    [p, pixmaps.propertyPixbuf,
+                                    [p, self.forwardPixbuf,
                                      '<b>%s</b> %s' % (str(p), str(r))])
 
     def getCurrentClass(self):
@@ -78,6 +91,10 @@ class SchemaBrowser(UiManagerSlaveDelegate):
         tItr = self.classTS.get_iter(path)
         (cls,) = self.classTS.get(tItr, 0)
         return cls
+
+    def _searchEqual(self, model, column, key, itr):
+        return not (key in str(model.get_value(itr, column)).lower())
+
 
     def on_classView__drag_data_get(self, widget, context, selection,
                                    targetType, eventTime):

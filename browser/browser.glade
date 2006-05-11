@@ -184,7 +184,7 @@
                                     </widget>
                                 </child>
                                 <child>
-                                    <widget class="GtkHBox" id="lowerPane">
+                                    <widget class="GtkVBox" id="lowerPane">
                                         <property name="visible">True</property>
                                         <child>
                                             <widget class="GtkScrolledWindow" id="resultsScrolled">
@@ -219,7 +219,7 @@
                                                             <widget class="GtkTextView" id="messageView">
                                                                 <property name="cursor_visible">False</property>
                                                                 <property name="editable">False</property>
-                                                                <property name="text" context="yes" translatable="yes">No model open.</property>
+                                                                <property name="is_focus">True</property>
                                                                 <property name="visible">True</property>
                                                             </widget>
                                                         </child>
@@ -231,6 +231,15 @@
                                             </widget>
                                             <packing>
                                                 <property name="position">1</property>
+                                            </packing>
+                                        </child>
+                                        <child>
+                                            <widget class="GtkStatusbar" id="resultsStatus">
+                                                <property name="visible">True</property>
+                                            </widget>
+                                            <packing>
+                                                <property name="expand">False</property>
+                                                <property name="position">2</property>
                                             </packing>
                                         </child>
                                     </widget>

@@ -125,6 +125,9 @@ class MainWindow(UiManagerDelegate):
         # We set, but do not execute an initial query.
         self._addToHistory("select c, s, p, o\nfrom context c {s} p {o}\n")
 
+        # Initialize the results status bar.
+        self._statusInit()
+
 
     #
     # RDF Model Management
@@ -171,7 +174,7 @@ class MainWindow(UiManagerDelegate):
             self.showMessage("Error: %s" % str(e))
             return
 
-        self.showBindingsResults(results)
+        self.showResults(results)
 
     def backwardHistory(self):
         if self.historyPos == 0:
@@ -217,13 +220,8 @@ class MainWindow(UiManagerDelegate):
 
 
     #
-    # Result Display
+    # Results Display
     #
-
-    def showResults(self):
-        """Show the results list in the window."""
-        self.messageVBox.hide()
-        self.resultsScrolled.show()
 
     def showMessage(self, msg):
         """Show the message text in the window and display the specified
@@ -231,6 +229,7 @@ class MainWindow(UiManagerDelegate):
         self.messageView.get_buffer().set_text(msg)
         self.resultsScrolled.hide()
         self.messageVBox.show()
+        self.hideResultCount()
 
     @staticmethod
     def nodeToStr(node):
@@ -243,7 +242,7 @@ class MainWindow(UiManagerDelegate):
         else:
             return "???"
 
-    def showBindingsResults(self, results):
+    def showResults(self, results):
         """Display the query results object as table."""
         # Create a list store for the results:
 
@@ -291,7 +290,28 @@ class MainWindow(UiManagerDelegate):
         self.resultsView.set_model(self.resultLS)
 
         # Show the results view.
-        self.showResults()
+        self.messageVBox.hide()
+        self.resultsScrolled.show()
+
+        # Display the result count.
+        self.showResultCount(len(results))
+
+    #
+    # Results Status Bar
+    #
+
+    def _statusInit(self):
+        self._baseStatusCtx = self.resultsStatus.get_context_id('base')
+        self._resultCountStatusCtx = \
+            self.resultsStatus.get_context_id('count')
+        self.resultsStatus.push(self._baseStatusCtx, _('No results shown'))
+
+    def showResultCount(self, count):
+        self.resultsStatus.push(self._resultCountStatusCtx,
+                                _('%d result(s) shown') % count)
+
+    def hideResultCount(self):
+        self.resultsStatus.pop(self._resultCountStatusCtx)
 
 
     #

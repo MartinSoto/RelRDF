@@ -1,6 +1,3 @@
-import urllib
-
-
 class Uri(unicode):
     __slots__ = ()
 
@@ -11,7 +8,8 @@ class Namespace(Uri):
     __slots__ = ()
 
     def __getitem__(self, localPart):
-        return self + urllib.quote(localPart)
+        # FIXME: Do we have to check for reserved URI characters here?
+        return self + localPart
 
     def __getattr__(self, localPart):
         return self + localPart

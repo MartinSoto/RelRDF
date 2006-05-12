@@ -346,6 +346,7 @@ LE
     :   "<="
     ;
 
+protected /* See LT_OR_URI. */
 LT
     :   "<"
     ;
@@ -576,27 +577,54 @@ DIGIT
  * Resource Identifiers (IRI, RFC3987).
  */
 
+protected /* See LT_OR_URI. */
 FULL_URI
-    : '<'!
-      ( NCCHAR1 | '#' | '_' ) (~('>'|' '))*
-      '>'!
+    :   '<'! SCHEME ':' (~('>'|' '))* '>'!
     ;
 
 protected
-NCCHAR1
-    : 'a'..'z'
-    | 'A'..'Z'
-    | '\u00C0'..'\u00D6'
-    | '\u00D8'..'\u00F6'
-    | '\u00F8'..'\u02FF' 
-    | '\u0370'..'\u037D'
-    | '\u037F'..'\u1FFF'
-    | '\u200C'..'\u200D'
-    | '\u2070'..'\u218F'
-    | '\u2C00'..'\u2FEF'
-    | '\u3001'..'\uD7FF'
-    | '\uF900'..'\uFFFF'
+SCHEME
+    :   URI_ALPHA
+        (URI_ALPHA | URI_DIGIT | '+' | '-' | '.')*;
+
+protected
+URI_CHAR
+    :   URI_ALPHA | URI_DIGIT | URI_RESERVED | URI_MARK | URI_ESCAPE | '#'
     ;
+
+protected
+URI_ALPHA
+    :   'a'..'z'
+    |   'A'..'Z'
+    ;
+
+protected
+URI_DIGIT
+    :   '0'..'9'
+    ;
+
+protected
+URI_RESERVED
+    :   ';' | '/' | '?' | ':' | '@' | '&' | '=' | '+' | '$' | ','
+    ;
+
+protected
+URI_MARK
+    :   '-' | '_' | '.' | '!' | '~' | '*' | '\'' | '(' | ')'
+    ;
+
+protected
+URI_ESCAPE
+    :   '%'
+    ;
+
+LT_OR_URI
+    :   ( '<' SCHEME ':' ) => FULL_URI
+        { $setType(FULL_URI) }
+    |   ( '<' ) => LT
+        { $setType(LT) }
+    ;
+        
 
 
 /*

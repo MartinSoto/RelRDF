@@ -1,3 +1,5 @@
+import re
+
 from relrdf.commonns import xsd
 from relrdf.expression import rewrite
 
@@ -93,6 +95,15 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def SqlFieldRef(self, expr):
         return 'rel_%s.%s' % (expr.incarnation, expr.fieldId)
+
+    _subexprPattern = re.compile(r'\$([0-9]+)\$')
+
+    def SqlScalarExpr(self, expr, *subexprs):
+        def repl(match):
+            return subexprs[int(match.group(1))]
+
+        return self._subexprPattern.sub(repl, expr.sqlExpr)
+
 
 emitter = SqlEmitter()
 

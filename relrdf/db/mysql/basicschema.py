@@ -1,12 +1,35 @@
-from relrdf import parserfactory
+from relrdf import parserfactory, commonns
 
 from relrdf.expression import uri, blanknode, literal, simplify, nodes, build
-from relrdf.sqlmap import map, transform, sqlnodes, emit
+from relrdf.sqlmap import map, transform, valueref, sqlnodes, emit
 
 
 TYPE_ID_RESOURCE = literal.Literal(1)
 TYPE_ID_BLANKNODE = literal.Literal(2)
 TYPE_ID_LITERAL = literal.Literal(3)
+
+
+
+class SqlUriValueRef(sqlnodes.SqlExprValueRef):
+    """A value reference whose internal representation is the value of
+    an incarnation field and whose external representation is an URI
+    built by prepending a base URI to teh canonical string
+    represnetation of the internal value."""
+
+    __slots__ = ('baseUri',)
+
+    def __init__(self, incarnation, fieldId, baseUri):
+        self.baseUri = baseUri
+
+        intToExt = 'CONCAT("%s", $0$)' % baseUri
+        l = len(baseUri.encode('utf-8'))
+        extToInt = '''
+        IF(SUBSTRING($0$, 1, %d) = "%s",
+           SUBSTRING($0$, %d), "<<<NO VALUE>>>")''' % (l, baseUri, l + 1)
+
+        # We use the base URI as mapping type.
+        super(SqlUriValueRef, self).\
+            __init__(baseUri, incarnation, fieldId, intToExt, extToInt)
 
 
 class SingleVersionSqlTransformer(transform.StandardReifTransformer,
@@ -16,13 +39,15 @@ class SingleVersionSqlTransformer(transform.StandardReifTransformer,
     presenting a single version as the whole model."""
     
     __slots__ = ('versionNumber',
-
+                 'versionUri',
+                 
                  'stmtRepl')
 
-    def __init__(self, versionNumber):
+    def __init__(self, versionNumber, versionUri=commonns.relrdf.version):
         super(SingleVersionSqlTransformer, self).__init__()
 
         self.versionNumber = versionNumber
+        self.versionUri = versionUri
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
@@ -51,8 +76,8 @@ class SingleVersionSqlTransformer(transform.StandardReifTransformer,
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
                           rel,
-                          sqlnodes.SqlFieldRef(1, 'version_id'),
-                          nodes.Literal(TYPE_ID_LITERAL),
+                          nodes.Uri(self.versionUri + str(self.versionNumber)),
+                          nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(2, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(2, 'predicate'),
@@ -73,10 +98,14 @@ class AllVersionsSqlTransformer(transform.StandardReifTransformer,
     presenting the whole version set in such a way that every version
     is a separate context."""
     
-    __slots__ = ('stmtRepl')
+    __slots__ = ('versionUri',
 
-    def __init__(self):
+                 'stmtRepl')
+
+    def __init__(self, versionUri=commonns.relrdf.version):
         super(AllVersionsSqlTransformer, self).__init__()
+
+        self.versionUri = versionUri
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
@@ -101,8 +130,8 @@ class AllVersionsSqlTransformer(transform.StandardReifTransformer,
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
                           rel,
-                          sqlnodes.SqlFieldRef(1, 'version_id'),
-                          nodes.Literal(TYPE_ID_LITERAL),
+                          SqlUriValueRef(1, 'version_id', self.versionUri),
+                          nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(2, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(2, 'predicate'),
@@ -170,12 +199,11 @@ class TwoWayComparisonSqlTransformer(transform.StandardReifTransformer,
               statements s
             where
               comp.stmt_id = s.id
-            """,
-            self.aVersionNumber,
-            self.bVersionNumber,
-            self.aVersionNumber + self.bVersionNumber,
-            self.aVersionNumber,
-            self.bVersionNumber)
+            """ % (self.aVersionNumber,
+                   self.bVersionNumber,
+                   self.aVersionNumber + self.bVersionNumber,
+                   self.aVersionNumber,
+                   self.bVersionNumber))
                      
         replExpr = \
           nodes.MapResult(['context', 'type__context',
@@ -183,8 +211,9 @@ class TwoWayComparisonSqlTransformer(transform.StandardReifTransformer,
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
                           rel,
-                          sqlnodes.SqlFieldRef(1, 'context'),
-                          nodes.Literal(TYPE_ID_LITERAL),
+                          SqlUriValueRef(1, 'context',
+                                         commonns.relrdf.comp),
+                          nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(1, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(1, 'predicate'),
@@ -300,6 +329,10 @@ class Model(object):
 
         # Apply the selected mapping.
         expr = self.mappingTransf.process(expr)
+
+        # Dereference value references from the mapping.
+        transf = valueref.ValueRefDereferencer()
+        expr = transf.process(expr)
 
         # Simplify the expression.
         expr = simplify.simplify(expr)

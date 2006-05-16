@@ -88,22 +88,36 @@ class SchemaBrowser(UiManagerSlaveDelegate):
         propList = list(rdfClass.getAllOutgoingProps())
         propList.sort(key=str)
         for p in propList:
-            for r in p.range:
+            if len(p.range) == 0:
+                # This is funny, but we can show the property anyway.
                 self.classTS.append(parent,
                                     [p, self.forwardPixbuf,
-                                     '<b>%s</b> %s' %
-                                     (self._prepareUri(p),
-                                      self._prepareUri(r))])
+                                     '<b>%s</b> ?' %
+                                     self._prepareUri(p)])
+            else:
+                for r in p.range:
+                    self.classTS.append(parent,
+                                        [p, self.forwardPixbuf,
+                                         '<b>%s</b> %s' %
+                                         (self._prepareUri(p),
+                                          self._prepareUri(r))])
 
         propList = list(rdfClass.getAllIncomingProps())
         propList.sort(key=str)
         for p in propList:
-            for r in p.domain:
+            if len(p.domain) == 0:
+                # This is funny, but we can show the property anyway.
                 self.classTS.append(parent,
-                                    [p, self.backwardPixbuf,
-                                     '%s <b>%s</b>' %
-                                     (self._prepareUri(r),
-                                      self._prepareUri(p))])
+                                    [p, self.forwardPixbuf,
+                                     '? <b>%s</b>' %
+                                     self._prepareUri(p)])
+            else:
+                for r in p.domain:
+                    self.classTS.append(parent,
+                                        [p, self.backwardPixbuf,
+                                         '%s <b>%s</b>' %
+                                         (self._prepareUri(r),
+                                          self._prepareUri(p))])
 
     def _prepareUri(self, rdfClass):
         return cgi.escape(self.shortener.shortenUri(rdfClass.getUri()))

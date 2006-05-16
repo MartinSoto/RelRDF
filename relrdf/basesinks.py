@@ -9,6 +9,9 @@ class NullSink(object):
     def triple(self, subject, pred, object):
         pass
 
+    def close(self):
+        pass
+
 
 class PrintSink(object):
     """An RDF sink that prints triples passed to it."""
@@ -28,3 +31,5 @@ class PrintSink(object):
                                 pred.encode('utf8'), \
                                 objStr.encode('utf8'))
 
+    def close(self):
+        pass

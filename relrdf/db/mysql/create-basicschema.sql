@@ -10,7 +10,7 @@ CREATE TABLE statements (
   predicate varchar(255) NOT NULL
 	 COMMENT 'Statement predicate',
   object_type mediumint NOT NULL
-	 COMMENT 'Statement predicate type',
+	 COMMENT 'Statement object type',
   object longtext NOT NULL COMMENT 'Statement object',
   PRIMARY KEY  (id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Available statements';
@@ -60,12 +60,42 @@ CREATE TABLE not_versioned_statements (
 ) ENGINE=MyISAM COMMENT='Statement stmt_id isn\'t versioned';
 
 
-DROP TABLE IF EXISTS prefixes;
-
-CREATE TABLE prefixes (
+CREATE TABLE IF NOT EXISTS prefixes (
   prefix varchar(31) NOT NULL
          COMMENT 'Namespace prefix',
   namespace varchar(255) NOT NULL
 	 COMMENT 'Namespace URI',
   PRIMARY KEY prefix_unique (prefix)
 ) ENGINE=MyISAM COMMENT='Suggested namespace prefixes';
+
+
+DROP PROCEDURE IF EXISTS insert_version;
+
+DELIMITER //
+
+CREATE PROCEDURE insert_version(version_id INT)
+BEGIN
+  INSERT INTO data_types (uri)
+    SELECT s.object_type
+    FROM statements_temp s
+  ON DUPLICATE KEY UPDATE uri = uri;
+
+  INSERT INTO statements (hash, subject, predicate, object_type,
+			  object)
+    SELECT s.hash, s.subject, s.predicate, dt.id, s.object
+    FROM statements_temp s, data_types dt
+    WHERE s.object_type = dt.uri
+  ON DUPLICATE KEY UPDATE statements.subject = statements.subject;
+
+  INSERT INTO version_statement (version_id, stmt_id)
+    SELECT version_id AS v_id, s.id
+    FROM statements s, statements_temp st
+    WHERE s.hash = st.hash
+  ON DUPLICATE KEY UPDATE version_id = version_id;
+
+  DROP TABLE statements_temp;
+END
+//
+
+DELIMITER ;
+

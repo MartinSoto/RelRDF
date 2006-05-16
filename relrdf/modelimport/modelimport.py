@@ -4,7 +4,7 @@ import MySQLdb
 
 import rdfxmlparse
 import vmodellparse
-from relrdf.sqlmap.sinks import VersionRdfSink
+from relrdf.db.mysql.sinks import VersionRdfSink
 
 
 def error(msg):
@@ -30,9 +30,12 @@ except:
 fileType = fileType.lower() 
 
 conn = MySQLdb.connect(host='localhost', db=db, read_default_group='client')
+
 cursor = conn.cursor()
 cursor.execute('set names "utf8"')
-sink = VersionRdfSink(cursor, int(versionNumber))
+cursor.close()
+
+sink = VersionRdfSink(conn, int(versionNumber))
 
 if fileType == 'rdfxml':
     rdfxmlparse.parseFromUri(uriOrFile, sink=sink)
@@ -41,4 +44,4 @@ elif fileType in ('v-modell', 'vmodell'):
 else:
     error("Invalid file type '%s'" % fileType)
 
-cursor.close()
+sink.close()

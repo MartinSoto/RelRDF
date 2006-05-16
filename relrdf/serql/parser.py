@@ -312,10 +312,14 @@ class Parser(antlr.LLkParser):
         current = nodes.MapResult(columnNames, current, *mappingExprs)
         return current
 
-    def constructQueryExpr(self, resultExpr, patternExpr):
+    def constructQueryExpr(self, resultExpr, patternExpr, condExpr):
         if resultExpr is None:
             resultExpr = patternExpr.copy()
         resultExpr = simplify.simplify(resultExpr)
+
+        # Check the condition expression outside the loop.
+        if condExpr is not None:
+            self.currentContext().checkVariables(condExpr)
 
         # The result expression can be a single pattern.
         if not isinstance(resultExpr, nodes.Product):
@@ -325,8 +329,13 @@ class Parser(antlr.LLkParser):
         parts = []
         for pattern in resultExpr:
             if isinstance(pattern, nodes.StatementPattern):
+                part = patternExpr.copy()
+
+                if condExpr is not None:
+                    part = nodes.Select(part, condExpr.copy())
+
                 part = nodes.MapResult(['subject', 'predicate', 'object'],
-                                       patternExpr.copy(),
+                                       part,
                                        *[c.copy() for c in pattern[1:]])
                 parts.append(part)
             else:

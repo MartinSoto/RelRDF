@@ -67,7 +67,7 @@ setOperator returns [factory]
 
 selectQuery returns [expr]
         { self.pushContext(); \
-          condExpr = None}
+          condExpr = None }
     :   select:"select" nameBindings=projection
         patternExpr=fromClauseList
         { endSubexpr = patternExpr }
@@ -105,12 +105,18 @@ projectionElem returns [nameBinding]
 
 
 constructQuery returns [expr]
-        { self.pushContext() }
+        { self.pushContext(); \
+          condExpr = None }
     :   construct:"construct" resultExpr=constructClause
         patternExpr=fromClauseList
-        { expr = self.constructQueryExpr(resultExpr, patternExpr); \
+        { endSubexpr = patternExpr }
+        (   "where" condExpr=booleanExpr
+            { endSubexpr = condExpr }
+        )?
+        { expr = self.constructQueryExpr(resultExpr, patternExpr,
+                                         condExpr); \
           expr.setExtentsStartFromToken(construct, self); \
-          expr.setEndSubexpr(patternExpr); \
+          expr.setEndSubexpr(endSubexpr); \
           self.popContext() }
     ;
 

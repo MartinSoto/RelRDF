@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import sets
-
 from relrdf.commonns import rdfs
 
 
@@ -10,16 +8,16 @@ class RdfSchemaError(Exception):
 
 
 class RdfObject(object):
-    __slots__ = ('node',)
+    __slots__ = ('uri',)
 
-    def __init__(self, node):
-        self.node = node
+    def __init__(self, uri):
+        self.uri = uri
 
     def __str__(self):
-        return self.node
+        return self.uri
 
     def getUri(self):
-        return self.node
+        return self.uri
 
 
 class RdfClass(RdfObject):
@@ -29,12 +27,12 @@ class RdfClass(RdfObject):
                  'outgoingProps',
                  'incomingProps')
 
-    def __init__(self, node):
-        super(RdfClass, self).__init__(node)
-        self.ancestors = sets.Set()
-        self.descendants = sets.Set()
-        self.outgoingProps = sets.Set()
-        self.incomingProps = sets.Set()
+    def __init__(self, uri):
+        super(RdfClass, self).__init__(uri)
+        self.ancestors = set()
+        self.descendants = set()
+        self.outgoingProps = set()
+        self.incomingProps = set()
 
     def addDescendant(self, descendant):
         self.descendants.add(descendant)
@@ -86,10 +84,10 @@ class RdfProperty(RdfObject):
     __slots__ = ('domain',
                  'range')
 
-    def __init__(self, node):
-        super(RdfProperty, self).__init__(node)
-        self.domain = sets.Set()
-        self.range = sets.Set()
+    def __init__(self, uri):
+        super(RdfProperty, self).__init__(uri)
+        self.domain = set()
+        self.range = set()
 
     def addToDomain(self, cls):
         self.domain.add(cls)
@@ -114,22 +112,22 @@ class RdfSchema(object):
         self.classes[rdfs.Resource] = RdfClass(rdfs.Resource)
         self.classes[rdfs.Literal] = RdfClass(rdfs.Literal)
 
-        for node, in model.query('SerQL',
-                                 """select class
-                                 from {class} rdf:type {rdfs:Class}"""):
-           self.classes[node] = RdfClass(node)
+        for uri, in model.query('SerQL',
+                                """select class
+                                from {class} rdf:type {rdfs:Class}"""):
+           self.classes[uri] = RdfClass(uri)
 
-        for node, nodeSub in \
+        for uri, nodeSub in \
                 model.query('SerQL',
                             """select class, subclass
                             from {subclass} rdfs:subClassOf {class}"""):
             try:
-                cls = self.classes[node]
+                cls = self.classes[uri]
                 clsSub = self.classes[nodeSub]
             except KeyError:
                 #print "Ignoring: %s is subclass of %s" \
                 #      % (unicode(nodeSub).encode('utf-8'),
-                #         unicode(node).encode('utf-8'))
+                #         unicode(uri).encode('utf-8'))
                 continue
 
             cls.addDescendant(clsSub)
@@ -138,10 +136,10 @@ class RdfSchema(object):
         # Build a table containing all defined properties.
         self.properties = {}
 
-        for node, in model.query('SerQL',
+        for uri, in model.query('SerQL',
                                  """select prop
                                  from {prop} rdf:type {rdf:Property}"""):
-           self.properties[node] = RdfProperty(node)
+           self.properties[uri] = RdfProperty(uri)
 
         for nodeProp, nodeCls in \
                 model.query('SerQL',
@@ -176,14 +174,3 @@ class RdfSchema(object):
             prop.addToRange(cls)
 
 
-if __name__ == "__main__":
-    import sys
-    
-    file = sys.argv[1]
-
-    s = RdfSchema(file)
-
-    for cls in s.classes.values():
-        print cls
-        for prp in cls.properties:
-            print "  " + str(prp)

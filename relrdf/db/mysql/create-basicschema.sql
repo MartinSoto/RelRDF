@@ -31,13 +31,13 @@ CREATE TABLE data_types (
   uri varchar(255) NOT NULL
 	 COMMENT 'URI identifying the type',
   PRIMARY KEY  (id)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Available statements';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Available data types';
 
 CREATE UNIQUE INDEX data_types_unique
   ON data_types (uri);
 
-INSERT INTO data_types (uri)
-  VALUES ('<RESOURCE>'), ('<BLANKNODE>'), ('<LITERAL>');
+INSERT INTO data_types (id, uri)
+  VALUES (1, '<RESOURCE>'), (2, '<BLANKNODE>'), (3, '<LITERAL>');
 
 
 DROP TABLE IF EXISTS version_statement;

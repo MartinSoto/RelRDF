@@ -40,7 +40,7 @@ sink = VersionRdfSink(conn, int(versionNumber))
 if fileType == 'rdfxml':
     rdfxmlparse.parseFromUri(uriOrFile, sink=sink)
 elif fileType in ('v-modell', 'vmodell'):
-    vmodellparse.VModellParser(uriOrFile, sink=sink)
+    vmodellparse.VModellParser(open(uriOrFile), sink=sink)
 else:
     error("Invalid file type '%s'" % fileType)
 

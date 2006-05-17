@@ -17,6 +17,8 @@ class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     corresponding to tzhe dynamic data type of each one of the
     original columns."""
 
+    __slots__ = ()
+
     def MapResult(self, expr, relExpr, *mappingExprs):
         expr[0] = relExpr
         for i, mappingExpr in enumerate(mappingExprs):
@@ -37,6 +39,8 @@ class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
 
 class Incarnator(object):
     """A singleton used to generate unique relation incarnations."""
+
+    __slots__ = ()
 
     currentIncarnation = 1
 
@@ -139,6 +143,10 @@ class Scope(dict):
         stream.write('Bindings:\n')
         pprint.pprint(self, stream, indent + 2)
 
+
+TYPE_ID_RESOURCE = literal.Literal(1)
+TYPE_ID_BLANKNODE = literal.Literal(2)
+TYPE_ID_LITERAL = literal.Literal(3)
 
 class PureRelationalTransformer(rewrite.ExpressionTransformer):
     """An abstract expression transformer that transforms an
@@ -260,20 +268,49 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         # Don't process the subexpressions.
         return expr
 
-    def ReifStmtPattern(self, expr, context, stmt, subject, pred, object):
-        return self.matchPattern(expr, *self.replReifStmtPattern(expr))
-
     def preDynType(self, expr):
         return (self.dynTypeExpr(expr[0]),)
 
     def DynType(self, expr, subexpr):
         return subexpr
 
+    def dynTypeExpr(self, expr):
+        typeExpr = expr.staticType
+
+        if isinstance(typeExpr, LiteralType):
+            # FIXME:Search for the actual type id.
+            return nodes.Literal(TYPE_ID_LITERAL)
+        elif isinstance(typeExpr, BlankNodeType):
+            return nodes.Literal(TYPE_ID_BLANKNODE)
+        elif isinstance(typeExpr, ResourceType):
+            return nodes.Literal(TYPE_ID_RESOURCE)
+        elif isinstance(expr, nodes.Var):
+            # FIXME: Eventually, we need recursive dynamic type
+            # expression creation.
+            return self.currentScope().variableDynType(expr).copy()
+        else:
+            if hasattr(expr, 'id'):
+                assert False, "Cannot determine type from [[%s]]" % expr.id
+            else:
+                assert False, "Cannot determine type"
+
+
+class MatchReifTransformer(PureRelationalTransformer):
+    """A `PureRelationalTransformer` extension to match reified
+    statement patterns to custom replacement expressions."""
+
+    __slots__ = ()
+
+    def ReifStmtPattern(self, expr, context, stmt, subject, pred, object):
+        return self.matchPattern(expr, *self.replReifStmtPattern(expr))
+
 
 class StandardReifTransformer(PureRelationalTransformer):
-    """An abstract expression transformer that extends
-    `PureRelationalTransformer` to convert reified statement patterns
-    into the four standard equivalent statement patterns."""
+    """A `PureRelationalTransformer` extension to convert reified
+    statement patterns into the four standard equivalent statement
+    patterns."""
+
+    __slots__ = ()
 
     @staticmethod
     def makeUriNode(uri):
@@ -304,36 +341,4 @@ class StandardReifTransformer(PureRelationalTransformer):
                              self.StatementPattern(pattern2, *pattern2),
                              self.StatementPattern(pattern3, *pattern3),
                              self.StatementPattern(pattern4, *pattern4))
-
-
-
-TYPE_ID_RESOURCE = literal.Literal(1)
-TYPE_ID_BLANKNODE = literal.Literal(2)
-TYPE_ID_LITERAL = literal.Literal(3)
-
-
-class SqlDynTypeTransformer(PureRelationalTransformer):
-    """An abstract expression transformer that converts dynamic type
-    expressions into SQL friendly expressions."""
-
-    def dynTypeExpr(self, expr):
-        typeExpr = expr.staticType
-
-        if isinstance(typeExpr, LiteralType):
-            # FIXME:Search for the actual type id.
-            return nodes.Literal(TYPE_ID_LITERAL)
-        elif isinstance(typeExpr, BlankNodeType):
-            return nodes.Literal(TYPE_ID_BLANKNODE)
-        elif isinstance(typeExpr, ResourceType):
-            return nodes.Literal(TYPE_ID_RESOURCE)
-        elif isinstance(expr, nodes.Var):
-            # FIXME: Eventually, we need recursive dynamic type
-            # expression creation.
-            return self.currentScope().variableDynType(expr).copy()
-        else:
-            if hasattr(expr, 'id'):
-                assert False, "Cannot determine type from [[%s]]" % expr.id
-            else:
-                assert False, "Cannot determine type"
-
 

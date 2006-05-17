@@ -9,7 +9,6 @@ TYPE_ID_BLANKNODE = literal.Literal(2)
 TYPE_ID_LITERAL = literal.Literal(3)
 
 
-
 class SqlUriValueRef(sqlnodes.SqlExprValueRef):
     """A value reference whose internal representation is the value of
     an incarnation field and whose external representation is an URI
@@ -32,20 +31,20 @@ class SqlUriValueRef(sqlnodes.SqlExprValueRef):
             __init__(baseUri, incarnation, fieldId, intToExt, extToInt)
 
 
-class SingleVersionMapper(transform.StandardReifTransformer,
-                          transform.SqlDynTypeTransformer):
-    """Targets an abstract query to a context set whith only one
-    element corresponding to a single version of a model."""
+class BasicSingleVersionMapper(transform.PureRelationalTransformer):
+    """Abstract class that targets an abstract query to a context set
+    with only one element corresponding to a single version of a
+    model. Reified patterns are not handled at all."""
     
     __slots__ = ('versionNumber',
                  'versionUri',
                  
                  'stmtRepl')
 
-    def __init__(self, versionNumber, versionUri=commonns.relrdf.version):
-        super(SingleVersionMapper, self).__init__()
+    def __init__(self, versionNumber, versionUri):
+        super(BasicSingleVersionMapper, self).__init__()
 
-        self.versionNumber = versionNumber
+        self.versionNumber = int(versionNumber)
         self.versionUri = versionUri
 
         # Cache for the statement pattern replacement expression.
@@ -90,16 +89,30 @@ class SingleVersionMapper(transform.StandardReifTransformer,
         return self.stmtRepl
 
 
-class AllVersionsMapper(transform.StandardReifTransformer,
-                        transform.SqlDynTypeTransformer):
-    """Targets an abstract query to context set whose elements are all
-    available versions of a model."""
+class SingleVersionMapper(BasicSingleVersionMapper,
+                          transform.StandardReifTransformer):
+    """Targets an abstract query to a context set with only one
+    element corresponding to a single version of a model. Reified
+    patterns are interpreted as four normal patterns in the standard
+    RDFS fashion."""
+
+    __slots__ = ()
+
+    def __init__(self, versionNumber, versionUri=commonns.relrdf.version):
+        super(SingleVersionMapper, self).__init__(versionNumber,
+                                                  versionUri)
+
+
+class AllVersionsMapper(transform.StandardReifTransformer):
+    """Targets an abstract query to a context set whose elements are
+    the versions of a model."""
     
     __slots__ = ('versionUri',
 
                  'stmtRepl')
 
-    def __init__(self, versionUri=commonns.relrdf.version):
+    def __init__(self, versionUri=commonns.relrdf.version,
+                 stmtUri=commonns.relrdf.stmt, metaInfoVersion=1):
         super(AllVersionsMapper, self).__init__()
 
         self.versionUri = versionUri
@@ -142,8 +155,158 @@ class AllVersionsMapper(transform.StandardReifTransformer,
         return self.stmtRepl
 
 
-class TwoWayComparisonMapper(transform.StandardReifTransformer,
-                             transform.SqlDynTypeTransformer):
+class MetaVersionMapper(BasicSingleVersionMapper,
+                        transform.MatchReifTransformer):
+    """Targets an abstract query to a context with only one element
+    corresponding to version 1 of a model (the meta-information
+    version). Reified patterns will match statements present in all
+    model versions. A special relation relrdf:versionContainsStmt can
+    be used to determine which statements are in which version."""
+
+    __slots__ = ('stmtUri',
+
+                 'reifStmtRepl')
+
+    def __init__(self, versionUri=commonns.relrdf.version,
+                 stmtUri=commonns.relrdf.stmt):
+        super(MetaVersionMapper, self).__init__(1, versionUri)
+
+        self.stmtUri = stmtUri
+
+        # Cache for the reified statement pattern replacement expression.
+        self.reifStmtRepl = None
+
+    def replStatementPattern(self, expr):
+        replExpr = None
+
+        if isinstance(expr[2], nodes.Uri) and \
+           expr[2].uri == commonns.rdf.type and \
+           isinstance(expr[3], nodes.Uri) and \
+           expr[3].uri == commonns.rdf.Statement:
+            rel = sqlnodes.SqlRelation(1, 'statements')
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              nodes.Uri(self.versionUri + '1'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              nodes.Literal(commonns.rdf.type),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              nodes.Literal(commonns.rdf.Statement),
+                              nodes.Literal(TYPE_ID_RESOURCE))
+        elif isinstance(expr[2], nodes.Uri) and \
+             expr[2].uri == commonns.relrdf.versionContainsStmt:
+            rel = sqlnodes.SqlRelation(1, 'version_statement')
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              nodes.Uri(self.versionUri + '1'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              SqlUriValueRef(1, 'version_id',
+                                             self.versionUri),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              nodes.Literal(commonns.relrdf. \
+                                            versionContainsStmt),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              SqlUriValueRef(1, 'stmt_id',
+                                             self.stmtUri),
+                              nodes.Literal(TYPE_ID_RESOURCE))
+        elif isinstance(expr[2], nodes.Uri) and \
+             expr[2].uri == commonns.rdf.subject:
+            rel = sqlnodes.SqlRelation(1, 'statements')
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              nodes.Uri(self.versionUri + '1'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              nodes.Literal(commonns.rdf.subject),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(1, 'subject'),
+                              nodes.Literal(TYPE_ID_RESOURCE))
+        elif isinstance(expr[2], nodes.Uri) and \
+             expr[2].uri == commonns.rdf.predicate:
+            rel = sqlnodes.SqlRelation(1, 'statements')
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              nodes.Uri(self.versionUri + '1'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              nodes.Literal(commonns.rdf.predicate),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(1, 'predicate'),
+                              nodes.Literal(TYPE_ID_RESOURCE))
+        elif isinstance(expr[2], nodes.Uri) and \
+             expr[2].uri == commonns.rdf.object:
+            rel = sqlnodes.SqlRelation(1, 'statements')
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              nodes.Uri(self.versionUri + '1'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              nodes.Literal(commonns.rdf.object),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(1, 'object'),
+                              sqlnodes.SqlFieldRef(1, 'object_type'))
+
+        if replExpr is not None:
+            return (replExpr,
+                    ('context', 'subject', 'predicate', 'object'))
+        else:
+            return super(MetaVersionMapper, self).replStatementPattern(expr)
+
+    def replReifStmtPattern(self, expr):
+        if self.reifStmtRepl is not None:
+            return self.reifStmtRepl
+
+        rel = sqlnodes.SqlRelation(1, 'statements')
+
+        replExpr = \
+          nodes.MapResult(['context', 'type__context',
+                           'stmt', 'type__stmt',
+                           'subject', 'type__subject',
+                           'predicate', 'type__predicate',
+                           'object', 'type__object'],
+                          rel,
+                          nodes.Uri(self.versionUri + '1'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          SqlUriValueRef(1, 'id', self.stmtUri),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(1, 'subject'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(1, 'predicate'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(1, 'object'),
+                          sqlnodes.SqlFieldRef(1, 'object_type'))
+
+        self.reifStmtRepl = (replExpr,
+            ('context', 'stmt', 'subject', 'predicate', 'object'))
+
+        return self.reifStmtRepl
+
+
+class TwoWayComparisonMapper(transform.StandardReifTransformer):
     """Targets an abstract query to a context set presenting two
     versions (versions A and B) as three contexts: one containing the
     statements only in A, one containing the statements only in B, and

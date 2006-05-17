@@ -36,15 +36,15 @@ class BasicSingleVersionMapper(transform.PureRelationalTransformer):
     with only one element corresponding to a single version of a
     model. Reified patterns are not handled at all."""
     
-    __slots__ = ('versionNumber',
+    __slots__ = ('versionId',
                  'versionUri',
                  
                  'stmtRepl')
 
-    def __init__(self, versionNumber, versionUri):
+    def __init__(self, versionId, versionUri):
         super(BasicSingleVersionMapper, self).__init__()
 
-        self.versionNumber = int(versionNumber)
+        self.versionId = int(versionId)
         self.versionUri = versionUri
 
         # Cache for the statement pattern replacement expression.
@@ -62,7 +62,7 @@ class BasicSingleVersionMapper(transform.PureRelationalTransformer):
              (nodes.And,
               (nodes.Equal,
                (sqlnodes.SqlFieldRef, 1, 'version_id'),
-               (nodes.Literal, self.versionNumber)),
+               (nodes.Literal, self.versionId)),
               (nodes.Equal,
                (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
                (sqlnodes.SqlFieldRef, 2, 'id'))))
@@ -74,7 +74,7 @@ class BasicSingleVersionMapper(transform.PureRelationalTransformer):
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
                           rel,
-                          nodes.Uri(self.versionUri + str(self.versionNumber)),
+                          nodes.Uri(self.versionUri + str(self.versionId)),
                           nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(2, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
@@ -98,8 +98,8 @@ class SingleVersionMapper(BasicSingleVersionMapper,
 
     __slots__ = ()
 
-    def __init__(self, versionNumber, versionUri=commonns.relrdf.version):
-        super(SingleVersionMapper, self).__init__(versionNumber,
+    def __init__(self, versionId, versionUri=commonns.relrdf.version):
+        super(SingleVersionMapper, self).__init__(versionId,
                                                   versionUri)
 
 
@@ -312,16 +312,16 @@ class TwoWayComparisonMapper(transform.StandardReifTransformer):
     statements only in A, one containing the statements only in B, and
     one containing the statements common to both versions."""
     
-    __slots__ = ('aVersionNumber',
-                 'bVersionNumber',
+    __slots__ = ('versionA',
+                 'versionB',
 
                  'stmtRepl')
 
-    def __init__(self, aVersionNumber, bVersionNumber):
+    def __init__(self, versionA, versionB):
         super(TwoWayComparisonMapper, self).__init__()
 
-        self.aVersionNumber = aVersionNumber
-        self.bVersionNumber = bVersionNumber
+        self.versionA = int(versionA)
+        self.versionB = int(versionB)
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
@@ -357,11 +357,11 @@ class TwoWayComparisonMapper(transform.StandardReifTransformer):
               statements s
             where
               comp.stmt_id = s.id
-            """ % (self.aVersionNumber,
-                   self.bVersionNumber,
-                   self.aVersionNumber + self.bVersionNumber,
-                   self.aVersionNumber,
-                   self.bVersionNumber))
+            """ % (self.versionA,
+                   self.versionB,
+                   self.versionA + self.versionB,
+                   self.versionA,
+                   self.versionB))
                      
         replExpr = \
           nodes.MapResult(['context', 'type__context',
@@ -507,19 +507,21 @@ class Model(object):
 
     def __del__(self):
         self.connection.close()
-        
+
+
+_modelFactories = {
+    'metaversion': MetaVersionMapper,
+    'singleversion': SingleVersionMapper,
+    'allversions': AllVersionsMapper,
+    'twoway': TwoWayComparisonMapper
+    }
 
 def getModel(connection, modelType, **modelArgs):
     modelTypeNorm = modelType.lower()
 
-    if modelTypeNorm == 'singleversion':
-        transf = SingleVersionMapper(int(modelArgs['versionId']))
-    elif modelTypeNorm == 'allversions':
-        transf = AllVersionsMapper()
-    elif modelTypeNorm == 'twoway':
-        transf = TwoWayComparisonMapper(int(modelArgs['versionA']),
-                                        int(modelArgs['versionB']))
-    else:
+    try:
+        transf = _modelFactories[modelTypeNorm](**modelArgs)
+    except KeyError:
         assert False, "invalid model type '%s'" % modelType
 
     return Model(connection, transf, **modelArgs)

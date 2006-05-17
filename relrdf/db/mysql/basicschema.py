@@ -32,11 +32,10 @@ class SqlUriValueRef(sqlnodes.SqlExprValueRef):
             __init__(baseUri, incarnation, fieldId, intToExt, extToInt)
 
 
-class SingleVersionSqlTransformer(transform.StandardReifTransformer,
-                                  transform.SqlDynTypeTransformer):
-    """An expression transformer that maps an abstract relational
-    expression with patterns into an SQL friendly expression
-    presenting a single version as the whole model."""
+class SingleVersionMapper(transform.StandardReifTransformer,
+                          transform.SqlDynTypeTransformer):
+    """Targets an abstract query to a context set whith only one
+    element corresponding to a single version of a model."""
     
     __slots__ = ('versionNumber',
                  'versionUri',
@@ -44,7 +43,7 @@ class SingleVersionSqlTransformer(transform.StandardReifTransformer,
                  'stmtRepl')
 
     def __init__(self, versionNumber, versionUri=commonns.relrdf.version):
-        super(SingleVersionSqlTransformer, self).__init__()
+        super(SingleVersionMapper, self).__init__()
 
         self.versionNumber = versionNumber
         self.versionUri = versionUri
@@ -91,19 +90,17 @@ class SingleVersionSqlTransformer(transform.StandardReifTransformer,
         return self.stmtRepl
 
 
-class AllVersionsSqlTransformer(transform.StandardReifTransformer,
-                                transform.SqlDynTypeTransformer):
-    """An expression transformer that maps an abstract relational
-    expression with patterns into an SQL friendly expression
-    presenting the whole version set in such a way that every version
-    is a separate context."""
+class AllVersionsMapper(transform.StandardReifTransformer,
+                        transform.SqlDynTypeTransformer):
+    """Targets an abstract query to context set whose elements are all
+    available versions of a model."""
     
     __slots__ = ('versionUri',
 
                  'stmtRepl')
 
     def __init__(self, versionUri=commonns.relrdf.version):
-        super(AllVersionsSqlTransformer, self).__init__()
+        super(AllVersionsMapper, self).__init__()
 
         self.versionUri = versionUri
 
@@ -145,14 +142,12 @@ class AllVersionsSqlTransformer(transform.StandardReifTransformer,
         return self.stmtRepl
 
 
-class TwoWayComparisonSqlTransformer(transform.StandardReifTransformer,
-                                     transform.SqlDynTypeTransformer):
-    """An expression transformer that maps an abstract relational
-    expression with patterns into an SQL friendly expression
-    presenting the two versions (versions A and B) as three contexts:
-    one containing the statements only in A, one containing the
-    statements only in B, and one containing the statements common to
-    both versions."""
+class TwoWayComparisonMapper(transform.StandardReifTransformer,
+                             transform.SqlDynTypeTransformer):
+    """Targets an abstract query to a context set presenting two
+    versions (versions A and B) as three contexts: one containing the
+    statements only in A, one containing the statements only in B, and
+    one containing the statements common to both versions."""
     
     __slots__ = ('aVersionNumber',
                  'bVersionNumber',
@@ -160,7 +155,7 @@ class TwoWayComparisonSqlTransformer(transform.StandardReifTransformer,
                  'stmtRepl')
 
     def __init__(self, aVersionNumber, bVersionNumber):
-        super(TwoWayComparisonSqlTransformer, self).__init__()
+        super(TwoWayComparisonMapper, self).__init__()
 
         self.aVersionNumber = aVersionNumber
         self.bVersionNumber = bVersionNumber
@@ -355,12 +350,12 @@ def getModel(connection, modelType, **modelArgs):
     modelTypeNorm = modelType.lower()
 
     if modelTypeNorm == 'singleversion':
-        transf = SingleVersionSqlTransformer(int(modelArgs['versionId']))
+        transf = SingleVersionMapper(int(modelArgs['versionId']))
     elif modelTypeNorm == 'allversions':
-        transf = AllVersionsSqlTransformer()
+        transf = AllVersionsMapper()
     elif modelTypeNorm == 'twoway':
-        transf = TwoWayComparisonSqlTransformer(int(modelArgs['versionA']),
-                                                int(modelArgs['versionB']))
+        transf = TwoWayComparisonMapper(int(modelArgs['versionA']),
+                                        int(modelArgs['versionB']))
     else:
         assert False, "invalid model type '%s'" % modelType
 

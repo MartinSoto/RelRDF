@@ -1,7 +1,7 @@
 from relrdf import parserfactory, commonns
 
 from relrdf.expression import uri, blanknode, literal, simplify, nodes, build
-from relrdf.sqlmap import map, transform, valueref, sqlnodes, emit
+from relrdf.sqlmap import transform, valueref, sqlnodes, emit
 
 
 TYPE_ID_RESOURCE = literal.Literal(1)

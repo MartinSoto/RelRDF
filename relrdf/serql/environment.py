@@ -59,6 +59,5 @@ class ParseEnvironment(object):
 
         # Type check the expression.
         expr = typecheck.typeCheck(expr)
-        expr = typecheck.addDynTypeChecks(expr)
 
         return expr

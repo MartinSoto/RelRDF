@@ -746,7 +746,30 @@ class Intersection(SetOperation):
 class DynType(UnaryOperation):
     """An expression node representing the dynamic type of an
     arbitrary expression. This is intended to be replaced by the
-    database mapper. The replacement is an expression that produces an
+    mapper. The replacement is an expression that produces an
     internal, runtime representation of the data type."""
 
     __slots = ()
+
+
+class Type(ExpressionNode):
+    """An expression node corresponding to the runtime representation
+    of a concrete data type. This is intended to be replaced by the
+    mapper. The replacement is a, most probably constant, expression
+    that produces an internal, runtime representation of the data
+    type."""
+
+    __slots__ = ('typeExpr',)
+
+    def __init__(self, typeExpr):
+        super(Type, self).__init__()
+
+        self.typeExpr = typeExpr
+
+    def attributesRepr(self):
+        return repr(self.typeExpr)
+
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' %s' % self.typeExpr)
+
+

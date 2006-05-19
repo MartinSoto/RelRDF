@@ -1,6 +1,7 @@
 from relrdf.expression import nodes, rewrite
 
-from typeexpr import commonType, LiteralType, BlankNodeType, ResourceType
+from typeexpr import commonType, LiteralType, genericLiteralType, \
+     BlankNodeType, blankNodeType, ResourceType, resourceType
 
 
 class DynTypeCheckTransl(rewrite.ExpressionTransformer):
@@ -9,6 +10,15 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
 
     __slots__ = ()
 
+    def __init__(self):
+        super(DynTypeCheckTransl, self).__init__(prePrefix='pre')
+
+    def preDynType(self, expr):
+        return (self._dynTypeExpr(expr[0]),)
+
+    def DynType(self, expr, subexpr):
+        return subexpr
+
     def _addEqualTypesExpr(self, expr, *transfSubexprs):
         common = commonType(*transfSubexprs)
         if isinstance(common, BlankNodeType) or \
@@ -16,7 +26,7 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             expr[:] = transfSubexprs
             return expr
 
-        equalTypesExpr = nodes.Equal(*[nodes.DynType(e.copy())
+        equalTypesExpr = nodes.Equal(*[self._dynTypeExpr(e.copy())
                                        for e in transfSubexprs])
         return nodes.And(equalTypesExpr, expr)
 
@@ -33,15 +43,24 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             expr[:] = transfSubexprs
             return expr
 
-        diffTypesExpr = nodes.Different(*[nodes.DynType(e.copy())
+        diffTypesExpr = nodes.Different(*[self._dynTypeExpr(e.copy())
                                           for e in transfSubexprs])
         return nodes.Or(diffTypesExpr, expr)
 
+    def _dynTypeExpr(self, expr):
+        typeExpr = expr.staticType
 
-def addDynTypeChecks(expr):
-    """Add generic runtime type checks to the statically typechecked
-    expression `expr` and return the resulting expression. `expr` will
-    be modified in place, but the return value must be used since the
-    root node may change."""
-    transl = DynTypeCheckTransl()
-    return transl.process(expr)
+        if isinstance(typeExpr, LiteralType):
+            # FIXME:Search for the actual type id.
+            return nodes.Type(genericLiteralType)
+        elif isinstance(typeExpr, BlankNodeType):
+            return nodes.Type(blankNodeType)
+        elif isinstance(typeExpr, ResourceType):
+            return nodes.Type(resourceType)
+        else:
+            # This expression has a generic type whose dynamic form
+            # must be resolved later by the mapper.
+            #
+            # FIXME: Consider using another node type here instead of
+            # DynType (MapperDynType?)
+            return nodes.DynType(expr)

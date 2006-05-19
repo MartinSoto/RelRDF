@@ -6,8 +6,7 @@ from relrdf.expression import nodes
 from relrdf.expression import rewrite
 from relrdf.expression import literal, uri
 
-from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
-     ResourceType, RdfNodeType, resourceType, rdfNodeType
+from relrdf.typecheck.typeexpr import resourceType
 
 import sqlnodes
 
@@ -144,10 +143,6 @@ class Scope(dict):
         pprint.pprint(self, stream, indent + 2)
 
 
-TYPE_ID_RESOURCE = literal.Literal(1)
-TYPE_ID_BLANKNODE = literal.Literal(2)
-TYPE_ID_LITERAL = literal.Literal(3)
-
 class PureRelationalTransformer(rewrite.ExpressionTransformer):
     """An abstract expression transformer that transforms an
     expression containing patterns into a pure relational expression."""
@@ -273,26 +268,6 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
 
     def DynType(self, expr, subexpr):
         return subexpr
-
-    def dynTypeExpr(self, expr):
-        typeExpr = expr.staticType
-
-        if isinstance(typeExpr, LiteralType):
-            # FIXME:Search for the actual type id.
-            return nodes.Literal(TYPE_ID_LITERAL)
-        elif isinstance(typeExpr, BlankNodeType):
-            return nodes.Literal(TYPE_ID_BLANKNODE)
-        elif isinstance(typeExpr, ResourceType):
-            return nodes.Literal(TYPE_ID_RESOURCE)
-        elif isinstance(expr, nodes.Var):
-            # FIXME: Eventually, we need recursive dynamic type
-            # expression creation.
-            return self.currentScope().variableDynType(expr).copy()
-        else:
-            if hasattr(expr, 'id'):
-                assert False, "Cannot determine type from [[%s]]" % expr.id
-            else:
-                assert False, "Cannot determine type"
 
 
 class MatchReifTransformer(PureRelationalTransformer):

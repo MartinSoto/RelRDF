@@ -1,7 +1,11 @@
 from relrdf import parserfactory, commonns
 
+from relrdf.typecheck import dynamic
 from relrdf.expression import uri, blanknode, literal, simplify, nodes, build
 from relrdf.sqlmap import transform, valueref, sqlnodes, emit
+
+from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
+     ResourceType, RdfNodeType, resourceType, rdfNodeType
 
 
 TYPE_ID_RESOURCE = literal.Literal(1)
@@ -31,7 +35,46 @@ class SqlUriValueRef(sqlnodes.SqlExprValueRef):
             __init__(baseUri, incarnation, fieldId, intToExt, extToInt)
 
 
-class BasicSingleVersionMapper(transform.PureRelationalTransformer):
+class BasicMapper(transform.PureRelationalTransformer):
+    """A base mapper for the MySQL basic schema. It handles the
+    mapping of type expressions."""
+
+    def dynTypeExpr(self, expr):
+        typeExpr = expr.staticType
+
+        if isinstance(typeExpr, LiteralType):
+            # FIXME:Search for the actual type id.
+            return nodes.Literal(TYPE_ID_LITERAL)
+        elif isinstance(typeExpr, BlankNodeType):
+            return nodes.Literal(TYPE_ID_BLANKNODE)
+        elif isinstance(typeExpr, ResourceType):
+            return nodes.Literal(TYPE_ID_RESOURCE)
+        elif isinstance(expr, nodes.Var):
+            # FIXME: Eventually, we need recursive dynamic type
+            # expression creation.
+            return self.currentScope().variableDynType(expr).copy()
+        else:
+            if hasattr(expr, 'id'):
+                assert False, "Cannot determine type from [[%s]]" % expr.id
+            else:
+                assert False, "Cannot determine type"
+
+    def Type(self, expr):
+        if isinstance(expr.typeExpr, LiteralType):
+            # FIXME:Search for the actual type id.
+            return nodes.Literal(TYPE_ID_LITERAL)
+        elif isinstance(expr.typeExpr, BlankNodeType):
+            return nodes.Literal(TYPE_ID_BLANKNODE)
+        elif isinstance(expr.typeExpr, ResourceType):
+            return nodes.Literal(TYPE_ID_RESOURCE)
+        else:
+            if hasattr(expr, 'id'):
+                assert False, "Cannot map type for [[%s]]" % expr.id
+            else:
+                assert False, "Cannot map type"
+
+
+class BasicSingleVersionMapper(BasicMapper):
     """Abstract class that targets an abstract query to a context set
     with only one element corresponding to a single version of a
     model. Reified patterns are not handled at all."""
@@ -103,7 +146,8 @@ class SingleVersionMapper(BasicSingleVersionMapper,
                                                   versionUri)
 
 
-class AllVersionsMapper(transform.StandardReifTransformer):
+class AllVersionsMapper(BasicMapper,
+                        transform.StandardReifTransformer):
     """Targets an abstract query to a context set whose elements are
     the versions of a model."""
     
@@ -306,7 +350,8 @@ class MetaVersionMapper(BasicSingleVersionMapper,
         return self.reifStmtRepl
 
 
-class TwoWayComparisonMapper(transform.StandardReifTransformer):
+class TwoWayComparisonMapper(BasicMapper,
+                             transform.StandardReifTransformer):
     """Targets an abstract query to a context set presenting two
     versions (versions A and B) as three contexts: one containing the
     statements only in A, one containing the statements only in B, and
@@ -481,8 +526,12 @@ class Model(object):
 
         # Convert the parsed expression to SQL:
 
-        # Add explicit typing.
+        # Add explicit type columns to results.
         transf = transform.ExplicitTypeTransformer()
+        expr = transf.process(expr)
+
+        # Add dynamic type checks.
+        transf = dynamic.DynTypeCheckTransl()
         expr = transf.process(expr)
 
         # Apply the selected mapping.

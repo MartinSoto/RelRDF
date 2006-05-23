@@ -41,8 +41,7 @@ class ParseEnvironment(object):
         parser.setFilename(fileName)
 
         try:
-            #expr = parser.query()
-            expr = parser.whereClause()
+            expr = parser.query()
         except antlr.RecognitionException, e:
             new = error.SyntaxError.create(e)
             if new:

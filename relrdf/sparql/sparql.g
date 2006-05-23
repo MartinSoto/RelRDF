@@ -19,9 +19,9 @@ options {
     defaultErrorHandler=false;
 }
 
-query
+query returns [expr]
     :   prolog
-        (   selectQuery
+        (   expr=selectQuery
         |   constructQuery
         |   describeQuery
         |   askQuery
@@ -42,20 +42,27 @@ prefixDecl
         /* FIXME: Check for QNAME_NS */
     ;
 
-selectQuery
+selectQuery returns [expr]
     :   SELECT
         ( DISTINCT )?
-        ( ( var )+ | TIMES )
+        (   { vars=[] }
+            (   var=var
+                { vars.append(var) }
+            )+
+        |   TIMES
+        )
         ( datasetClause )*
-        whereClause
+        where=whereClause
         solutionModifier
+        { expr = nodes.MapResult([var.name for var in vars], where,
+                                 *vars) }
     ;
 
 constructQuery
     :   CONSTRUCT
         constructTemplate
         ( datasetClause )*
-        whereClause
+        where=whereClause
         solutionModifier
     ;
 
@@ -63,14 +70,14 @@ describeQuery
     :   DESCRIBE
         ( ( varOrIriRef )+ | TIMES )
         ( datasetClause )*
-        ( whereClause )?
+        ( where=whereClause )?
         solutionModifier
     ;
 
 askQuery
     :   ASK
         ( datasetClause )*
-        whereClause
+        where=whereClause
     ;
 
 datasetClause

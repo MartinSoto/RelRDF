@@ -486,7 +486,7 @@ class Literal(ExpressionNode):
         return repr(self.literal)
 
     def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s' % self.literal)
+        stream.write(' %s' % self.literal.getCanonical())
 
 
 class Var(ExpressionNode):
@@ -509,18 +509,10 @@ class Var(ExpressionNode):
 class FunctionCall(ExpressionNode):
     """A function call."""
 
-    __slots__ = ('functionName',)
+    __slots__ = ()
 
     def __init__(self, functionName, *params):
-        super(FunctionCall, self).__init__(*params)
-       
-        self.functionName = functionName
-
-    def attributesRepr(self):
-        return self.functionName
-
-    def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s' % self.functionName)
+        super(FunctionCall, self).__init__(functionName, *params)
 
 
 class StatementPattern(ExpressionNode):

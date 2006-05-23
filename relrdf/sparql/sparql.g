@@ -1,7 +1,8 @@
 header {
+    from relrdf.commonns import rdf, xsd
     from relrdf.expression import nodes
 
-    import parser
+    import parser, spqnodes
 }
 
 options {
@@ -84,17 +85,16 @@ defaultGraphClause
     ;
 
 namedGraphClause
-    :   NAMED
-        sourceSelector
+    :   NAMED source=sourceSelector
     ;
 
-sourceSelector
-    :   iriRef
+sourceSelector returns [expr]
+    :   expr=iriRef
     ;
 
-whereClause
+whereClause returns [expr]
     :   ( WHERE )?
-        groupGraphPattern
+        expr=groupGraphPattern[nodes.Joker()]
     ;
 
 solutionModifier
@@ -120,56 +120,83 @@ offsetClause
     :   OFFSET INTEGER
     ;
 
-groupGraphPattern
-    :   LBRACE graphPattern RBRACE
+groupGraphPattern[graph] returns [expr]
+    :   { expr = spqnodes.GraphPattern() }
+        LBRACE graphPattern[graph, expr] RBRACE
     ;
 
-graphPattern
-    :   filteredBasicGraphPattern
-        (   graphPatternNotTriples
+graphPattern[graph, pattern]
+    :   filteredBasicGraphPattern[graph, pattern]
+        (   expr=graphPatternNotTriples[graph]
+            { pattern.append(expr) }
             ( DOT )?
-            graphPattern
+            graphPattern[graph, pattern]
         )?
     ;
 
-filteredBasicGraphPattern
-    :   ( blockOfTriples )?
-        (   constraint
+filteredBasicGraphPattern[graph, pattern]
+    :   ( blockOfTriples[graph, pattern] )?
+        (   constr=constraint
+            { pattern.append(constr)  }
             ( DOT )?
-            filteredBasicGraphPattern
+            filteredBasicGraphPattern[graph, pattern]
         )?
     ;
 
-blockOfTriples
-    :   triplesSameSubject ( DOT ( triplesSameSubject )? )*
+blockOfTriples[graph, pattern]
+    :   triplesSameSubject[graph, pattern]
+        ( DOT ( triplesSameSubject[graph, pattern] )? )*
     ;
 
-graphPatternNotTriples
-    :   optionalGraphPattern | groupOrUnionGraphPattern | graphGraphPattern
+graphPatternNotTriples[graph] returns [expr]
+    :   expr=optionalGraphPattern[graph]
+    |   expr=groupOrUnionGraphPattern[graph]
+    |   expr=graphGraphPattern
     ;
 
-optionalGraphPattern
-    :   OPTIONAL groupGraphPattern
+optionalGraphPattern[graph] returns [expr]
+    :   OPTIONAL pattern=groupGraphPattern[graph]
+        { expr = spqnodes.Optional(pattern) }
     ;
 
-graphGraphPattern
-    :   GRAPH varOrBlankNodeOrIriRef groupGraphPattern
+graphGraphPattern returns [expr]
+    :   GRAPH graph=varOrBlankNodeOrIriRef
+        expr=groupGraphPattern[graph]
     ;
 
-groupOrUnionGraphPattern
-    :   groupGraphPattern ( UNION groupGraphPattern )*
+groupOrUnionGraphPattern[graph] returns [expr]
+    :   expr=groupGraphPattern[graph]
+        (   { expr=spqnodes.OpenUnion(expr) }
+            (   UNION pattern=groupGraphPattern[graph]
+                { expr.append(pattern) }
+            )+
+        )?
     ;
 
-constraint
-    :   FILTER ( brackettedExpression | builtInCall | functionCall )
+constraint returns [expr]
+    :   FILTER
+        (   cond=brackettedExpression
+        |   cond=builtInCall
+        |   cond=functionCall
+        )
+        { expr = spqnodes.Filter(cond) }
     ;
 
-functionCall
-    :   iriRef argList
+functionCall returns [expr]
+    :   name=iriRef
+        { expr = nodes.FunctionCall(name) }
+        argList[expr]
     ;
 
-argList
-    :   ( NIL | LPAREN expression ( COMMA expression )* RPAREN )
+argList[funcCall]
+    :   (   NIL
+        |   LPAREN param=expression
+            { funcCall.append(param) }
+            (    COMMA param=expression
+                { funcCall.append(param) }
+            )*
+            RPAREN
+        )
     ;
 
 constructTemplate
@@ -180,186 +207,281 @@ constructTriples
     :   ( triplesSameSubject ( DOT constructTriples )? )?
     ;
 
-triplesSameSubject
-    :   varOrTerm propertyListNotEmpty | triplesNode propertyList
+triplesSameSubject[graph, pattern]
+    :   subject=varOrTerm propertyListNotEmpty[graph, pattern, subject]
+    |   subject=triplesNode propertyList[graph, pattern, subject]
     ;
 
-propertyList
-    :   ( propertyListNotEmpty )?
+propertyList[graph, pattern, subject]
+    :   ( propertyListNotEmpty[graph, pattern, subject] )?
     ;
 
-propertyListNotEmpty
-    :   verb objectList ( SEMICOLON propertyList )?
+propertyListNotEmpty[graph, pattern, subject]
+    :   predicate=verb
+        objectList[graph, pattern, subject, predicate]
+        ( SEMICOLON propertyList[graph, pattern, subject] )?
     ;
 
-objectList
-    :   graphNode ( COMMA objectList )?
+objectList[graph, pattern, subject, predicate]
+    :   obj=graphNode
+        { pattern.append(nodes.StatementPattern(graph.copy(),
+                                                subject.copy(),
+                                                predicate.copy(),
+                                                obj.copy())) }
+        ( COMMA objectList[graph, pattern, subject, predicate] )?
     ;
 
-verb
-    :   varOrIriRef | RDF_TYPE_ABBREV
+verb returns [expr]
+    :   expr=varOrIriRef
+    |   RDF_TYPE_ABBREV
+        { expr=nodes.Uri(rdf.type) }
     ;
 
-triplesNode
-    :   collection | blankNodePropertyList
+triplesNode returns [expr]
+    :   expr=collection
+    |   expr=blankNodePropertyList
     ;
 
-blankNodePropertyList
+blankNodePropertyList returns [expr]
     :   LBRACKET propertyListNotEmpty RBRACKET
+        { expr = nodes.NotSupported(); }
     ;
 
-collection
-    :   LPAREN ( graphNode )+ RPAREN
+collection returns [expr]
+    :   LPAREN ( node=graphNode )+ RPAREN
+        { expr = nodes.NotSupported(); }
     ;
 
-graphNode
-    :   varOrTerm | triplesNode
+graphNode returns [expr]
+    :   expr=varOrTerm
+    |   expr=triplesNode
     ;
 
-varOrTerm
-    :   var | graphTerm
+varOrTerm returns [expr]
+    :   expr=var
+    |   expr=graphTerm
     ;
 
-varOrIriRef
-    :   var | iriRef
+varOrIriRef returns [expr]
+    :   expr=var
+    |   expr=iriRef
     ;
 
-varOrBlankNodeOrIriRef
-    :   var | blankNode | iriRef
+varOrBlankNodeOrIriRef returns [expr]
+    :   expr=var
+    |   expr=blankNode
+    |   expr=iriRef
     ;
 
-var
-    :   VAR1 | VAR2
+var returns [expr]
+    :   v1:VAR1
+        { expr = nodes.Var(v1.getText()); \
+          expr.setExtentsFromToken(v1, self) }
+    |   v2:VAR2
+        { expr = nodes.Var(v2.getText()); \
+          expr.setExtentsFromToken(v2, self) }
     ;
 
-graphTerm
-    :   iriRef | rdfLiteral
-    |   ( MINUS | PLUS )? numericLiteral
-    |   booleanLiteral
-    |   blankNode
+graphTerm returns [expr]
+    :   expr=iriRef
+    |   expr=rdfLiteral
+    |   (   MINUS expr=numericLiteral
+            { expr = nodes.NotSupported() }
+        |   ( PLUS )? expr=numericLiteral
+        )
+    |   expr=booleanLiteral
+    |   expr=blankNode
     |   NIL
+        { expr = nodes.NotSupported() }
     ;
 
-expression
-    :   conditionalOrExpression
+expression returns [expr]
+    :   expr=conditionalOrExpression
     ;
 
-conditionalOrExpression
-    :   conditionalAndExpression
-        (   OP_OR
-            conditionalAndExpression
+conditionalOrExpression returns [expr]
+    :   expr=conditionalAndExpression
+        (   OP_OR expr2=conditionalAndExpression
+            { expr = nodes.Or(expr, expr2) }
         )*
     ;
 
-conditionalAndExpression
-    :   valueLogical ( OP_AND valueLogical )*
+conditionalAndExpression returns [expr]
+    :   expr=valueLogical
+        (   OP_AND expr2=valueLogical
+            { expr = nodes.And(expr, expr2) }
+        )*
     ;
 
-valueLogical
-    :   relationalExpression
+valueLogical returns [expr]
+    :   expr=relationalExpression
     ;
 
-relationalExpression
-    :   numericExpression
-        (   OP_EQ numericExpression
-        |   OP_NE numericExpression
-        |   OP_LT numericExpression
-        |   OP_GT numericExpression
-        |   OP_LE numericExpression
-        |   OP_GE numericExpression
+relationalExpression returns [expr]
+    :   expr=numericExpression
+        (   OP_EQ expr2=numericExpression
+            { expr = nodes.Equal(expr, expr2) }
+        |   OP_NE expr2=numericExpression
+            { expr = nodes.Different(expr, expr2) }
+        |   OP_LT expr2=numericExpression
+            { expr = nodes.LessThan(expr, expr2) }
+        |   OP_GT expr2=numericExpression
+            { expr = nodes.GreaterThan(expr, expr2) }
+        |   OP_LE expr2=numericExpression
+            { expr = nodes.LessThanOrEqual(expr, expr2) }
+        |   OP_GE expr2=numericExpression
+            { expr = nodes.GreaterThanOrEqual(expr, expr2) }
         )?
     ;
 
-numericExpression
-    :   additiveExpression
+numericExpression returns [expr]
+    :   expr=additiveExpression
     ;
 
-additiveExpression
-    :   multiplicativeExpression
-        (   PLUS multiplicativeExpression
-        |   MINUS multiplicativeExpression
+additiveExpression returns [expr]
+    :   expr=multiplicativeExpression
+        (   PLUS mult=multiplicativeExpression
+            { expr = nodes.NotSupported(); }
+        |   MINUS mult=multiplicativeExpression
+            { expr = nodes.NotSupported(); }
         )*
     ;
 
-multiplicativeExpression
-    :   unaryExpression
-        (   TIMES unaryExpression
-        |   DIV unaryExpression
+multiplicativeExpression returns [expr]
+    :   expr=unaryExpression
+        (   TIMES unary=unaryExpression
+            { expr = nodes.NotSupported(); }
+        |   DIV unary=unaryExpression
+            { expr = nodes.NotSupported(); }
         )*
     ;
 
-unaryExpression
-    :   OP_NOT primaryExpression
-    |   PLUS primaryExpression
-    |   MINUS primaryExpression
-    |   primaryExpression
+unaryExpression returns [expr]
+    :   OP_NOT prim=primaryExpression
+        { expr = nodes.NotSupported(); }
+    |   PLUS prim=primaryExpression
+        { expr = nodes.NotSupported(); }
+    |   MINUS prim=primaryExpression
+        { expr = nodes.NotSupported(); }
+    |   expr=primaryExpression
     ;
 
-primaryExpression
-    :   brackettedExpression
-    |   builtInCall
-    |   iriRefOrFunction
-    |   rdfLiteral
-    |   numericLiteral
-    |   booleanLiteral
-    |   blankNode
-    |   var
+primaryExpression returns [expr]
+    :   expr=brackettedExpression
+    |   expr=builtInCall
+    |   expr=iriRefOrFunction
+    |   expr=rdfLiteral
+    |   expr=numericLiteral
+    |   expr=booleanLiteral
+    |   expr=blankNode
+    |   expr=var
     ;
 
-brackettedExpression
-    :   LPAREN expression RPAREN
+brackettedExpression returns [expr]
+    :   LPAREN expr=expression RPAREN
     ;
 
-builtInCall
-    :   STR LPAREN expression RPAREN
-    |   LANG LPAREN expression RPAREN
-    |   LANGMATCHES LPAREN expression COMMA expression RPAREN
-    |   DATATYPE LPAREN expression RPAREN
-    |   BOUND LPAREN var RPAREN
-    |   IS_IRI LPAREN expression RPAREN
-    |   IS_URI LPAREN expression RPAREN
-    |   IS_BLANK LPAREN expression RPAREN
-    |   IS_LITERAL LPAREN expression RPAREN
-    |   regexExpression
+builtInCall returns [expr]
+    :   STR LPAREN param=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   LANG LPAREN param=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   LANGMATCHES LPAREN param1=expression COMMA param2=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   DATATYPE LPAREN param=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   BOUND LPAREN param=var RPAREN
+        { expr = nodes.NotSupported(); }
+    |   IS_IRI LPAREN param=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   IS_URI LPAREN param=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   IS_BLANK LPAREN param=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   IS_LITERAL LPAREN param=expression RPAREN
+        { expr = nodes.NotSupported(); }
+    |   expr=regexExpression
     ;
 
-regexExpression
-    :   REGEX LPAREN expression COMMA expression ( COMMA expression )? RPAREN
+regexExpression returns [expr]
+    :   REGEX LPAREN expr1=expression
+        COMMA expr2=expression
+        ( COMMA expr3=expression )? RPAREN
+        { expr = nodes.NotSupported(); }
     ;
 
-iriRefOrFunction
-    :   iriRef ( argList )?
+iriRefOrFunction returns [expr]
+    :   expr=iriRef
+        (   { expr = nodes.FunctionCall(expr) }
+            argList[expr]
+        )?
     ;
 
-rdfLiteral
-    :   string ( LANGTAG | ( DCARET iriRef ) )?
+rdfLiteral returns [expr]
+    :   expr=string
+        (   lt:LANGTAG
+            { expr.literal.lang = lt.getText() }
+        |   ( DCARET uriNode=iriRef )
+            { expr.literal.typeUri = uriNode.uri }
+        )?
     ;
 
-numericLiteral
-    :   INTEGER | DECIMAL | DOUBLE
+numericLiteral returns [expr]
+    :   i:INTEGER
+        { expr = self.makeTypedLiteral(i.getText(), xsd.integer); \
+          expr.setExtentsFromToken(i, self)}
+    |   de:DECIMAL
+        { expr = self.makeTypedLiteral(de.getText(), xsd.decimal); \
+          expr.setExtentsFromToken(de, self)}
+    |   db:DOUBLE
+        { expr = self.makeTypedLiteral(db.getText(), xsd.double); \
+          expr.setExtentsFromToken(db, self)}
     ;
 
-booleanLiteral
-    :   TRUE | FALSE
+booleanLiteral returns [expr]
+    :   t:TRUE
+        { expr = self.makeTypedLiteral("true", xsd.boolean); \
+          expr.setExtentsFromToken(t, self)}
+    |   f:FALSE
+        { expr = self.makeTypedLiteral("false", xsd.boolean); \
+          expr.setExtentsFromToken(f, self)}
     ;
 
-string
-    :   STRING_LITERAL1
-    |   STRING_LITERAL2
-    |   STRING_LITERAL_LONG1
-    |   STRING_LITERAL_LONG2
+string returns [expr]
+    :   s1:STRING_LITERAL1
+        { expr = nodes.Literal(s1.getText()); \
+          expr.setExtentsFromToken(s1, self) }
+    |   s2:STRING_LITERAL2
+        { expr = nodes.Literal(s2.getText()); \
+          expr.setExtentsFromToken(s2, self) }
+    |   s1l:STRING_LITERAL_LONG1
+        { expr = nodes.Literal(s1l.getText()); \
+          expr.setExtentsFromToken(s1l, self) }
+    |   s2l:STRING_LITERAL_LONG2
+        { expr = nodes.Literal(s2l.getText()); \
+          expr.setExtentsFromToken(s2l, self) }
     ;
 
-iriRef
-    :   Q_IRI_REF | qname
+iriRef returns [expr]
+    :   iri:Q_IRI_REF
+        { expr = nodes.Uri(iri.getText()); \
+          expr.setExtentsFromToken(iri, self) }
+    |   expr=qname
     ;
 
-qname
-    :   QNAME | QNAME_NS
+qname returns [expr]
+    :   qn:QNAME
+        { expr = nodes.QName(qn.getText()); \
+          expr.setExtentsFromToken(qn, self) }
     ;
 
-blankNode
-    :   BLANK_NODE_LABEL | ANON
+blankNode returns [expr]
+    :   bnl:BLANK_NODE_LABEL
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsFromToken(bnl, self) }
+    |   an:ANON
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsFromToken(an, self) }
     ;
 
 
@@ -873,21 +995,21 @@ LBRACKET_OR_ANON
 
 protected
 STRING_LITERAL1  /* See STRING_LITERAL1_OR_LONG. */
-    :   '\''
+    :   '\''!
         ( ~('\u0027' | '\u005C' | '\u000A' | '\u000D')
         | ECHAR
         | UCHAR
         )*
-        '\''
+        '\''!
     ;
 
 protected
 STRING_LITERAL2  /* See STRING_LITERAL2_OR_LONG. */
-    :   '"'
+    :   '"'!
         (   ~( '\u0022' | '\u005C' | '\u000A' | '\u000D' )
         |   ECHAR
         |   UCHAR
-        )* '"'
+        )* '"'!
     ;
 
 protected

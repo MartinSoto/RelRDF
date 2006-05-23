@@ -38,8 +38,8 @@ baseDecl
     ;
 
 prefixDecl
-    :   PREFIX QNAME Q_IRI_REF
-        /* FIXME: Check for QNAME_NS */
+    :   PREFIX qn:QNAME uri:Q_IRI_REF
+        { self.defineLocalPrefix(qn, uri) }
     ;
 
 selectQuery returns [expr]
@@ -478,8 +478,7 @@ iriRef returns [expr]
 
 qname returns [expr]
     :   qn:QNAME
-        { expr = nodes.QName(qn.getText()); \
-          expr.setExtentsFromToken(qn, self) }
+        { expr = self.resolveQName(qn) }
     ;
 
 blankNode returns [expr]
@@ -510,10 +509,10 @@ options {
  */
 
 WS
-    :   (   ' '
-        |   '\t'
-        |   '\r'
-        |   '\n'
+    :   ( ' '
+        | '\t'
+        | '\n' { $newline }
+        | '\r' { $newline }
         )
         { $skip }
     ;

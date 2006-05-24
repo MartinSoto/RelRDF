@@ -82,98 +82,26 @@ class Incarnator(object):
         return ret
 
 
-class Scope(dict):
-    """A dictionary containing the variable bindings of a single
-    variable scope. A single variable may be bound to many relation
-    columns."""
-
-    __slots__ = ()
-
-    def addBinding(self, varName, valueExpr, dynTypeExpr):
-        """Bind a variable name with a pair of expressions, one
-        corresponding to its value and one corresponding to its
-        dynamic type. Many bindings can be done for a single variable
-        name."""
-        try:
-            varBindings = self[varName]
-        except KeyError:
-            varBindings = ([], [])
-            self[varName] = varBindings
-
-        varBindings[0].append(valueExpr)
-        varBindings[1].append(dynTypeExpr)
-
-    def getCondition(self):
-        """Returns a condition expression, stating the fact that all
-        bindings of a variable are equal."""
-        subconds = []
-
-        for valueExprs, dynTypeExprs in self.values():
-            # Both lists should have the same lenght.
-            if len(valueExprs) >= 2:
-                subconds.append(nodes.And(nodes.Equal(*dynTypeExprs),
-                                          nodes.Equal(*valueExprs)))
-
-        if len(subconds) == 0:
-            return None
-        elif len(subconds) == 1:
-            return subconds[0]
-        else:
-            return nodes.And(*subconds)
-
-    def variableValue(self, var):
-        try:
-            # Select an arbitrary binding.
-            return iter(self[var.name][0]).next()
-        except KeyError:
-            return var
-
-    def variableDynType(self, var):
-        try:
-            # Select an arbitrary binding.
-            return iter(self[var.name][1]).next()
-        except KeyError:
-            return var
-
-    def prettyPrint(self, stream=None, indent=0):
-        if stream == None:
-            stream = sys.stdout
-
-        stream.write('Bindings:\n')
-        pprint.pprint(self, stream, indent + 2)
-
-
 class PureRelationalTransformer(rewrite.ExpressionTransformer):
-    """An abstract expression transformer that transforms an
-    expression containing patterns into a pure relational expression."""
+    """An abstract expression transformer that transforms a decoupled
+    expression containing patterns into a pure relational expression.
+    """
 
-    __slots__ = ('scopeStack',)
+    __slots__ = ('varBindings',)
 
     def __init__(self):
         super(PureRelationalTransformer, self).__init__(prePrefix='pre')
 
-        # A stack of Scope objects, to handle nested variable
-        # scopes.
-        self.scopeStack = []
-
-    def pushScope(self):
-        """Push a new scope into the scope stack."""
-        self.scopeStack.append(Scope())
-
-    def popScope(self):
-        """Pop the topmost scope form the scope stack and return
-        it."""
-        return self.scopeStack.pop()
-
-    def currentScope(self):
-        """Return the current (topmost) scope."""
-        return self.scopeStack[-1]
-
+        # A dictionary for variable replacements. Variable names are
+        # associated to pairs consisting of the value and type
+        # replacement expressions.
+        self.varBindings = {}
 
     def matchPattern(self, pattern, replacementExpr, columnNames):
-        """Match a pattern with a replacement expression and produce a
+        """Match a pattern with a replacement expression and return a
         patern-free relational expression that delivers the values the
-        pattern would deliver.
+        pattern would deliver. Additionally, bind variables to
+        appropriate expressions so that they can be substituted.
 
         `pattern`: The expression to be interpreted as a pattern. Its
         subexpressions should be either variables, or expressions
@@ -204,16 +132,16 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
                                                         columnName)
 
             if isinstance(component, nodes.Var):
-                self.currentScope().addBinding(component.name,
-                                               valueExpr,
-                                               dynTypeExpr)
+                self.varBindings[component.name] = (valueExpr, dynTypeExpr)
             elif isinstance(component, nodes.Joker):
                 pass
             else:
-                conds.append(nodes.And(nodes.Equal(self.dynTypeExpr(component),
-                                                   dynTypeExpr),
-                                       nodes.Equal(component,
-                                                   valueExpr)))
+                conds.append(\
+                    nodes.And(nodes.Equal(\
+                                  self.mapTypeExpr(component.staticType),
+                                  dynTypeExpr),
+                              nodes.Equal(component,
+                                          valueExpr)))
 
         if conds == []:
             return coreExpr
@@ -229,28 +157,17 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         return expr
 
     def preMapResult(self, expr):
-        # Create a separate scope for the expression.
-        self.pushScope()
-
-        # Process the relation subexpression first.
+        # Process the relation subexpression before the mapping
+        # subexpressions.
         expr[0] = self.process(expr[0])
-
-        # Add the binding condition if necessary.
-        cond = self.currentScope().getCondition()
-        if cond != None:
-            expr[0] = nodes.Select(expr[0], cond)
-
-        # Now process the mapping expressions.
         expr[1:] = [self.process(mappingExpr)
                     for mappingExpr in expr[1:]]
-
-        # Remove the scope.
-        scope = self.popScope()
 
         return expr
 
     def Var(self, expr):
-        return self.currentScope().variableValue(expr).copy()
+        # Substitute the variable.
+        return self.varBindings[expr.name][0].copy()
 
     def preStatementPattern(self, expr):
         # Don't process the subexpressions.
@@ -264,10 +181,31 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         return expr
 
     def preDynType(self, expr):
-        return (self.dynTypeExpr(expr[0]),)
+        if isinstance(expr[0], nodes.Var):
+            # Expand the variable's type.
+            return (self.varBindings[expr[0].name][1].copy(),)
+        else:
+            repl = self.mapTypeExpr(expr[0].staticType)
+            if repl is not None:
+                return (repl,)
+            else:
+                if hasattr(expr, 'id'):
+                    assert False, "Cannot determine type from [[%s]]" % expr.id
+                else:
+                    assert False, "Cannot determine type"
 
     def DynType(self, expr, subexpr):
         return subexpr
+
+    def Type(self, expr):
+        repl = self.mapTypeExpr(expr.typeExpr)
+        if repl is not None:
+            return repl
+        else:
+            if hasattr(expr, 'id'):
+                assert False, "Cannot determine type from [[%s]]" % expr.id
+            else:
+                assert False, "Cannot determine type"
 
 
 class MatchReifTransformer(PureRelationalTransformer):

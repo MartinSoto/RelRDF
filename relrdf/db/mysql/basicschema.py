@@ -2,7 +2,7 @@ from relrdf import parserfactory, commonns
 
 from relrdf.typecheck import dynamic
 from relrdf.expression import uri, blanknode, literal, simplify, nodes, build
-from relrdf.sqlmap import transform, valueref, sqlnodes, emit
+from relrdf.sqlmap import transform, valueref, decouple, sqlnodes, emit
 
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
      ResourceType, RdfNodeType, resourceType, rdfNodeType
@@ -39,9 +39,7 @@ class BasicMapper(transform.PureRelationalTransformer):
     """A base mapper for the MySQL basic schema. It handles the
     mapping of type expressions."""
 
-    def dynTypeExpr(self, expr):
-        typeExpr = expr.staticType
-
+    def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
             # FIXME:Search for the actual type id.
             return nodes.Literal(TYPE_ID_LITERAL)
@@ -49,29 +47,11 @@ class BasicMapper(transform.PureRelationalTransformer):
             return nodes.Literal(TYPE_ID_BLANKNODE)
         elif isinstance(typeExpr, ResourceType):
             return nodes.Literal(TYPE_ID_RESOURCE)
-        elif isinstance(expr, nodes.Var):
-            # FIXME: Eventually, we need recursive dynamic type
-            # expression creation.
-            return self.currentScope().variableDynType(expr).copy()
         else:
             if hasattr(expr, 'id'):
                 assert False, "Cannot determine type from [[%s]]" % expr.id
             else:
                 assert False, "Cannot determine type"
-
-    def Type(self, expr):
-        if isinstance(expr.typeExpr, LiteralType):
-            # FIXME:Search for the actual type id.
-            return nodes.Literal(TYPE_ID_LITERAL)
-        elif isinstance(expr.typeExpr, BlankNodeType):
-            return nodes.Literal(TYPE_ID_BLANKNODE)
-        elif isinstance(expr.typeExpr, ResourceType):
-            return nodes.Literal(TYPE_ID_RESOURCE)
-        else:
-            if hasattr(expr, 'id'):
-                assert False, "Cannot map type for [[%s]]" % expr.id
-            else:
-                assert False, "Cannot map type"
 
 
 class BasicSingleVersionMapper(BasicMapper):
@@ -525,6 +505,10 @@ class Model(object):
         expr = parser.parse(queryText, fileName)
 
         # Convert the parsed expression to SQL:
+
+        # Decouple the patterns.
+        transf = decouple.PatternDecoupler()
+        expr = transf.process(expr)
 
         # Add explicit type columns to results.
         transf = transform.ExplicitTypeTransformer()

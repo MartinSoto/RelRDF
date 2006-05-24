@@ -6,7 +6,7 @@ from typeexpr import commonType, LiteralType, genericLiteralType, \
 
 class DynTypeCheckTransl(rewrite.ExpressionTransformer):
     """An expression translator that adds generic dynamic type checks
-    to a relational expression."""
+    to a decoupled relational expression."""
 
     __slots__ = ()
 

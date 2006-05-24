@@ -9,8 +9,7 @@ from relrdf.expression import rewrite
 
 from relrdf import typecheck
 
-import SerQLLexer
-import SerQLParser
+import SerQLLexer, SerQLParser, decouple
 
 
 class ParseEnvironment(object):
@@ -59,5 +58,9 @@ class ParseEnvironment(object):
 
         # Type check the expression.
         expr = typecheck.typeCheck(expr)
+
+        # Decouple the patterns.
+        transf = decouple.PatternDecoupler()
+        expr = transf.process(expr)
 
         return expr

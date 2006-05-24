@@ -2,7 +2,7 @@ from relrdf import parserfactory, commonns
 
 from relrdf.typecheck import dynamic
 from relrdf.expression import uri, blanknode, literal, simplify, nodes, build
-from relrdf.sqlmap import transform, valueref, decouple, sqlnodes, emit
+from relrdf.sqlmap import transform, valueref, sqlnodes, emit
 
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
      ResourceType, RdfNodeType, resourceType, rdfNodeType
@@ -505,10 +505,6 @@ class Model(object):
         expr = parser.parse(queryText, fileName)
 
         # Convert the parsed expression to SQL:
-
-        # Decouple the patterns.
-        transf = decouple.PatternDecoupler()
-        expr = transf.process(expr)
 
         # Add explicit type columns to results.
         transf = transform.ExplicitTypeTransformer()

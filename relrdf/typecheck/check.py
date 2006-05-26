@@ -1,15 +1,12 @@
 from relrdf.commonns import xsd
 
-from relrdf.error import TypeCheckError
 from relrdf.expression import nodes, rewrite
 
 from typeexpr import nullType, rdfNodeType, LiteralType, \
      booleanLiteralType, genericLiteralType, ResourceType, \
      resourceType, RelationType
 
-
-def error(expr, msg):
-    raise TypeCheckError(extents=expr.getExtents(), msg=msg)
+from typeexpr import error
 
 
 class TypeChecker(rewrite.ExpressionProcessor):
@@ -48,10 +45,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
         typeExpr = self.scopeStack[-1].getColumnType(varName)
 
-        if nested and typeExpr is None:
+        if nested and typeExpr == nullType:
             for scope in reversed(self.scopeStack[:-1]):
                 typeExpr = scope.getColumnType(varName)
-                if typeExpr is not None:
+                if typeExpr != nullType:
                     return typeExpr
 
         return typeExpr
@@ -152,18 +149,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
         typeExpr = RelationType()
 
         for subexpr in expr:
-            subexprType = subexpr.staticType
-            for columnName in subexprType.getColumnNames():
-                if typeExpr.hasColumn(columnName):
-                    columnType = typeExpr.getColumnType(columnName). \
-                                 intersectType(subexprType. \
-                                               getColumnType(columnName))
-                    if columnType == nullType:
-                        error(expr, _("Incompatible types for variable '%s'")
-                              % columnName)
-                else:
-                    columnType = subexprType.getColumnType(columnName)
-                typeExpr.addColumn(columnName, columnType)
+            typeExpr.joinType(subexpr.staticType)
 
         expr.staticType = typeExpr
 

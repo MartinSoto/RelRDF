@@ -1,4 +1,9 @@
 from relrdf.commonns import xsd
+from relrdf.error import TypeCheckError
+
+
+def error(expr, msg):
+    raise TypeCheckError(extents=expr.getExtents(), msg=msg)
 
 
 class TypeNode(object):
@@ -91,7 +96,7 @@ class LiteralType(TypeNode):
 
     def isSubtype(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
-            if typeExpr.typeUri == None:
+            if typeExpr.typeUri is None:
                 return True
             else:
                 return self.typeUri == typeExpr.typeUri
@@ -201,6 +206,22 @@ class RelationType(TypeNode):
             common.addColumn(colName, colCommon)
 
         return common
+
+    def joinType(self, relTypeExpr):
+        """Add the columns in `relTypeExpr` to `self`. If columns with
+        the same name are present in both types, a single column will
+        be created with the intersection type of both columns."""
+        for columnName in relTypeExpr.getColumnNames():
+            if self.hasColumn(columnName):
+                columnType = self.getColumnType(columnName). \
+                             intersectType(relTypeExpr. \
+                                           getColumnType(columnName))
+                if columnType == nullType:
+                    error(expr, _("Incompatible types for variable '%s'")
+                          % columnName)
+            else:
+                columnType = relTypeExpr.getColumnType(columnName)
+            self.addColumn(columnName, columnType)
 
     def __str__(self):
         cols = []

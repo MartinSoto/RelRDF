@@ -169,7 +169,7 @@ class RelationType(TypeNode):
         try:
             return self.dict[columnName]
         except KeyError:
-            return None
+            return nullType
 
     def hasColumn(self, columnName):
         """Return `True` iff `self` has a column named `columnName`."""

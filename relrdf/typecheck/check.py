@@ -26,6 +26,37 @@ class TypeChecker(rewrite.ExpressionProcessor):
         # Select and MapResult nodes.
         self.scopeStack = []
 
+    def createScope(self, relType):
+        """Create a new variable scope on top of the stack,
+        corresponding to the relation type `relType`."""
+        self.scopeStack.append(relType)
+
+    def closeScope(self):
+        """Close (destroy) the topmost scope in the stack and return
+        its associated relation type."""
+        return self.scopeStack.pop()
+
+    def lookUpVar(self, varName, nested=False):
+        """Search for a variable named `varName` in the scope stack
+        and return its type, or `nullType` if not found. If `nested`
+        is `False` the variable will be searched for only in the
+        topmost scope. Otherwise, the search will continue down the
+        stack until one scope is found containing the variable or the
+        bottom is reached."""
+        if len(self.scopeStack) == 0:
+            return nullType
+
+        typeExpr = self.scopeStack[-1].getColumnType(varName)
+
+        if nested and typeExpr is None:
+            for scope in reversed(self.scopeStack[:-1]):
+                typeExpr = scope.getColumnType(varName)
+                if typeExpr is not None:
+                    return typeExpr
+
+        return typeExpr
+
+
     def Uri(self, expr):
         expr.staticType = resourceType
 
@@ -36,10 +67,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
             expr.staticType = genericLiteralType
 
     def Var(self, expr):
-        if len(self.scopeStack) > 0:
-            typeExpr = self.scopeStack[-1].getColumnType(expr.name)
-            if typeExpr is not None:
-                expr.staticType = typeExpr
+        return self.lookUpVar(expr.name)
 
     def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()
@@ -143,13 +171,13 @@ class TypeChecker(rewrite.ExpressionProcessor):
         # Process the relation subexpression and create a scope from
         # its type.
         self.process(expr[0])
-        self.scopeStack.append(expr[0].staticType)
+        self.createScope(expr[0].staticType)
 
         # Now process the condition.
         self.process(expr[1])
 
         # Remove the scope.
-        self.scopeStack.pop()
+        self.closeScope()
 
         return (None,) * len(expr)
 
@@ -163,14 +191,14 @@ class TypeChecker(rewrite.ExpressionProcessor):
         # Process the relation subexpression and create a scope from
         # its type.
         self.process(expr[0])
-        self.scopeStack.append(expr[0].staticType)
+        self.createScope(expr[0].staticType)
 
         # Now process the mapping expressions.
         for mappingExpr in expr[1:]:
             self.process(mappingExpr)
 
         # Remove the scope.
-        self.scopeStack.pop()
+        self.closeScope()
 
         return (None,) * len(expr)
 

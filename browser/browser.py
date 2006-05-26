@@ -124,7 +124,8 @@ class MainWindow(UiManagerDelegate):
         self.maxHistorySize = 100
 
         # We set, but do not execute an initial query.
-        self._addToHistory("select c, s, p, o\nfrom context c {s} p {o}\n")
+        self._addToHistory("select ?g ?s ?p ?o\n"
+                           "where { graph ?g {?s ?p ?o} }\n")
 
         # Initialize the results status bar.
         self._statusInit()
@@ -175,7 +176,7 @@ class MainWindow(UiManagerDelegate):
 
         # Run the query.
         try:
-            results = self.model.query('SerQL', queryString)
+            results = self.model.query('SPARQL', queryString)
         except relrdf.PositionError, e:
             self.queryEditor.markErrorExtents(e.extents)
             self.showMessage("Error: %s" % e.msg)

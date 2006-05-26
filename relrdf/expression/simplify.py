@@ -2,6 +2,17 @@ import nodes
 import rewrite
 
 
+def reduceUnary(expr, default=None):
+    """Reduce a expression to the value of `default` if it has no
+    subexpression, and to its subexpression if it has only
+    one. Otherwise return the expression unmodified."""
+    if len(expr) == 0:
+        return default
+    elif len(expr) == 1:
+        return expr[0]
+    else:
+        return expr
+
 def flattenAssoc(nodeType, expr):
     modif = False
     i = 0

@@ -1,4 +1,4 @@
-from relrdf.expression import nodes, rewrite, util
+from relrdf.expression import nodes, rewrite, simplify, util
 from relrdf.typecheck import typeexpr
 
 import spqnodes
@@ -139,25 +139,44 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     def preGraphPattern(self, expr):
         # Subexpressions must be processed in a particular order:
 
-        # Triple patterns first.
-        triplePatterns = nodes.Product()
+        # First simple triple patterns...
         for i, subexpr in enumerate(expr):
             if isinstance(subexpr, nodes.StatementPattern):
-                triplePatterns.append(self.process(expr[i]))
+                expr[i] = self.process(subexpr)
 
-        if len(triplePatterns) == 0:
-            triplePatterns = None
-        elif len(triplePatterns) == 1:
-            triplePatterns = triplePatterns[0]
+        # ...then, everything else except filters ...
+        for i, subexpr in enumerate(expr):
+            if not isinstance(subexpr, spqnodes.Filter) and \
+               not isinstance(subexpr, nodes.StatementPattern) :
+                expr[i] = self.process(subexpr)
 
-        expr = triplePatterns
+        # ... and, filters finally.
+        for i, subexpr in enumerate(expr):
+            if isinstance(subexpr, spqnodes.Filter):
+                expr[i] = self.process(subexpr)
 
-        # We return a single "subexpression", that gets passed along
-        # by the GraphPattern method.
-        return (expr,)
+        return expr
 
-    def GraphPattern(self, expr, transfExpr):
-        return transfExpr
+    def GraphPattern(self, expr, *subexprs):
+        triplePatterns = nodes.Product()
+        for subexpr in subexprs:
+            if isinstance(subexpr, nodes.StatementPattern):
+                triplePatterns.append(subexpr)
+        expr = simplify.reduceUnary(triplePatterns)
+
+        assert expr is not None
+
+        filterExpr = nodes.And()
+        for subexpr in subexprs:
+            if isinstance(subexpr, spqnodes.Filter):
+                # Get rid of the filter node.
+                filterExpr.append(subexpr[0])
+        filterExpr = simplify.reduceUnary(filterExpr)
+
+        if filterExpr is not None:
+            expr = nodes.Select(expr, filterExpr)
+
+        return expr
 
     def preStatementPattern(self, expr):
         # Don't process the subexpressions.

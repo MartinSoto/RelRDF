@@ -6,11 +6,11 @@ from relrdf import error
 
 from relrdf.expression import nodes, rewrite, simplify
 
-from relrdf import typecheck
 
 import SparqlLexer
 import SparqlParser
 
+import typecheck
 import decouple, spqnodes
 
 
@@ -86,12 +86,13 @@ class ParseEnvironment(object):
         # Simplify the tree.
         expr = simplifyParseTree(expr)
 
+        # Type check the expression, using the specialized SPARQL type
+        # checker.
+        expr = typecheck.sparqlTypeCheck(expr)
+
         # Decouple the patterns and translate special SPARQL
         # constructs.
         transf = decouple.PatternDecoupler()
         expr = transf.process(expr)
-
-        # Type check the expression.
-        expr = typecheck.typeCheck(expr)
 
         return expr

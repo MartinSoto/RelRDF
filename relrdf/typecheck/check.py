@@ -67,7 +67,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
             expr.staticType = genericLiteralType
 
     def Var(self, expr):
-        return self.lookUpVar(expr.name)
+        expr.staticType = self.lookUpVar(expr.name)
 
     def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()

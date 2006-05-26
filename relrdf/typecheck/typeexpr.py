@@ -159,6 +159,7 @@ class RelationType(TypeNode):
         self.dict = {}
 
     def addColumn(self, name, typeExpr):
+        assert typeExpr is not None
         self.dict[name] = typeExpr
 
     def getColumnNames(self):

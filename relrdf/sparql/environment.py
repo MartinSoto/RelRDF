@@ -4,13 +4,39 @@ import antlr
 
 from relrdf import error
 
-from relrdf.expression import nodes
-from relrdf.expression import rewrite
+from relrdf.expression import nodes, rewrite, simplify
 
 from relrdf import typecheck
 
 import SparqlLexer
 import SparqlParser
+
+import decouple, spqnodes
+
+
+def simplifyNode(expr, subexprsModif):
+    modif = True
+    while modif:
+        modif = False
+
+        if isinstance(expr, spqnodes.GraphPattern):
+            expr, m = simplify.flattenAssoc(spqnodes.GraphPattern, expr)
+            modif = modif or m
+
+        subexprsModif = subexprsModif or modif
+    
+    return expr, subexprsModif
+
+def simplifyParseTree(expr):
+    """Perform early simplification on a SPARQL parse tree."""
+
+    modif = True
+    while modif:
+        modif = False
+        expr, m = rewrite.exprApply(expr, postOp=simplifyNode)
+        modif = modif or m
+
+    return expr
 
 
 class ParseEnvironment(object):
@@ -57,7 +83,15 @@ class ParseEnvironment(object):
             else:
                 raise e
 
+        # Simplify the tree.
+        expr = simplifyParseTree(expr)
+
+        # Decouple the patterns and translate special SPARQL
+        # constructs.
+        transf = decouple.PatternDecoupler()
+        expr = transf.process(expr)
+
         # Type check the expression.
-        #expr = typecheck.typeCheck(expr)
+        expr = typecheck.typeCheck(expr)
 
         return expr

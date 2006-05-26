@@ -12,31 +12,31 @@ class TypeNode(object):
     def isSubtype(self, typeExpr):
         """Return `True` iff `self` is a subtype of `typeExpr`."""
         curType = self
-        while curType != None and curType != typeExpr:
+        while curType is not None and curType != typeExpr:
             curType = curType.supertype
-        return curType != None
+        return curType is not None
 
     def intersectType(self, typeExpr):
         """Return a type expression corresponding to the most specific
-        type between `self` and `typeExpr`, or `None` if they don't
-        belong to the same line of the type hierarchy."""
+        type between `self` and `typeExpr`, or `nullType` if they
+        don't belong to the same line of the type hierarchy."""
         if self.isSubtype(typeExpr):
             return self
         elif typeExpr.isSubtype(self):
             return typeExpr
         else:
-            return None        
+            return nullType
 
     def generalizeType(self, typeExpr):
         """Return a type expression representing the most specific
         type that is a supertype of `self` and `typeExpr`, or
-        `None` if no such type exists."""
+        `nullType` if no such type exists."""
         if self.isSubtype(typeExpr):
             return typeExpr
         elif typeExpr.isSubtype(self):
             return self
         else:
-            return None
+            return nullType
 
     def __str__(self):
         return self.__class__.__name__
@@ -45,15 +45,25 @@ class TypeNode(object):
 def commonType(*exprs):
     """Return a type expression representing the most specific type
     that is a supertype of the types of all elements in `exprs`, or
-    `None` if no such type exists."""
+    `nullType` if no such type exists."""
     if len(exprs) == 0:
-        return None
+        return nullType
 
     genType = exprs[0].staticType
     for expr in exprs[1:]:
         genType = genType.generalizeType(expr.staticType)
 
     return genType
+
+
+class NullType(TypeNode):
+    """A type node representing the null type. This type is used when
+    no other type can be determined for an expression, for example,
+    when there are unbound variables in the expression."""
+
+    __slots__ = ()
+
+nullType = NullType()
 
 
 class RdfNodeType(TypeNode):
@@ -179,13 +189,13 @@ class RelationType(TypeNode):
     def generalizeType(self, typeExpr):
         if not isinstance(typeExpr, RelationType) or \
            self.getColumnNames() != typeExpr.getColumnNames():
-            return None
+            return nullType
 
         common = RelationType()
         for colName, colType in self.dict.items():
             colCommon = colType.generalizeType(typeExpr.getColumnType(colName))
-            if colCommon is None:
-                return None
+            if colCommon == nullType:
+                return nullType
 
             common.addColumn(colName, colCommon)
 

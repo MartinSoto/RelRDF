@@ -3,8 +3,9 @@ from relrdf.commonns import xsd
 from relrdf.error import TypeCheckError
 from relrdf.expression import nodes, rewrite
 
-from typeexpr import rdfNodeType, LiteralType, booleanLiteralType, \
-     genericLiteralType, ResourceType, resourceType, RelationType
+from typeexpr import nullType, rdfNodeType, LiteralType, \
+     booleanLiteralType, genericLiteralType, ResourceType, \
+     resourceType, RelationType
 
 
 def error(expr, msg):
@@ -129,7 +130,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
                     columnType = typeExpr.getColumnType(columnName). \
                                  intersectType(subexprType. \
                                                getColumnType(columnName))
-                    if columnType is None:
+                    if columnType == nullType:
                         error(expr, _("Incompatible types for variable '%s'")
                               % columnName)
                 else:
@@ -183,7 +184,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
         typeExpr = expr[0].staticType
         for subexpr in expr[1:]:
             typeExpr.generalizeType(subexpr.staticType)
-            if typeExpr is None:
+            if typeExpr == nullType:
                 error(expr, _("Incompatible types in set operation"))
         expr.staticType = typeExpr
 

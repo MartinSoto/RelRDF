@@ -191,4 +191,8 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
         return expr
 
     def Var(self, expr):
-        return self.scopeStack.variableRepl(expr.name).copy()
+        try:
+            return self.scopeStack.variableRepl(expr.name).copy()
+        except KeyError:
+            return nodes.Null()
+

@@ -48,10 +48,7 @@ class BasicMapper(transform.PureRelationalTransformer):
         elif isinstance(typeExpr, ResourceType):
             return nodes.Literal(TYPE_ID_RESOURCE)
         else:
-            if hasattr(expr, 'id'):
-                assert False, "Cannot determine type from [[%s]]" % expr.id
-            else:
-                assert False, "Cannot determine type"
+            assert False, "Cannot determine type"
 
 
 class BasicSingleVersionMapper(BasicMapper):

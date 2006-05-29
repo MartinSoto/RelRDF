@@ -7,6 +7,9 @@ from relrdf.expression import rewrite
 class SqlEmitter(rewrite.ExpressionProcessor):
     __slots__ = ()
 
+    def Null(self, expr):
+        return 'NULL'
+
     def Uri(self, expr):
         return '"%s"' % expr.uri
 

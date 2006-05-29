@@ -181,7 +181,10 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         return expr
 
     def preDynType(self, expr):
-        if isinstance(expr[0], nodes.Var):
+        if isinstance(expr[0], nodes.Null):
+            # Dynamic type from Null is defined as Null.
+            return (nodes.Null(),)
+        elif isinstance(expr[0], nodes.Var):
             # Expand the variable's type.
             return (self.varBindings[expr[0].name][1].copy(),)
         else:

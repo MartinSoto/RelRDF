@@ -432,6 +432,15 @@ class NotSupported(ExpressionNode):
     __slots__ = ()
 
 
+class Null(ExpressionNode):
+    """An expression node representing a null value."""
+
+    __slots__ = ('uri',)
+
+    def __init__(self):
+        super(Null, self).__init__()
+
+
 class Uri(ExpressionNode):
     """An expression node representing a URI reference."""
 

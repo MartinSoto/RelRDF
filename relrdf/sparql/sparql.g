@@ -22,9 +22,9 @@ options {
 query returns [expr]
     :   prolog
         (   expr=selectQuery
-        |   constructQuery
-        |   describeQuery
-        |   askQuery
+        |   expr=constructQuery
+        |   expr=describeQuery
+        |   expr=askQuery
         )
     ;
 
@@ -43,7 +43,7 @@ prefixDecl
     ;
 
 selectQuery returns [expr]
-    :   SELECT
+    :   sl:SELECT
         ( DISTINCT )?
         (   { names, mappingExprs = [], [] }
             selectColumnList[names, mappingExprs]
@@ -51,8 +51,9 @@ selectQuery returns [expr]
         )
         ( datasetClause )*
         where=whereClause
+        { expr = nodes.MapResult(names, where, *mappingExprs); \
+          expr.setExtentsStartFromToken(sl, self); }
         solutionModifier
-        { expr = nodes.MapResult(names, where, *mappingExprs) }
     ;
 
 /* RelRDF extension. */
@@ -74,26 +75,32 @@ columnSpec[names, mappingExprs]
         { mappingExprs.append(expr) }
     ;
 
-constructQuery
-    :   CONSTRUCT
+constructQuery returns [expr]
+    :   ct:CONSTRUCT
         constructTemplate
         ( datasetClause )*
         where=whereClause
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(ct, self); }
         solutionModifier
     ;
 
-describeQuery
-    :   DESCRIBE
-        ( ( varOrIriRef )+ | TIMES )
+describeQuery returns [expr]
+    :   dc:DESCRIBE
+        ( ( iriRef=varOrIriRef )+ | TIMES )
         ( datasetClause )*
         ( where=whereClause )?
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(dc, self); }
         solutionModifier
     ;
 
-askQuery
-    :   ASK
+askQuery returns [expr]
+    :   ask:ASK
         ( datasetClause )*
         where=whereClause
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(ask, self); }
     ;
 
 datasetClause
@@ -104,7 +111,7 @@ datasetClause
     ;
 
 defaultGraphClause
-    :   sourceSelector
+    :   selector=sourceSelector
     ;
 
 namedGraphClause
@@ -131,8 +138,8 @@ orderClause
     ;
 
 orderCondition
-    :   ( ( ASC | DESC ) brackettedExpression )
-    |   ( functionCall | var | brackettedExpression )
+    :   ( ( ASC | DESC ) bexpr1=brackettedExpression )
+    |   ( func=functionCall | var=var | bexpr2=brackettedExpression )
     ;
 
 limitClause
@@ -214,16 +221,19 @@ functionCall returns [expr]
     :   name=iriRef
         { expr = nodes.FunctionCall(name) }
         argList[expr]
+        { expr = nodes.NotSupported(expr) }
     ;
 
 argList[funcCall]
-    :   (   NIL
+    :   (   nil:NIL
+            { funcCall.setExtentsEndFromToken(nil) }
         |   LPAREN param=expression
             { funcCall.append(param) }
             (    COMMA param=expression
                 { funcCall.append(param) }
             )*
-            RPAREN
+            rp:RPAREN
+            { funcCall.setExtentsEndFromToken(rp) }
         )
     ;
 
@@ -232,7 +242,10 @@ constructTemplate
     ;
 
 constructTriples
-    :   ( triplesSameSubject ( DOT constructTriples )? )?
+    :   { expr = spqnodes.GraphPattern() }
+        (   triplesSameSubject[nodes.Joker(), expr]
+            ( DOT constructTriples )?
+        )?
     ;
 
 triplesSameSubject[graph, pattern]
@@ -269,13 +282,13 @@ verb returns [expr]
 
 triplesNode returns [expr]
     :   expr=collection
-    |   expr=blankNodePropertyList
+    /*|   expr=blankNodePropertyList*/
     ;
 
-blankNodePropertyList returns [expr]
+/*blankNodePropertyList returns [expr]
     :   LBRACKET propertyListNotEmpty RBRACKET
         { expr = nodes.NotSupported(); }
-    ;
+    ;*/
 
 collection returns [expr]
     :   lp:LPAREN ( node=graphNode )+ rp:RPAREN
@@ -318,13 +331,14 @@ graphTerm returns [expr]
     :   expr=iriRef
     |   expr=rdfLiteral
     |   (   MINUS expr=numericLiteral
-            { expr = nodes.NotSupported() }
+            { expr = nodes.NotSupported(expr) }
         |   ( PLUS )? expr=numericLiteral
         )
     |   expr=booleanLiteral
     |   expr=blankNode
-    |   NIL
-        { expr = nodes.NotSupported() }
+    |   nil:NIL
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsFromToken(nil, self) }
     ;
 
 expression returns [expr]
@@ -373,28 +387,31 @@ numericExpression returns [expr]
 additiveExpression returns [expr]
     :   expr=multiplicativeExpression
         (   PLUS mult=multiplicativeExpression
-            { expr = nodes.NotSupported(); }
+            { expr = nodes.NotSupported(expr, mult); }
         |   MINUS mult=multiplicativeExpression
-            { expr = nodes.NotSupported(); }
+            { expr = nodes.NotSupported(expr, mult); }
         )*
     ;
 
 multiplicativeExpression returns [expr]
     :   expr=unaryExpression
         (   TIMES unary=unaryExpression
-            { expr = nodes.NotSupported(); }
+            { expr = nodes.NotSupported(expr, unary); }
         |   DIV unary=unaryExpression
-            { expr = nodes.NotSupported(); }
+            { expr = nodes.NotSupported(expr, unary); }
         )*
     ;
 
 unaryExpression returns [expr]
-    :   OP_NOT prim=primaryExpression
-        { expr = nodes.NotSupported(); }
-    |   PLUS prim=primaryExpression
-        { expr = nodes.NotSupported(); }
-    |   MINUS prim=primaryExpression
-        { expr = nodes.NotSupported(); }
+    :   on:OP_NOT prim=primaryExpression
+        { expr = nodes.NotSupported(prim); \
+          expr.setExtentsStartFromToken(on, self); }
+    |   plus:PLUS prim=primaryExpression
+        { expr = nodes.NotSupported(prim); \
+          expr.setExtentsStartFromToken(plus, self); }
+    |   minus:MINUS prim=primaryExpression
+        { expr = nodes.NotSupported(prim); \
+          expr.setExtentsStartFromToken(minus, self); }
     |   expr=primaryExpression
     ;
 
@@ -414,38 +431,60 @@ brackettedExpression returns [expr]
     ;
 
 builtInCall returns [expr]
-    :   STR LPAREN param=expression RPAREN
-        { expr = nodes.NotSupported(); }
-    |   LANG LPAREN param=expression RPAREN
-        { expr = nodes.NotSupported(); }
-    |   LANGMATCHES LPAREN param1=expression COMMA param2=expression RPAREN
-        { expr = nodes.NotSupported(); }
-    |   DATATYPE LPAREN param=expression RPAREN
-        { expr = nodes.NotSupported(); }
-    |   BOUND LPAREN param=var RPAREN
-        { expr = nodes.NotSupported(); }
-    |   IS_IRI LPAREN param=expression RPAREN
-        { expr = nodes.NotSupported(); }
-    |   IS_URI LPAREN param=expression RPAREN
-        { expr = nodes.NotSupported(); }
-    |   IS_BLANK LPAREN param=expression RPAREN
-        { expr = nodes.NotSupported(); }
-    |   IS_LITERAL LPAREN param=expression RPAREN
-        { expr = nodes.NotSupported(); }
+    :   str:STR LPAREN param=expression rp1:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(str, self); \
+          expr.setExtentsEndFromToken(rp1); }
+    |   lang:LANG LPAREN param=expression rp2:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(lang, self); \
+          expr.setExtentsEndFromToken(rp2); }
+    |   lm:LANGMATCHES
+        LPAREN param1=expression COMMA param2=expression rp3:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(lm, self); \
+          expr.setExtentsEndFromToken(rp3); }
+    |   dt:DATATYPE LPAREN param=expression rp4:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(dt, self); \
+          expr.setExtentsEndFromToken(rp4); }
+    |   bd:BOUND LPAREN param=var rp5:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(bd, self); \
+          expr.setExtentsEndFromToken(rp5); }
+    |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(ii, self); \
+          expr.setExtentsEndFromToken(rp6); }
+    |   iu:IS_URI LPAREN param=expression rp7:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(iu, self); \
+          expr.setExtentsEndFromToken(rp7); }
+    |   ib:IS_BLANK LPAREN param=expression rp8:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(ib, self); \
+          expr.setExtentsEndFromToken(rp8); }
+    |   il:IS_LITERAL LPAREN param=expression rp9:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(il, self); \
+          expr.setExtentsEndFromToken(rp9); }
     |   expr=regexExpression
     ;
 
 regexExpression returns [expr]
-    :   REGEX LPAREN expr1=expression
+    :   rg:REGEX LPAREN expr1=expression
         COMMA expr2=expression
-        ( COMMA expr3=expression )? RPAREN
-        { expr = nodes.NotSupported(); }
+        ( COMMA expr3=expression )? rp:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(rg, self); \
+          expr.setExtentsEndFromToken(rp); }
     ;
 
 iriRefOrFunction returns [expr]
     :   expr=iriRef
         (   { expr = nodes.FunctionCall(expr) }
             argList[expr]
+            { expr = nodes.NotSupported(expr) }
         )?
     ;
 

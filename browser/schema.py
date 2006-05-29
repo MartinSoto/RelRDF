@@ -112,15 +112,15 @@ class RdfSchema(object):
         self.classes[rdfs.Resource] = RdfClass(rdfs.Resource)
         self.classes[rdfs.Literal] = RdfClass(rdfs.Literal)
 
-        for uri, in model.query('SerQL',
-                                """select class
-                                from {class} rdf:type {rdfs:Class}"""):
+        for uri, in model.query('SPARQL',
+                                """select ?class
+                                where {?class rdf:type rdfs:Class}"""):
            self.classes[uri] = RdfClass(uri)
 
         for uri, nodeSub in \
-                model.query('SerQL',
-                            """select class, subclass
-                            from {subclass} rdfs:subClassOf {class}"""):
+                model.query('SPARQL',
+                            """select ?class ?subclass
+                            where {?subclass rdfs:subClassOf ?class}"""):
             try:
                 cls = self.classes[uri]
                 clsSub = self.classes[nodeSub]
@@ -136,15 +136,15 @@ class RdfSchema(object):
         # Build a table containing all defined properties.
         self.properties = {}
 
-        for uri, in model.query('SerQL',
-                                 """select prop
-                                 from {prop} rdf:type {rdf:Property}"""):
+        for uri, in model.query('SPARQL',
+                                 """select ?prop
+                                 where {?prop rdf:type rdf:Property}"""):
            self.properties[uri] = RdfProperty(uri)
 
         for nodeProp, nodeCls in \
-                model.query('SerQL',
-                            """select prop, class
-                            from {prop} rdfs:domain {class}"""):
+                model.query('SPARQL',
+                            """select ?prop ?class
+                            where {?prop rdfs:domain ?class}"""):
             try:
                 prop = self.properties[nodeProp]
 
@@ -158,9 +158,9 @@ class RdfSchema(object):
             prop.addToDomain(cls)
 
         for nodeProp, nodeCls in \
-                model.query('SerQL',
-                            """select prop, class
-                            from {prop} rdfs:range {class}"""):
+                model.query('SPARQL',
+                            """select ?prop ?class
+                            where {?prop rdfs:range ?class}"""):
             try:
                 prop = self.properties[nodeProp]
 

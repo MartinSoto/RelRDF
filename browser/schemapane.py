@@ -147,5 +147,5 @@ class SchemaBrowser(UiManagerSlaveDelegate):
 
     def on_showInstances__activate(self, widget, *args):
         self.mainWindow.runQuery(
-            "select instance\nfrom {instance} rdf:type {%s}" % \
+            "select ?instance\nwhere {?instance rdf:type %s}" % \
             self.shortener.shortenUri(self.getCurrentClass()))

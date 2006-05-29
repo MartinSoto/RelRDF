@@ -243,7 +243,9 @@ class MainWindow(UiManagerDelegate):
         self.hideResultCount()
 
     def nodeToStr(self, node):
-        if isinstance(node, uri.Uri):
+        if node is None:
+            return ''
+        elif isinstance(node, uri.Uri):
             return self.shortener.shortenUri(node)
         elif isinstance(node, blanknode.BlankNode):
             return 'bnode:%s' % node

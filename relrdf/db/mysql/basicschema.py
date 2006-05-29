@@ -446,7 +446,9 @@ class Results(object):
                 rawValue = "ERROR"
 
         # FIXME: This must be converted to using type names.
-        if typeId == 1:
+        if rawValue is None:
+            value = None
+        elif typeId == 1:
             value = uri.Uri(rawValue)
         elif typeId == 2:
             value = blanknode.BlankNode(rawValue)

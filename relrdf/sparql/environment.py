@@ -93,8 +93,6 @@ class ParseEnvironment(object):
             else:
                 raise e
 
-        expr.prettyPrint()
-
         # Check for use of not implemented features.
         checkNotSupported(expr)
 

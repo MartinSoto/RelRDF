@@ -100,3 +100,9 @@ class SemanticError(PositionError):
 class TypeCheckError(PositionError):
     """A type checking error."""
     pass
+
+
+class NotSupportedError(PositionError):
+    """Exception raised when there is an attempt to use planned, but
+    not yet supported features from a query language."""
+    pass

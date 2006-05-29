@@ -38,6 +38,16 @@ def simplifyParseTree(expr):
 
     return expr
 
+def checkNotSupported(expr):
+    if isinstance(expr, nodes.NotSupported):
+        new = error.NotSupportedError(expr.getExtents(),
+                                      msg=_("This feature is not yet "
+                                            "supported. Sorry!"))
+        raise new
+
+    for subexpr in expr:
+        checkNotSupported(subexpr)
+
 
 class ParseEnvironment(object):
     """A parsing environment for SPARQL. It contains high level
@@ -82,6 +92,11 @@ class ParseEnvironment(object):
                 raise new
             else:
                 raise e
+
+        expr.prettyPrint()
+
+        # Check for use of not implemented features.
+        checkNotSupported(expr)
 
         # Simplify the tree.
         expr = simplifyParseTree(expr)

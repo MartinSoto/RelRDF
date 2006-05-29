@@ -34,18 +34,23 @@ class NodeExtents(object):
         if parser is not None:
             self.fileName = parser.getFilename()
 
-    def setEndFromToken(self, token):
-        """Set the end fields of the extents object to the end of
-        the provided token."""
+    def setEndFromToken(self, token, extraLength=0):
+        """Set the end fields of the extents object to the end of the
+        provided token. The value of `extraLength` will be added to
+        the token text length. This is for cases where some text
+        belonging to the token is supressed in the parser using the
+        '!'  operator."""
         self.endLine = token.getLine()
-        self.endColumn = token.getColumn() + len(token.getText())
+        self.endColumn = token.getColumn() + len(token.getText()) + \
+                         extraLength
 
-    def setFromToken(self, token, parser=None):
-        """Set the fields of the extents object to the extents of
-        the provided token, and use the file name from the provided
-        parser."""
+    def setFromToken(self, token, parser=None, extraLength=0):
+        """Set the fields of the extents object to the extents of the
+        provided token, and use the file name from the provided
+        parser. See `setEndFromToken` for the meaning of
+        `extraLength`."""
         self.setStartFromToken(token, parser)
-        self.setEndFromToken(token)
+        self.setEndFromToken(token, extraLength=extraLength)
 
     def prettyPrint(self, stream=None):
         if stream == None:
@@ -139,20 +144,23 @@ class BasicExpressionNode(list):
         extents = self._getExplicitExtents()
         extents.setStartFromToken(token, parser)
 
-    def setExtentsEndFromToken(self, token):
+    def setExtentsEndFromToken(self, token, extraLength=0):
         """Set the end fields of `self`'s extents to the end of the
-        provided token."""
+        provided token. See `NodeExtents.setEndFromToken` for the
+        meaning of `extraLength`."""
         extents = self._getExplicitExtents()
-        extents.setEndFromToken(token)
+        extents.setEndFromToken(token, extraLength=extraLength)
 
-    def setExtentsFromToken(self, token, parser=None):
+    def setExtentsFromToken(self, token, parser=None, extraLength=0):
         """Set `self`'s extents to the extents of the provided token,
-        and use the file name from the provided parser."""
+        and use the file name from the provided parser. See
+        `NodeExtents.setEndFromToken` for the meaning of
+        `extraLength`."""
         extents = self._getExplicitExtents()
-        extents.setFromToken(token, parser)
+        extents.setFromToken(token, parser, extraLength=extraLength)
 
     def setStartSubexpr(self, subexpr):
-        """Set `subexpr`as the start subexpression for extent
+        """Set `subexpr` as the start subexpression for extent
         calculation. This means that this node's extents will start
         where `subexpr` extents start."""
         self.startSubexpr = subexpr

@@ -3,8 +3,8 @@ import rewrite
 
 
 def reduceUnary(expr, default=None):
-    """Reduce a expression to the value of `default` if it has no
-    subexpression, and to its subexpression if it has only
+    """Reduce an expression to the value of `default` if it has no
+    subexpressions, and to its subexpression if it has only
     one. Otherwise return the expression unmodified."""
     if len(expr) == 0:
         return default

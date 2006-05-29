@@ -129,7 +129,9 @@ offsetClause
 
 groupGraphPattern[graph] returns [expr]
     :   { expr = spqnodes.GraphPattern() }
-        LBRACE graphPattern[graph, expr] RBRACE
+        lb:LBRACE graphPattern[graph, expr] rb:RBRACE
+        { expr.setExtentsStartFromToken(lb, self); \
+          expr.setExtentsEndFromToken(rb) }
     ;
 
 graphPattern[graph, pattern]
@@ -162,8 +164,10 @@ graphPatternNotTriples[graph] returns [expr]
     ;
 
 optionalGraphPattern[graph] returns [expr]
-    :   OPTIONAL pattern=groupGraphPattern[graph]
-        { expr = spqnodes.Optional(pattern) }
+    :   opt:OPTIONAL pattern=groupGraphPattern[graph]
+        { expr = spqnodes.Optional(pattern); \
+          expr.setExtentsStartFromToken(opt, self); \
+          expr = nodes.NotSupported(expr) }
     ;
 
 graphGraphPattern returns [expr]
@@ -177,6 +181,7 @@ groupOrUnionGraphPattern[graph] returns [expr]
             (   UNION pattern=groupGraphPattern[graph]
                 { expr.append(pattern) }
             )+
+            { expr = nodes.NotSupported(expr) }
         )?
     ;
 
@@ -231,10 +236,12 @@ propertyListNotEmpty[graph, pattern, subject]
 
 objectList[graph, pattern, subject, predicate]
     :   obj=graphNode
-        { pattern.append(nodes.StatementPattern(graph.copy(),
-                                                subject.copy(),
-                                                predicate.copy(),
-                                                obj.copy())) }
+        { stmtPattern = nodes.StatementPattern(graph.copy(),
+                                               subject.copy(),
+                                               predicate.copy(),
+                                               obj.copy()); \
+          stmtPattern.setStartSubexpr(stmtPattern[1]); \
+          pattern.append(stmtPattern) }
         ( COMMA objectList[graph, pattern, subject, predicate] )?
     ;
 
@@ -255,8 +262,10 @@ blankNodePropertyList returns [expr]
     ;
 
 collection returns [expr]
-    :   LPAREN ( node=graphNode )+ RPAREN
-        { expr = nodes.NotSupported(); }
+    :   lp:LPAREN ( node=graphNode )+ rp:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(lp, self); \
+          expr.setExtentsEndFromToken(rp) }
     ;
 
 graphNode returns [expr]
@@ -283,10 +292,10 @@ varOrBlankNodeOrIriRef returns [expr]
 var returns [expr]
     :   v1:VAR1
         { expr = nodes.Var(v1.getText()); \
-          expr.setExtentsFromToken(v1, self) }
+          expr.setExtentsFromToken(v1, self, 1) }
     |   v2:VAR2
         { expr = nodes.Var(v2.getText()); \
-          expr.setExtentsFromToken(v2, self) }
+          expr.setExtentsFromToken(v2, self, 1) }
     ;
 
 graphTerm returns [expr]

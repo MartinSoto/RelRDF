@@ -21,7 +21,7 @@ class BasicQueryEditor(gtksourceview.SourceView):
         self.buffer.set_property('highlight', True)
 
 	lm = gtksourceview.SourceLanguagesManager()
-        lang = lm.get_language_from_mime_type('text/x-serql')
+        lang = lm.get_language_from_mime_type('application/sparql-query')
         self.buffer.set_language(lang)
     
         super(BasicQueryEditor, self).__init__(self.buffer)

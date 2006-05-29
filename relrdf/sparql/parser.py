@@ -38,9 +38,9 @@ class Parser(antlr.LLkParser):
         super(Parser, self).__init__(*args, **kwargs)
 
         if kwargs.get('noBasePrefixes', False):
-            self.basePrefixes = self.implBasePrefixes
-        else:
             self.basePrefixes = {}
+        else:
+            self.basePrefixes = self.implBasePrefixes
 
         try:
             self.externalPrefixes = kwargs['prefixes']

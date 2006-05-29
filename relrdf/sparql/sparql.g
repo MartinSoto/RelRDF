@@ -45,17 +45,33 @@ prefixDecl
 selectQuery returns [expr]
     :   SELECT
         ( DISTINCT )?
-        (   { vars=[] }
-            (   var=var
-                { vars.append(var) }
-            )+
+        (   { names, mappingExprs = [], [] }
+            selectColumnList[names, mappingExprs]
         |   TIMES
         )
         ( datasetClause )*
         where=whereClause
         solutionModifier
-        { expr = nodes.MapResult([var.name for var in vars], where,
-                                 *vars) }
+        { expr = nodes.MapResult(names, where, *mappingExprs) }
+    ;
+
+/* RelRDF extension. */
+selectColumnList[names, mappingExprs]
+    :   ( columnSpec[names, mappingExprs] )+
+    ;
+
+/* RelRDF extension. */
+columnSpec[names, mappingExprs]
+    :   var=var
+        { names.append(var.name); \
+          mappingExprs.append(var) }
+    |   (   st1:STRING_LITERAL1
+            { names.append(st1.getText()) }
+        |   st2:STRING_LITERAL2
+            { names.append(st2.getText()) }
+        )
+        OP_EQ expr=expression
+        { mappingExprs.append(expr) }
     ;
 
 constructQuery

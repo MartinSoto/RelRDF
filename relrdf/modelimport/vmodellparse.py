@@ -7,7 +7,7 @@ from relrdf.expression import literal, uri
 from relrdf.basesinks import PrintSink
 
 
-vModellNs = uri.Namespace('http://www.v-modell.iabg.de/Schema#')
+vModellNs = uri.Namespace('http://www.v-modell-xt.de/schema/1#')
 
 
 class VModellElem(object):
@@ -33,8 +33,8 @@ class VModellParser(object):
                  'acumText')
 
     def __init__(self, fileObj,
-                 namespace=uri.Namespace('http://www.kbst.bund.de/'
-                                         'V-Modell-XT.xml#'),
+                 namespace=uri.Namespace('http://www.v-modell-xt.de/'
+                                         'model/1#'),
                  sink=None):
         self.namespace = namespace
 

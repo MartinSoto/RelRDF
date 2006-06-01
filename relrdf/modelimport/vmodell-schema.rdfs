@@ -1,0 +1,854 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE rdf:RDF [
+	 <!ENTITY Schema_ 'http://www.v-modell-xt.de/schema/1#'>
+	 <!ENTITY rdf 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+	 <!ENTITY system 'http://protege.stanford.edu/system#'>
+	 <!ENTITY rdfs 'http://www.w3.org/2000/01/rdf-schema#'>
+]>
+<rdf:RDF xmlns:rdf="&rdf;"
+	 xmlns:Schema_="&Schema_;"
+	 xmlns:system="&system;"
+	 xmlns:rdfs="&rdfs;">
+<rdfs:Class rdf:about="&system;owl_ontology"
+	 rdfs:label="system:owl_ontology">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Abkürzung"
+	 rdfs:label="Abkürzung">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Ablauf"
+	 rdfs:label="Ablauf">
+	<rdfs:domain rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Ablaufbaustein"
+	 rdfs:label="Ablaufbaustein">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;AblaufbausteinRef"
+	 rdfs:label="AblaufbausteinRef">
+	<rdfs:range rdf:resource="&Schema_;Ablaufbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;ParallelablaufTeil"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Ablaufbaustein_enthält_Ablaufentscheidungspunkt"
+	 rdfs:label="Ablaufbaustein_enthält_Ablaufentscheidungspunkt">
+	<rdfs:domain rdf:resource="&Schema_;Ablaufbaustein"/>
+	<rdfs:range rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Ablaufbaustein_enthält_Parallelablauf"
+	 rdfs:label="Ablaufbaustein_enthält_Parallelablauf">
+	<rdfs:domain rdf:resource="&Schema_;Ablaufbaustein"/>
+	<rdfs:range rdf:resource="&Schema_;Parallelablauf"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Ablaufdarstellung"
+	 rdfs:label="Ablaufdarstellung">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Ablaufentscheidungspunkt"
+	 rdfs:label="Ablaufentscheidungspunkt">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Abschnitt"
+	 rdfs:label="Abschnitt">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Abschnitt_enthält_Abschnitt"
+	 rdfs:label="Abschnitt_enthält_Abschnitt">
+	<rdfs:range rdf:resource="&Schema_;Abschnitt"/>
+	<rdfs:domain rdf:resource="&Schema_;Abschnitt"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Aktivität"
+	 rdfs:label="Aktivität">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;AktivitätRef"
+	 rdfs:label="AktivitätRef">
+	<rdfs:range rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Teilaktivität"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Aktivitätsgruppe"
+	 rdfs:label="Aktivitätsgruppe">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;AktivitätsgruppeRef"
+	 rdfs:label="AktivitätsgruppeRef">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:range rdf:resource="&Schema_;Aktivitätsgruppe"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Assessment"
+	 rdfs:label="Assessment">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Aufgaben_und_Befugnisse"
+	 rdfs:label="Aufgaben_und_Befugnisse">
+	<rdfs:domain rdf:resource="&Schema_;Rolle"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Begriff"
+	 rdfs:label="Begriff">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;BeispielProduktgestaltung"
+	 rdfs:label="BeispielProduktgestaltung">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Thema"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Beispielprodukt"
+	 rdfs:label="Beispielprodukt">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Bereich"
+	 rdfs:label="Bereich">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Beschreibung"
+	 rdfs:label="Beschreibung">
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;InhaltlicheAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektmerkmal"/>
+	<rdfs:domain rdf:resource="&Schema_;Projekttyp"/>
+	<rdfs:domain rdf:resource="&Schema_;Rolle"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Teilaktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Thema"/>
+	<rdfs:domain rdf:resource="&Schema_;Wert"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Copyright_kurz"
+	 rdfs:label="Copyright_kurz">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Copyright_lang"
+	 rdfs:label="Copyright_lang">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Entscheidungspunkt"
+	 rdfs:label="Entscheidungspunkt">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;EntscheidungspunktRef"
+	 rdfs:label="EntscheidungspunktRef">
+	<rdfs:domain rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+	<rdfs:range rdf:resource="&Schema_;Entscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Erläuterung"
+	 rdfs:label="Erläuterung">
+	<rdfs:domain rdf:resource="&Schema_;Begriff"/>
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;ErweitertErzeugendeAbhängigkeitRef"
+	 rdfs:label="ErweitertErzeugendeAbhängigkeitRef">
+	<rdfs:range rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeitserweiterung"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;ErweitertInhaltlicheAbhängigkeitRef"
+	 rdfs:label="ErweitertInhaltlicheAbhängigkeitRef">
+	<rdfs:range rdf:resource="&Schema_;InhaltlicheAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;InhaltlicheAbhängigkeitserweiterung"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;ErweitertStrukturabhängigkeitRef"
+	 rdfs:label="ErweitertStrukturabhängigkeitRef">
+	<rdfs:range rdf:resource="&Schema_;Strukturabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Strukturabhängigkeitserweiterung"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;ErweitertTailoringabhängigkeitRef"
+	 rdfs:label="ErweitertTailoringabhängigkeitRef">
+	<rdfs:range rdf:resource="&Schema_;Tailoringabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeitserweiterung"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;ErzeugendeAbhängigkeit"
+	 rdfs:label="ErzeugendeAbhängigkeit">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;ErzeugendeAbhängigkeitserweiterung"
+	 rdfs:label="ErzeugendeAbhängigkeitserweiterung">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Extern"
+	 rdfs:label="Extern">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Frage"
+	 rdfs:label="Frage">
+	<rdfs:domain rdf:resource="&Schema_;Projektmerkmal"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Fähigkeitsprofil"
+	 rdfs:label="Fähigkeitsprofil">
+	<rdfs:domain rdf:resource="&Schema_;Rolle"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;GenerierterInhalt"
+	 rdfs:label="GenerierterInhalt">
+	<rdfs:domain rdf:resource="&Schema_;Kapitel"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;InhaltlicheAbhängigkeit"
+	 rdfs:label="InhaltlicheAbhängigkeit">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;InhaltlicheAbhängigkeitserweiterung"
+	 rdfs:label="InhaltlicheAbhängigkeitserweiterung">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Initial"
+	 rdfs:label="Initial">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Kapitel"
+	 rdfs:label="Kapitel">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Kapitel_enthält_Abschnitt"
+	 rdfs:label="Kapitel_enthält_Abschnitt">
+	<rdfs:range rdf:resource="&Schema_;Abschnitt"/>
+	<rdfs:domain rdf:resource="&Schema_;Kapitel"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Konventionsabbildung"
+	 rdfs:label="Konventionsabbildung">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Konventionsabbildung_enthält_Bereich"
+	 rdfs:label="Konventionsabbildung_enthält_Bereich">
+	<rdfs:range rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Konventionsabbildung"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Methodenreferenz"
+	 rdfs:label="Methodenreferenz">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;MethodenreferenzRef"
+	 rdfs:label="MethodenreferenzRef">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:range rdf:resource="&Schema_;Methodenreferenz"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;MitwirkenderRef"
+	 rdfs:label="MitwirkenderRef">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:range rdf:resource="&Schema_;Rolle"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;NachfolgerAblaufentscheidungspunktRef"
+	 rdfs:label="NachfolgerAblaufentscheidungspunktRef">
+	<rdfs:range rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Parallelablauf"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;NachfolgerParallelablaufRef"
+	 rdfs:label="NachfolgerParallelablaufRef">
+	<rdfs:domain rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+	<rdfs:range rdf:resource="&Schema_;Parallelablauf"/>
+	<rdfs:domain rdf:resource="&Schema_;Parallelablauf"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Name"
+	 rdfs:label="Name">
+	<rdfs:domain rdf:resource="&Schema_;Abkürzung"/>
+	<rdfs:domain rdf:resource="&Schema_;Ablaufbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Aktivitätsgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriff"/>
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Entscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;InhaltlicheAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;InhaltlicheAbhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Konventionsabbildung"/>
+	<rdfs:domain rdf:resource="&Schema_;Methodenreferenz"/>
+	<rdfs:domain rdf:resource="&Schema_;Parallelablauf"/>
+	<rdfs:domain rdf:resource="&Schema_;ParallelablaufTeil"/>
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Produktgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektmerkmal"/>
+	<rdfs:domain rdf:resource="&Schema_;Projekttyp"/>
+	<rdfs:domain rdf:resource="&Schema_;Quelle"/>
+	<rdfs:domain rdf:resource="&Schema_;Rolle"/>
+	<rdfs:domain rdf:resource="&Schema_;Strukturabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Strukturabhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Teilaktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Textbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;Thema"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell-Teil"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;Werkzeugreferenz"/>
+	<rdfs:domain rdf:resource="&Schema_;Wert"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Nummer"
+	 rdfs:label="Nummer">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Aktivitätsgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Entscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;InhaltlicheAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Produktgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+	<rdfs:domain rdf:resource="&Schema_;Projektmerkmal"/>
+	<rdfs:domain rdf:resource="&Schema_;Projekttyp"/>
+	<rdfs:domain rdf:resource="&Schema_;Strukturabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Teilaktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Thema"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell-Teil"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Parallelablauf"
+	 rdfs:label="Parallelablauf">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;ParallelablaufTeil"
+	 rdfs:label="ParallelablaufTeil">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Parallelablauf_enthält_ParallelablaufTeil"
+	 rdfs:label="Parallelablauf_enthält_ParallelablaufTeil">
+	<rdfs:domain rdf:resource="&Schema_;Parallelablauf"/>
+	<rdfs:range rdf:resource="&Schema_;ParallelablaufTeil"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Produkt"
+	 rdfs:label="Produkt">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;ProduktRef"
+	 rdfs:label="ProduktRef">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;InhaltlicheAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;InhaltlicheAbhängigkeitserweiterung"/>
+	<rdfs:range rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Thema"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Produktgruppe"
+	 rdfs:label="Produktgruppe">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;ProduktgruppeRef"
+	 rdfs:label="ProduktgruppeRef">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:range rdf:resource="&Schema_;Produktgruppe"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Produktvorlage"
+	 rdfs:label="Produktvorlage">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Projektdurchführungsstrategie"
+	 rdfs:label="Projektdurchführungsstrategie">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;ProjektdurchführungsstrategieRef"
+	 rdfs:label="ProjektdurchführungsstrategieRef">
+	<rdfs:range rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Projektmerkmal"
+	 rdfs:label="Projektmerkmal">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;ProjektmerkmalWertRef"
+	 rdfs:label="ProjektmerkmalWertRef">
+	<rdfs:domain rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+	<rdfs:domain rdf:resource="&Schema_;Projekttyp"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:range rdf:resource="&Schema_;Wert"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Projektmerkmal_enthält_Wert"
+	 rdfs:label="Projektmerkmal_enthält_Wert">
+	<rdfs:domain rdf:resource="&Schema_;Projektmerkmal"/>
+	<rdfs:range rdf:resource="&Schema_;Wert"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Projekttyp"
+	 rdfs:label="Projekttyp">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Projekttyp_enthält_ProjektdurchführungsstrategieRef"
+	 rdfs:label="Projekttyp_enthält_ProjektdurchführungsstrategieRef">
+	<rdfs:range rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+	<rdfs:domain rdf:resource="&Schema_;Projekttyp"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Projekttyp_enthält_VorgehensbausteinRef"
+	 rdfs:label="Projekttyp_enthält_VorgehensbausteinRef">
+	<rdfs:domain rdf:resource="&Schema_;Projekttyp"/>
+	<rdfs:range rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Quelle"
+	 rdfs:label="Quelle">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;QuelleRef"
+	 rdfs:label="QuelleRef">
+	<rdfs:domain rdf:resource="&Schema_;Methodenreferenz"/>
+	<rdfs:range rdf:resource="&Schema_;Quelle"/>
+	<rdfs:domain rdf:resource="&Schema_;Werkzeugreferenz"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Quellenverweis"
+	 rdfs:label="Quellenverweis">
+	<rdfs:domain rdf:resource="&Schema_;Konventionsabbildung"/>
+	<rdfs:domain rdf:resource="&Schema_;Quelle"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;RangeVariationPoint"
+	 rdfs:label="RangeVariationPoint">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Rolle"
+	 rdfs:label="Rolle">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Rollenbesetzung"
+	 rdfs:label="Rollenbesetzung">
+	<rdfs:domain rdf:resource="&Schema_;Rolle"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;SchnittstellenQuellproduktRef"
+	 rdfs:label="SchnittstellenQuellproduktRef">
+	<rdfs:range rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Sinn_und_Zweck"
+	 rdfs:label="Sinn_und_Zweck">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Aktivitätsgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Entscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Methodenreferenz"/>
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Produktgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;Werkzeugreferenz"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Strukturabhängigkeit"
+	 rdfs:label="Strukturabhängigkeit">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Strukturabhängigkeitserweiterung"
+	 rdfs:label="Strukturabhängigkeitserweiterung">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Tailoringabhängigkeit"
+	 rdfs:label="Tailoringabhängigkeit">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Tailoringabhängigkeitserweiterung"
+	 rdfs:label="Tailoringabhängigkeitserweiterung">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Teilaktivität"
+	 rdfs:label="Teilaktivität">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;Text"
+	 rdfs:label="Text">
+	<rdfs:domain rdf:resource="&Schema_;Abschnitt"/>
+	<rdfs:domain rdf:resource="&Schema_;Kapitel"/>
+	<rdfs:domain rdf:resource="&Schema_;Textbaustein"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Textbaustein"
+	 rdfs:label="Textbaustein">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;TextbausteinRef"
+	 rdfs:label="TextbausteinRef">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Teilaktivität"/>
+	<rdfs:range rdf:resource="&Schema_;Textbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;Thema"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Thema"
+	 rdfs:label="Thema">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;ThemaRef"
+	 rdfs:label="ThemaRef">
+	<rdfs:domain rdf:resource="&Schema_;Teilaktivität"/>
+	<rdfs:range rdf:resource="&Schema_;Thema"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Titel"
+	 rdfs:label="Titel">
+	<rdfs:domain rdf:resource="&Schema_;Abschnitt"/>
+	<rdfs:domain rdf:resource="&Schema_;Kapitel"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;V-Modell"
+	 rdfs:label="V-Modell">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;V-Modell-Kern"
+	 rdfs:label="V-Modell-Kern">
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;V-Modell-Teil"
+	 rdfs:label="V-Modell-Teil">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;V-Modell-Teil_enthält_Kapitel"
+	 rdfs:label="V-Modell-Teil_enthält_Kapitel">
+	<rdfs:range rdf:resource="&Schema_;Kapitel"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell-Teil"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Abkürzung"
+	 rdfs:label="V-Modell_enthält_Abkürzung">
+	<rdfs:range rdf:resource="&Schema_;Abkürzung"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Ablaufbaustein"
+	 rdfs:label="V-Modell_enthält_Ablaufbaustein">
+	<rdfs:range rdf:resource="&Schema_;Ablaufbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_AbstrakteModellElemente"
+	 rdfs:label="V-Modell_enthält_AbstrakteModellElemente">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Begriff"
+	 rdfs:label="V-Modell_enthält_Begriff">
+	<rdfs:range rdf:resource="&Schema_;Begriff"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Entscheidungspunkt"
+	 rdfs:label="V-Modell_enthält_Entscheidungspunkt">
+	<rdfs:range rdf:resource="&Schema_;Entscheidungspunkt"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Glossar"
+	 rdfs:label="V-Modell_enthält_Glossar">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Konventionsabbildung"
+	 rdfs:label="V-Modell_enthält_Konventionsabbildung">
+	<rdfs:range rdf:resource="&Schema_;Konventionsabbildung"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Methodenreferenz"
+	 rdfs:label="V-Modell_enthält_Methodenreferenz">
+	<rdfs:range rdf:resource="&Schema_;Methodenreferenz"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Projektdurchführungsstrategie"
+	 rdfs:label="V-Modell_enthält_Projektdurchführungsstrategie">
+	<rdfs:range rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Projektmerkmal"
+	 rdfs:label="V-Modell_enthält_Projektmerkmal">
+	<rdfs:range rdf:resource="&Schema_;Projektmerkmal"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Projekttyp"
+	 rdfs:label="V-Modell_enthält_Projekttyp">
+	<rdfs:range rdf:resource="&Schema_;Projekttyp"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Quelle"
+	 rdfs:label="V-Modell_enthält_Quelle">
+	<rdfs:range rdf:resource="&Schema_;Quelle"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Textbaustein"
+	 rdfs:label="V-Modell_enthält_Textbaustein">
+	<rdfs:range rdf:resource="&Schema_;Textbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Vorgehensbaustein"
+	 rdfs:label="V-Modell_enthält_Vorgehensbaustein">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Werkzeugreferenz"
+	 rdfs:label="V-Modell_enthält_Werkzeugreferenz">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&Schema_;Werkzeugreferenz"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;V-Modelll_enthält_V-Modell-Teil"
+	 rdfs:label="V-Modelll_enthält_V-Modell-Teil">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&Schema_;V-Modell-Teil"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;VerantwortlicherRef"
+	 rdfs:label="VerantwortlicherRef">
+	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
+	<rdfs:range rdf:resource="&Schema_;Rolle"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Version"
+	 rdfs:label="Version">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Version_intern"
+	 rdfs:label="Version_intern">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;VonProduktRef"
+	 rdfs:label="VonProduktRef">
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
+	<rdfs:range rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Strukturabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeitserweiterung"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Vorgehensbaustein"
+	 rdfs:label="Vorgehensbaustein">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;VorgehensbausteinRef"
+	 rdfs:label="VorgehensbausteinRef">
+	<rdfs:range rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthäelt_Aktivität"
+	 rdfs:label="Vorgehensbaustein_enthäelt_Aktivität">
+	<rdfs:range rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Aktivitätsgruppe"
+	 rdfs:label="Vorgehensbaustein_enthält_Aktivitätsgruppe">
+	<rdfs:range rdf:resource="&Schema_;Aktivitätsgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Auswahlkriterien"
+	 rdfs:label="Vorgehensbaustein_enthält_Auswahlkriterien">
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:range rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_ErzeugendeAbhängigkeit"
+	 rdfs:label="Vorgehensbaustein_enthält_ErzeugendeAbhängigkeit">
+	<rdfs:range rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_ErzeugendeAbhängigkeitserweiterung"
+	 rdfs:label="Vorgehensbaustein_enthält_ErzeugendeAbhängigkeitserweiterung">
+	<rdfs:range rdf:resource="&Schema_;ErzeugendeAbhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_InhaltlicheAbhängigkeit"
+	 rdfs:label="Vorgehensbaustein_enthält_InhaltlicheAbhängigkeit">
+	<rdfs:range rdf:resource="&Schema_;InhaltlicheAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_InhaltlicheAbhängigkeitserweiterung">
+	<rdfs:label>Vorgehensbaustein_enthält_InhaltlicheAbhängigkeitserweiterung</rdfs:label>
+	<rdfs:range rdf:resource="&Schema_;InhaltlicheAbhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Produkt"
+	 rdfs:label="Vorgehensbaustein_enthält_Produkt">
+	<rdfs:range rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Produktgruppe"
+	 rdfs:label="Vorgehensbaustein_enthält_Produktgruppe">
+	<rdfs:range rdf:resource="&Schema_;Produktgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Rolle"
+	 rdfs:label="Vorgehensbaustein_enthält_Rolle">
+	<rdfs:range rdf:resource="&Schema_;Rolle"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Strukturabhängigkeit"
+	 rdfs:label="Vorgehensbaustein_enthält_Strukturabhängigkeit">
+	<rdfs:range rdf:resource="&Schema_;Strukturabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Strukturabhängigkeitserweiterung"
+	 rdfs:label="Vorgehensbaustein_enthält_Strukturabhängigkeitserweiterung">
+	<rdfs:range rdf:resource="&Schema_;Strukturabhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Tailoringabhängigkeit"
+	 rdfs:label="Vorgehensbaustein_enthält_Tailoringabhängigkeit">
+	<rdfs:range rdf:resource="&Schema_;Tailoringabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Tailoringabhängigkeitserweiterung"
+	 rdfs:label="Vorgehensbaustein_enthält_Tailoringabhängigkeitserweiterung">
+	<rdfs:range rdf:resource="&Schema_;Tailoringabhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_TeilAktivität"
+	 rdfs:label="Vorgehensbaustein_enthält_TeilAktivität">
+	<rdfs:range rdf:resource="&Schema_;Teilaktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Thema"
+	 rdfs:label="Vorgehensbaustein_enthält_Thema">
+	<rdfs:range rdf:resource="&Schema_;Thema"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Werkzeugreferenz"
+	 rdfs:label="Werkzeugreferenz">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;WerkzeugreferenzRef"
+	 rdfs:label="WerkzeugreferenzRef">
+	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:range rdf:resource="&Schema_;Werkzeugreferenz"/>
+</rdf:Property>
+<rdfs:Class rdf:about="&Schema_;Wert"
+	 rdfs:label="Wert">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+<rdf:Property rdf:about="&Schema_;ZuProduktRef"
+	 rdfs:label="ZuProduktRef">
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeitserweiterung"/>
+	<rdfs:range rdf:resource="&Schema_;Produkt"/>
+	<rdfs:domain rdf:resource="&Schema_;Strukturabhängigkeit"/>
+	<rdfs:domain rdf:resource="&Schema_;Strukturabhängigkeitserweiterung"/>
+	<rdfs:domain rdf:resource="&Schema_;Tailoringabhängigkeit"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Zusammenfassung"
+	 rdfs:label="Zusammenfassung">
+	<rdfs:domain rdf:resource="&Schema_;Konventionsabbildung"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;basiert_auf_VB_Ref"
+	 rdfs:label="basiert_auf_VB_Ref">
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;begriff"
+	 rdfs:label="begriff">
+	<rdfs:domain rdf:resource="&Schema_;Abkürzung"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;isEnd"
+	 rdfs:label="isEnd">
+	<rdfs:domain rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;isStart"
+	 rdfs:label="isStart">
+	<rdfs:domain rdf:resource="&Schema_;Ablaufentscheidungspunkt"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;kann_basieren_auf_VB_Ref"
+	 rdfs:label="kann_basieren_auf_VB_Ref">
+	<rdfs:range rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;vielfachheit"
+	 rdfs:label="vielfachheit">
+	<rdfs:domain rdf:resource="&Schema_;ParallelablaufTeil"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchAGRef"
+	 rdfs:label="wird_abgebildet_durchAGRef">
+	<rdfs:range rdf:resource="&Schema_;Aktivitätsgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchAbschnittRef"
+	 rdfs:label="wird_abgebildet_durchAbschnittRef">
+	<rdfs:range rdf:resource="&Schema_;Abschnitt"/>
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchAktivitätRef"
+	 rdfs:label="wird_abgebildet_durchAktivitätRef">
+	<rdfs:range rdf:resource="&Schema_;Aktivität"/>
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchEntscheidungspunktRef"
+	 rdfs:label="wird_abgebildet_durchEntscheidungspunktRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Entscheidungspunkt"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchKapitelRef"
+	 rdfs:label="wird_abgebildet_durchKapitelRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Kapitel"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchKonventionsabbildungRef"
+	 rdfs:label="wird_abgebildet_durchKonventionsabbildungRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Konventionsabbildung"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchMethodenreferenzRef"
+	 rdfs:label="wird_abgebildet_durchMethodenreferenzRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Methodenreferenz"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchPDSRef"
+	 rdfs:label="wird_abgebildet_durchPDSRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchPGRef"
+	 rdfs:label="wird_abgebildet_durchPGRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Produktgruppe"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchProduktRef"
+	 rdfs:label="wird_abgebildet_durchProduktRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Produkt"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchRolleRef"
+	 rdfs:label="wird_abgebildet_durchRolleRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Rolle"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchTeilRef"
+	 rdfs:label="wird_abgebildet_durchTeilRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;V-Modell-Teil"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchTeilaktivitätRef"
+	 rdfs:label="wird_abgebildet_durchTeilaktivitätRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Teilaktivität"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchThemaRef"
+	 rdfs:label="wird_abgebildet_durchThemaRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Thema"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchVBRef"
+	 rdfs:label="wird_abgebildet_durchVBRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Vorgehensbaustein"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchWerkzeugr"
+	 rdfs:label="wird_abgebildet_durchWerkzeugr">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;wird_abgebildet_durchWerkzeugreferenzRef"
+	 rdfs:label="wird_abgebildet_durchWerkzeugreferenzRef">
+	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:range rdf:resource="&Schema_;Werkzeugreferenz"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;xsi:noNamespaceSchemaLocation"
+	 rdfs:label="xsi:noNamespaceSchemaLocation">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+<rdf:Property rdf:about="&Schema_;Überblicksgrafik"
+	 rdfs:label="Überblicksgrafik">
+	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
+	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
+	<rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+</rdf:RDF>

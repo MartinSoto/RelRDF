@@ -713,6 +713,21 @@ class MapResult(ExpressionNode):
             stream.write(' _%d' % self.incarnation)
 
 
+#
+# Result Modifiers
+#
+
+class Distinct(UnaryOperation):
+    """Specify that the results produced by the subexpression must be
+    filtered to eliminate repeated rows."""
+
+    __slots__ = ()
+
+
+#
+# Set Operations
+#
+
 class SetOperation(Operation):
     """A generic set operation."""
 

@@ -526,8 +526,13 @@ class Model(object):
         # Generate SQL.
         sqlText = emit.emit(expr)
 
-        # Build a Results objects with the resulting SQL query.
-        return Results(self.connection, list(expr.columnNames[::2]),
+        # Find out the column names.
+        namesExpr = expr
+        while not hasattr(namesExpr, 'columnNames'):
+            namesExpr = namesExpr[0]
+
+        # Build a Results object with the obtained SQL query.
+        return Results(self.connection, list(namesExpr.columnNames[::2]),
                        sqlText.encode('utf-8'))
 
     def getPrefixes(self):

@@ -43,16 +43,23 @@ prefixDecl
     ;
 
 selectQuery returns [expr]
-    :   sl:SELECT
-        ( DISTINCT )?
+    :   { distinct = False }
+        sl:SELECT
+        (   DISTINCT
+            { distinct = True }
+        )?
         (   { names, mappingExprs = [], [] }
             selectColumnList[names, mappingExprs]
         |   TIMES
         )
         ( datasetClause )*
         where=whereClause
-        { expr = nodes.MapResult(names, where, *mappingExprs); \
-          expr.setExtentsStartFromToken(sl, self); }
+        {   
+            expr = nodes.MapResult(names, where, *mappingExprs);
+            if distinct: \
+               expr = nodes.Distinct(expr); \
+            expr.setExtentsStartFromToken(sl, self);
+        }
         solutionModifier
     ;
 

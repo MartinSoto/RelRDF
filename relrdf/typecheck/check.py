@@ -194,6 +194,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
             typeExpr.addColumn(colName, colExpr.staticType)
         expr.staticType = typeExpr
 
+    def Distinct(self, expr, subexpr):
+        expr.staticType = expr[0].staticType
+
     def _setOperationType(self, expr, *operands):
         typeExpr = expr[0].staticType
         for subexpr in expr[1:]:

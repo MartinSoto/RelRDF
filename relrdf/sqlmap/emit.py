@@ -5,7 +5,14 @@ from relrdf.expression import rewrite
 
 
 class SqlEmitter(rewrite.ExpressionProcessor):
-    __slots__ = ()
+    """Generate SQL code from a relational expression."""
+
+    __slots__ = ('distinct',)
+
+    def __init__(self):
+        super(SqlEmitter, self).__init__(prePrefix='pre')
+
+        self.distinct = False
 
     def Null(self, expr):
         return 'NULL'
@@ -62,7 +69,19 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def MapResult(self, expr, select, *columnExprs):
         columns = ', '.join(["%s AS '%s'" % (e, n)
                              for e, n in zip(columnExprs, expr.columnNames)])
-        return 'SELECT %s\nFROM %s' % (columns, select)
+        if self.distinct:
+            distinct = 'DISTINCT '
+        else:
+            distinct = ''
+        return 'SELECT %s%s\nFROM %s' % (distinct, columns, select)
+
+    def preDistinct(self, expr):
+        self.distinct = True
+
+        return (self.process(expr[0]),)
+
+    def Distinct(self, expr, subexpr):
+        return subexpr
 
     def Union(self, expr, *operands):
         return '(' + ')\nUNION\n('.join(operands) + ')'
@@ -108,8 +127,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return self._subexprPattern.sub(repl, expr.sqlExpr)
 
 
-emitter = SqlEmitter()
-
-
 def emit(expr):
+    emitter = SqlEmitter()
+
     return emitter.process(expr)

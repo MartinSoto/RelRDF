@@ -16,8 +16,8 @@ TYPE_ID_LITERAL = literal.Literal(3)
 class SqlUriValueRef(sqlnodes.SqlExprValueRef):
     """A value reference whose internal representation is the value of
     an incarnation field and whose external representation is an URI
-    built by prepending a base URI to teh canonical string
-    represnetation of the internal value."""
+    built by prepending a base URI to the canonical string
+    representation of the internal value."""
 
     __slots__ = ('baseUri',)
 

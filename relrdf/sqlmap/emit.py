@@ -1,7 +1,7 @@
 import re
 
 from relrdf.commonns import xsd
-from relrdf.expression import rewrite
+from relrdf.expression import rewrite, nodes
 
 
 class SqlEmitter(rewrite.ExpressionProcessor):
@@ -61,10 +61,29 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(' + ') AND ('.join(operands) + ')'
 
     def Product(self, expr, *operands):
-        return ', '.join(operands)
+        return ' CROSS JOIN '.join(operands)
 
     def Select(self, expr, rel, cond):
-        return '%s\nWHERE %s' % (rel, cond)
+        if isinstance(expr[0], nodes.Product):
+            # The relation is some sort of join, we can just add an
+            # "ON" clause to it.
+            return '%s\nON %s' % (rel, cond)
+        else:
+            # If the expression is not a product it must have an
+            # incarnation. We create a derived table which uses the
+            # same incarnation as name.
+            return '(SELECT * FROM %s WHERE %s) AS rel_%s' % \
+                   (rel, cond, expr[0].incarnation)
+
+    def preMapResult(self, expr):
+        if isinstance(expr[0], nodes.Select):
+            # We treat this common case specially, in order to avoid
+            # unnecessary nested queries.
+            return ['%s\nWHERE %s' % (self.process(expr[0][0]),
+                                      self.process(expr[0][1]))] + \
+                   [self.process(subexpr) for subexpr in expr[1:]]
+        else:
+            return [self.process(subexpr) for subexpr in expr]
 
     def MapResult(self, expr, select, *columnExprs):
         columns = ', '.join(["%s AS '%s'" % (e, n)
@@ -87,7 +106,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(' + ')\nUNION\n('.join(operands) + ')'
 
     def _setDiffOrIntersect(self, compOperator, expr, operand1, operand2):
-        incarnation1 = 'table_%s' % expr[0].incarnation
+        incarnation1 = 'rel_%s' % expr[0].incarnation
 
         columns = ', '.join(['%s.%s AS %s' % (incarnation1, n, n)
                              for n in expr.columnNames])

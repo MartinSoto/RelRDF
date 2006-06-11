@@ -1,7 +1,7 @@
 import re
 
 from relrdf.commonns import xsd
-from relrdf.expression import rewrite, nodes
+from relrdf.expression import rewrite, nodes, simplify
 
 
 class SqlEmitter(rewrite.ExpressionProcessor):
@@ -148,5 +148,8 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
 def emit(expr):
     emitter = SqlEmitter()
+
+    # Simplify the expression first.
+    expr = simplify.simplify(expr)
 
     return emitter.process(expr)

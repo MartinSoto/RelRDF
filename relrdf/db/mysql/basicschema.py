@@ -1,7 +1,7 @@
 from relrdf import parserfactory, commonns
 
 from relrdf.typecheck import dynamic
-from relrdf.expression import uri, blanknode, literal, simplify, nodes, build
+from relrdf.expression import uri, blanknode, literal, nodes, build
 from relrdf.sqlmap import transform, valueref, sqlnodes, emit
 
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
@@ -519,9 +519,6 @@ class Model(object):
         # Dereference value references from the mapping.
         transf = valueref.ValueRefDereferencer()
         expr = transf.process(expr)
-
-        # Simplify the expression.
-        expr = simplify.simplify(expr)
 
         # Generate SQL.
         sqlText = emit.emit(expr)

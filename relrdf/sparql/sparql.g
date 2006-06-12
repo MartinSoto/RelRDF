@@ -196,8 +196,7 @@ graphPatternNotTriples[graph] returns [expr]
 optionalGraphPattern[graph] returns [expr]
     :   opt:OPTIONAL pattern=groupGraphPattern[graph]
         { expr = spqnodes.Optional(pattern); \
-          expr.setExtentsStartFromToken(opt, self); \
-          expr = nodes.NotSupported(expr) }
+          expr.setExtentsStartFromToken(opt, self) }
     ;
 
 graphGraphPattern returns [expr]

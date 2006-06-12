@@ -14,30 +14,6 @@ import typecheck
 import decouple, spqnodes
 
 
-def simplifyNode(expr, subexprsModif):
-    modif = True
-    while modif:
-        modif = False
-
-        if isinstance(expr, spqnodes.GraphPattern):
-            expr, m = simplify.flattenAssoc(spqnodes.GraphPattern, expr)
-            modif = modif or m
-
-        subexprsModif = subexprsModif or modif
-    
-    return expr, subexprsModif
-
-def simplifyParseTree(expr):
-    """Perform early simplification on a SPARQL parse tree."""
-
-    modif = True
-    while modif:
-        modif = False
-        expr, m = rewrite.exprApply(expr, postOp=simplifyNode)
-        modif = modif or m
-
-    return expr
-
 def checkNotSupported(expr):
     if isinstance(expr, nodes.NotSupported):
         new = error.NotSupportedError(expr.getExtents(),
@@ -95,9 +71,6 @@ class ParseEnvironment(object):
 
         # Check for use of not implemented features.
         checkNotSupported(expr)
-
-        # Simplify the tree.
-        expr = simplifyParseTree(expr)
 
         # Type check the expression, using the specialized SPARQL type
         # checker.

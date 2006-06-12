@@ -669,6 +669,16 @@ class Product(ExpressionNode):
         super(Product, self).__init__(*relations)
 
 
+class LeftJoin(ExpressionNode):
+    """A node representing a left outer join of two or more
+    relations."""
+
+    __slots__ = ()
+
+    def __init__(self, fixed, optional):
+        super(LeftJoin, self).__init__(fixed, optional)
+
+
 class Select(ExpressionNode):
     """A node representing a select expression."""
 

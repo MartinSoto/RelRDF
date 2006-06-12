@@ -4,60 +4,28 @@ from relrdf.typecheck import typeexpr
 import spqnodes
 
 
-class ScopeStack(list):
-    """A stack of dictionaries containing variable substitutions for a
-    number of SPARQL scopes. For the moment, there is a main scope
-    scope for the whole query, and optional patterns introduce
-    additional scopes. A single variable may be bound to many variable
-    substitutions across scopes."""
+class Scope(dict):
+    """A dictionary containing variable substitutions for a SPARQL
+    scope. For the moment, there is a main scope for the whole query,
+    and optional patterns introduce additional scopes. A single
+    variable may be bound to many variable substitutions across
+    scopes."""
 
     __slots__ = ()
 
-    def __init__(self):
-        super(ScopeStack, self).__init__()
-
-    def openScope(self):
-        """Open (create) a new scope on top of the scope stack."""
-        self.append({})
-
-    def currentScope(self):
-        """Return the current (topmost) scope."""
-        return self[-1]
-
-    def createBinding(self, varName, nodeType=False):
-        """Bind the variable with name `varName` with a new variable,
-        that will be created and returned by this method. The created
-        variable will get its static type set to
-        `typeexpr.rdfNodeType` if `nodeType` is `True` and to
-        `resourceType` otherwise.
-
-        Many bindings can be done for a single variable name. Bindings
-        in a scope get automatically bound to bindings in higher
-        scopes."""
+    def createBinding(self, var):
+        """Bind the variable `var` (a `nodes.Var` object) with a new
+        variable, that will be created and returned by this
+        method. The returned variable will have the same static type
+        as `var`."""
         try:
-            varBindings = self.currentScope()[varName]
+            varBindings = self[var.name]
         except KeyError:
-            # Look for the variable in previous scopes.
-            prevBinding = None
-            for scope in reversed(self[:-1]):
-                try:
-                    prevBinding = iter(scope[varName]).next().copy()
-                    break
-                except KeyError:
-                    pass
-
-            if prevBinding is not None:
-                # Bind to previous scope.
-                varBindings = [prevBinding]
-            else:
-                varBindings = []
-            self.currentScope()[varName] = varBindings
+            varBindings = nodes.Equal()
+            self[var.name] = varBindings
 
         newVar = util.VarMaker.make()
-        if nodeType:
-            newVar.staticType = typeexpr.rdfNodeType
-        else:
-            newVar.staticType = typeexpr.resourceType
+        newVar.staticType = var.staticType
 
         varBindings.append(newVar)
 
@@ -65,37 +33,49 @@ class ScopeStack(list):
         # original object.
         return newVar.copy()
 
-    def closeScope(self):
-        """Closes (destroys) the topmost scope in the stack and
-        returns its binding condition.
+    def transformIntoCond(self, containing=None):
+        """Transforms this scope into its binding
+        condition. `containing` is the scope object corresponding to
+        the containing scope.
 
         The binding condition of a scope is an expression stating that
         all bindings of every variable in that scope are equal, and
-        that they are equal to at least one of the bindings in
-        previous scopes for the same variable, if there are any. In
+        that they are equal to at least one of the bindings in the
+        containing scope for the same variable, if there are any. In
         cases where this condition is trivially true, this method
-        returns `None`."""
-        subconds = []
+        returns `None`.
 
-        for bindings in self.currentScope().values():
+        This method renders the scope unusable. After invoking it, the
+        object must be discarded. As an additional border effect,
+        every variable in this scope not present in the containing
+        scope will be added to it with a single binding."""
+        subconds = nodes.And()
+
+        for varName, bindings in self.items():
+            # Bindings are already a nodes.Equal expression.
+
+            if containing is not None:
+                try:
+                    # Try to append a binding to the containing scope.
+                    bindings.append(iter(containing[varName]).next(). \
+                                    copy())
+                except KeyError:
+                    # If failed, enrich the contining scope with a
+                    # binding to the local scope (it is actually the
+                    # local scope that is binding the variable.)
+                    containing[varName] = [bindings[0].copy()]
+
             if len(bindings) >= 2:
-                subconds.append(nodes.Equal(*bindings))
+                subconds.append(bindings)
 
-        if len(subconds) == 0:
-            cond = None
-        elif len(subconds) == 1:
-            cond = subconds[0]
-        else:
-            cond = nodes.And(*subconds)
+        expr = simplify.reduceUnary(subconds)
+        return expr
 
-        self.pop()
-
-        return cond
-
-    def variableRepl(self, varName):
-        """Returns one of the bindings for the variable with variable
-        name `varName`."""
-        return iter(self.currentScope()[varName]).next().copy()
+    def variableRepl(self, var):
+        """Returns one of the bindings for the variable `var` (a
+        `nodes.Var` object). The returned binding is a fresh copy of
+        the one stored in the symbol table."""
+        return iter(self[var.name]).next().copy()
 
 
 class PatternDecoupler(rewrite.ExpressionTransformer):
@@ -111,16 +91,14 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     a different variable in each scope.
     """
 
-    __slots__ = ('scopeStack',)
+    __slots__ = ('currentScope',)
 
     def __init__(self):
         super(PatternDecoupler, self).__init__(prePrefix='pre')
 
-        self.scopeStack = ScopeStack()
-
     def preMapResult(self, expr):
         # Create a separate scope for the expression.
-        self.scopeStack.openScope()
+        self.currentScope = Scope()
 
         # Process the relation subexpression first.
         expr[0] = self.process(expr[0])
@@ -130,47 +108,78 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
                     for mappingExpr in expr[1:]]
 
         # Add the binding condition if necessary.
-        cond = self.scopeStack.closeScope()
+        cond = self.currentScope.transformIntoCond()
         if cond != None:
             expr[0] = nodes.Select(expr[0], cond)
 
         return expr
 
+    _patternOrder = {
+        nodes.StatementPattern: 1,
+        spqnodes.GraphPattern: 2,
+        spqnodes.OpenUnion: 2,     # Same priority.
+        spqnodes.Optional: 3,
+        spqnodes.Filter: 4
+        }
+
+    @classmethod
+    def _patternSortKey(cls, pattern):
+        return cls._patternOrder[pattern.__class__]
+
     def preGraphPattern(self, expr):
-        # Subexpressions must be processed in a particular order:
+        # Subexpressions of a complex graph pattern must be processed
+        # in a particular order to make sure that variables are
+        # visible exactly where they should be. We first sort the
+        # subexpressions according to that order.
+        expr.sort(key=self._patternSortKey)
 
-        # First simple triple patterns...
-        for i, subexpr in enumerate(expr):
-            if isinstance(subexpr, nodes.StatementPattern):
-                expr[i] = self.process(subexpr)
+        # Open a new scope.
+        containing = self.currentScope
+        self.currentScope = Scope()
 
-        # ...then, everything else except filters ...
+        # Process the ordered subexpressions recursively.
         for i, subexpr in enumerate(expr):
-            if not isinstance(subexpr, spqnodes.Filter) and \
-               not isinstance(subexpr, nodes.StatementPattern) :
-                expr[i] = self.process(subexpr)
+            expr[i] = self.process(subexpr)
 
-        # ... and, filters finally.
-        for i, subexpr in enumerate(expr):
-            if isinstance(subexpr, spqnodes.Filter):
-                expr[i] = self.process(subexpr)
+        # Add a filter with the binding condition.
+        cond = self.currentScope.transformIntoCond(containing)
+        if cond is not None:
+            expr.append(spqnodes.Filter(cond))
+        self.currentScope = containing
 
         return expr
 
     def GraphPattern(self, expr, *subexprs):
-        triplePatterns = nodes.Product()
+        # Process everything except optional patterns and filters.
+        i = 0
         for subexpr in subexprs:
-            if isinstance(subexpr, nodes.StatementPattern):
-                triplePatterns.append(subexpr)
-        expr = simplify.reduceUnary(triplePatterns)
+            if isinstance(subexpr, spqnodes.Optional) or \
+               isinstance(subexpr, spqnodes.Filter):
+                break
+            i += 1
 
+        expr = nodes.Product(*subexprs[:i])
+        expr = simplify.reduceUnary(expr)
         assert expr is not None
 
-        filterExpr = nodes.And()
-        for subexpr in subexprs:
+        # Process optional patterns.
+        for subexpr in subexprs[i:]:
             if isinstance(subexpr, spqnodes.Filter):
-                # Get rid of the filter node.
-                filterExpr.append(subexpr[0])
+                break
+            i += 1
+
+            assert isinstance(subexpr, spqnodes.Optional)
+
+            # Get rid of the soqnodes.Optional node.
+            expr = nodes.LeftJoin(expr, subexpr[0])
+
+        # Process filter expressions.
+        filterExpr = nodes.And()
+        for subexpr in subexprs[i:]:
+            assert isinstance(subexpr, spqnodes.Filter)
+
+            # Get rid of the spqnodes.Filter node.
+            filterExpr.append(subexpr[0])
         filterExpr = simplify.reduceUnary(filterExpr)
 
         if filterExpr is not None:
@@ -185,14 +194,16 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     def StatementPattern(self, expr, context, subject, pred, object):
         for i, subexpr in enumerate(expr):
             if isinstance(subexpr, nodes.Var):
-                expr[i] = self.scopeStack.createBinding(subexpr.name,
-                                                        i == 3)
+                expr[i] = self.currentScope.createBinding(subexpr)
 
         return expr
 
     def Var(self, expr):
         try:
-            return self.scopeStack.variableRepl(expr.name).copy()
+            return self.currentScope.variableRepl(expr)
         except KeyError:
-            return nodes.Null()
+            repl = nodes.Null()
+            repl.staticType = typeexpr.nullType
+            return repl
+
 

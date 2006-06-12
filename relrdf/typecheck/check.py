@@ -72,6 +72,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
             if 1 <= i <= 2:
                 if isinstance(subexpr, nodes.Var):
                     typeExpr.addColumn(subexpr.name, resourceType)
+
+                    # Give this variable a type.
+                    subexpr.staticType = resourceType
                 elif isinstance(subexpr, nodes.Joker):
                     pass
                 elif subexpr.staticType != resourceType:
@@ -79,6 +82,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
                           ('context', 'subject', 'predicate')[i])
             elif isinstance(subexpr, nodes.Var):
                 typeExpr.addColumn(subexpr.name, rdfNodeType)
+
+                # Give this variable a type.
+                subexpr.staticType = rdfNodeType
         expr.staticType = typeExpr
 
     def StatementPattern(self, expr, ctxTp, subjTp, predTp, objTp):
@@ -145,13 +151,16 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, 'NOT')
         expr.staticType = booleanLiteralType
 
-    def Product(self, expr, *operands):
+    def _checkJoin(self, expr, *operands):
         typeExpr = RelationType()
 
         for subexpr in expr:
             typeExpr.joinType(subexpr.staticType)
 
         expr.staticType = typeExpr
+
+    Product = _checkJoin
+    LeftJoin = _checkJoin
 
     def preSelect(self, expr):
         # Process the relation subexpression and create a scope from

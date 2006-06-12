@@ -61,7 +61,24 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(' + ') AND ('.join(operands) + ')'
 
     def Product(self, expr, *operands):
-        return ' CROSS JOIN '.join(operands)
+        return '(' + ') CROSS JOIN ('.join(operands) + ')'
+
+    def preLeftJoin(self, expr):
+        if isinstance(expr[1], nodes.Select):
+            # We use this select's condition as join condition.
+            return (self.process(expr[0]), self.process(expr[1][0]),
+                     self.process(expr[1][1]))
+        else:
+            return (self.process(expr[0]), self.process(expr[1]),
+                    None)
+
+    def LeftJoin(self, expr, fixed, optional, cond):
+        if cond is not None:
+            return '(%s) LEFT JOIN (%s) ON (%s)' % (fixed, optional, cond)
+        else:
+            # If no condition is available, this is actually a cross
+            # join.
+            return '(%s) CROSS JOIN (%s)' % (fixed, optional)
 
     def Select(self, expr, rel, cond):
         if isinstance(expr[0], nodes.Product):

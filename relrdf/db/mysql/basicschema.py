@@ -39,6 +39,16 @@ class BasicMapper(transform.PureRelationalTransformer):
     """A base mapper for the MySQL basic schema. It handles the
     mapping of type expressions."""
 
+    def prepareConnection(self, connection):
+        """Prepares the database connection (i.e., by creating certain
+        temporary tables) for use with this mapping."""
+        pass
+
+    def releaseConnection(self, connection):
+        """Releases from the connection any resources created by
+        `prepareConnection` method."""
+        pass
+
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
             # FIXME:Search for the actual type id.
@@ -348,43 +358,64 @@ class TwoWayComparisonMapper(BasicMapper,
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
 
-    def replStatementPattern(self, expr):
-        if self.stmtRepl is not None:
-            return self.stmtRepl
+    def prepareConnection(self, connection):
+        cursor = connection.cursor()
 
-        # This is a pretty sui generis way of doing this, but MySQL
-        # doesn't have a full outer join, and this solution not only
-        # works properly but seems to optimize quite well. Notice that
-        # it relies on the fact that versions numbers are never 0.
-        rel = sqlnodes.SqlRelation(
-            1,
+        # We create a temporary table for the comparison statements.
+        # FIXME: The table must be named in such a way the collisions
+        # are avoid between multiple database conections.
+        cursor.execute(
             """
-            select
-              comp.context as context,
-              s.subject as subject,
-              s.predicate as predicate,
-              s.object_type as object_type,
-              s.object as object
-            from
-              ( select
+            DROP TABLE IF EXISTS comparison
+            """)
+        cursor.execute(
+            """
+            CREATE TABLE comparison (
+              stmt_id integer unsigned NOT NULL,
+              context char(2) NOT NULL,
+              PRIMARY KEY (stmt_id),
+              KEY (context)
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+            """)
+
+        # This is a pretty sui generis way of performing the actual
+        # comparison, but MySQL doesn't have a full outer join, and
+        # this solution not only works properly but seems to be very
+        # efficient. Notice that it relies on the fact that version
+        # numbers are never 0.
+        cursor.execute(
+            """
+              INSERT INTO comparison
+                SELECT
+                  v.stmt_id as stmt_id,
                   case sum(v.version_id)
                     when %d then "A"
                     when %d then "B"
                     when %d then "AB"
-                  end as context,
-                  v.stmt_id as stmt_id
-                from version_statement v
-                where v.version_id = %d or v.version_id = %d
-                group by v.stmt_id) as comp,
-              statements s
-            where
-              comp.stmt_id = s.id
+                  end as context
+                FROM version_statement v
+                WHERE v.version_id = %d or v.version_id = %d
+                GROUP BY v.stmt_id
             """ % (self.versionA,
                    self.versionB,
                    self.versionA + self.versionB,
                    self.versionA,
                    self.versionB))
+
+    def replStatementPattern(self, expr):
+        if self.stmtRepl is not None:
+            return self.stmtRepl
                      
+        rel = build.buildExpression(
+            (nodes.Select,
+             (nodes.Product,
+              (sqlnodes.SqlRelation, 1, 'comparison'),
+              (sqlnodes.SqlRelation, 2, 'statements')),
+             (nodes.Equal,
+              (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+              (sqlnodes.SqlFieldRef, 2, 'id')))
+            )
+
         replExpr = \
           nodes.MapResult(['context', 'type__context',
                            'subject', 'type__subject',
@@ -394,12 +425,12 @@ class TwoWayComparisonMapper(BasicMapper,
                           SqlUriValueRef(1, 'context',
                                          commonns.relrdf.comp),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(1, 'subject'),
+                          sqlnodes.SqlFieldRef(2, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(1, 'predicate'),
+                          sqlnodes.SqlFieldRef(2, 'predicate'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(1, 'object'),
-                          sqlnodes.SqlFieldRef(1, 'object_type'))
+                          sqlnodes.SqlFieldRef(2, 'object'),
+                          sqlnodes.SqlFieldRef(2, 'object_type'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -495,7 +526,9 @@ class Model(object):
         # Add the prefixes to the modelArgs, so that the parser
         # receives them.
         modelArgs['prefixes'] = paramPrf
-            
+
+        # Prepare the connection for this mapping.
+        self.mappingTransf.prepareConnection(self.connection)
 
     def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
         # Parse the query.
@@ -536,6 +569,9 @@ class Model(object):
         return self._prefixes
 
     def __del__(self):
+        # Release mapping specific resources.
+        self.mappingTransf.releaseConnection(self.connection)
+
         self.connection.close()
 
 

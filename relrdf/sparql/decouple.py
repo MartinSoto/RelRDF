@@ -1,3 +1,4 @@
+from relrdf import error
 from relrdf.expression import nodes, rewrite, simplify, util
 from relrdf.typecheck import typeexpr
 
@@ -6,18 +7,37 @@ import spqnodes
 
 class Scope(dict):
     """A dictionary containing variable substitutions for a SPARQL
-    scope. For the moment, there is a main scope for the whole query,
-    and optional patterns introduce additional scopes. A single
-    variable may be bound to many variable substitutions across
-    scopes."""
+    scope, where a scope corresponds to the variables used in a given
+    group pattern. A single variable may be bound to many variable
+    substitutions across scopes.
 
-    __slots__ = ()
+    Scopes also contain an excluded variables set used to check for
+    pattern well designedness (see documentation in this module for
+    details.)"""
+
+    __slots__ = ('excluded',)
+
+    def __init__(self):
+        super(Scope, self).__init__()
+
+        # The set of excluded variables in this pattern. Excluded
+        # variables are variables that are present in the optional
+        # side of an optional pattern but not in its fixed side.
+        self.excluded = set()
+
+    def _badDesignedException(self, var):
+        raise error.SemanticError(msg=_("Query is not well designed due "
+                                        "to variable '%s'") % var.name,
+                                  extents=var.getExtents())
 
     def createBinding(self, var):
         """Bind the variable `var` (a `nodes.Var` object) with a new
         variable, that will be created and returned by this
         method. The returned variable will have the same static type
         as `var`."""
+        if var in self.excluded:
+            self._badDesignedException(var)
+
         try:
             varBindings = self[var]
         except KeyError:
@@ -33,38 +53,67 @@ class Scope(dict):
         # original object.
         return newVar.copy()
 
-    def transformIntoCond(self, containing=None):
-        """Transforms this scope into its binding
-        condition. `containing` is the scope object corresponding to
-        the containing scope.
+    def closeScope(self, containing=None, optional=False):
+        """Closes a scope, optionally merging it into its containing
+        scope, given by parameter `containing`.
 
-        The binding condition of a scope is an expression stating that
-        all bindings of every variable in that scope are equal, and
-        that they are equal to at least one of the bindings in the
-        containing scope for the same variable, if there are any. In
-        cases where this condition is trivially true, this method
-        returns `None`.
+        Closing a scope comprises three main operations. The first one
+        is checking that none of the excluded variables in this scope
+        is bound in the containing scope. If it is, an
+        `error.SemanticException` is raised. Excluded variables are
+        also added to the containing's scope excluded set.
 
-        This method renders the scope unusable. After invoking it, the
-        object must be discarded. As an additional border effect,
-        every variable in this scope not present in the containing
-        scope will be added to it with a single binding."""
+        The second operation consists of merging the scope into its
+        containing scope by adding to the containing scope every
+        variable in this scope not present in it with a single binding
+        from the contained scope. This serves to guarantee that the
+        bindings to the variables in the contained scope will be
+        preserved. Additionally, if `optional` is `True`, such
+        variables will also be added to the containing scope's
+        excluded variable set.
+
+        The third and final operation is building and returning the
+        scope's binding condition. The binding condition of a scope is
+        an expression stating that all bindings of every variable in
+        that scope are equal, and that they are equal to at least one
+        of the bindings in the containing scope for the same variable,
+        if there are any. In cases where this condition is trivially
+        true, this method returns `None`.
+
+        The first two operations are not performed if `containing` is
+        `None`.
+
+        This method renders the closed scope unusable. After invoking
+        it, the object must be discarded."""
+
+        # Check excluded variables.
+        if containing is not None:
+            for var in self.excluded:
+                if var in containing:
+                    self._badDesignedException(var)
+                else:
+                    containing.excluded.add(var)
+
         subconds = nodes.And()
-
         for var, bindings in self.items():
             # Bindings are already a nodes.Equal expression.
+            assert isinstance(bindings, nodes.Equal), var
 
             if containing is not None:
                 try:
                     # Try to append a binding to the containing scope.
                     bindings.append(iter(containing[var]).next(). \
                                     copy())
-                    decoupler._addVariable(var, False)
                 except KeyError:
                     # If failed, enrich the contining scope with a
                     # binding to the local scope (it is actually the
                     # local scope that is binding the variable.)
-                    containing[var] = [bindings[0].copy()]
+                    containing[var] = nodes.Equal(bindings[0].copy())
+
+                    if optional:
+                        # This variable goes into the excluded set as
+                        # well.
+                        containing.excluded.add(var)
 
             if len(bindings) >= 2:
                 subconds.append(bindings)
@@ -87,9 +136,12 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     variable is mentioned in more than one pattern position. Explicit
     conditions are added to preserve query semantics.
 
-    This transformer also decouples scopes, i.e., when a single
-    variable name is used in different scopes it will be replaced by
-    a different variable in each scope.
+    This transformer also checks that all patterns in the query are
+    well designed, in accordance to the definition by Perez, Arenas,
+    and Gutierrez (arXiv:cs 0605124). This definition basically states
+    that variables occurring in the optional side of an optional
+    pattern, either must be used in its fixed side, or cannot be used
+    anywhere else in the whole query.
     """
 
     __slots__ = ('currentScope',)
@@ -109,7 +161,7 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
                     for mappingExpr in expr[1:]]
 
         # Add the binding condition if necessary.
-        cond = self.currentScope.transformIntoCond()
+        cond = self.currentScope.closeScope()
         if cond != None:
             expr[0] = nodes.Select(expr[0], cond)
 
@@ -127,7 +179,7 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     def _patternSortKey(cls, pattern):
         return cls._patternOrder[pattern.__class__]
 
-    def preGraphPattern(self, expr):
+    def preGraphPattern(self, expr, optional=False):
         # Subexpressions of a complex graph pattern must be processed
         # in a particular order to make sure that variables are
         # visible exactly where they should be. We first sort the
@@ -143,7 +195,7 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
             expr[i] = self.process(subexpr)
 
         # Add a filter with the binding condition.
-        cond = self.currentScope.transformIntoCond(containing)
+        cond = self.currentScope.closeScope(containing, optional)
         if cond is not None:
             expr.append(spqnodes.Filter(cond))
         self.currentScope = containing
@@ -185,6 +237,16 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
 
         if filterExpr is not None:
             expr = nodes.Select(expr, filterExpr)
+
+        return expr
+
+    def preOptional(self, expr):
+        assert isinstance(expr[0], spqnodes.GraphPattern)
+
+        # Replace normal processing, calling the pre method with the
+        # optional parameter set.
+        expr[0] = self.GraphPattern(expr,
+                                    *self.preGraphPattern(expr[0], True))
 
         return expr
 

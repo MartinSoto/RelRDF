@@ -516,6 +516,15 @@ class Var(ExpressionNode):
 
         self.name = name
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __ne__(self, other):
+        return self.name != other.name
+
     def attributesRepr(self):
         return repr(self.name)
 

@@ -19,10 +19,10 @@ class Scope(dict):
         method. The returned variable will have the same static type
         as `var`."""
         try:
-            varBindings = self[var.name]
+            varBindings = self[var]
         except KeyError:
             varBindings = nodes.Equal()
-            self[var.name] = varBindings
+            self[var] = varBindings
 
         newVar = util.VarMaker.make()
         newVar.staticType = var.staticType
@@ -51,19 +51,20 @@ class Scope(dict):
         scope will be added to it with a single binding."""
         subconds = nodes.And()
 
-        for varName, bindings in self.items():
+        for var, bindings in self.items():
             # Bindings are already a nodes.Equal expression.
 
             if containing is not None:
                 try:
                     # Try to append a binding to the containing scope.
-                    bindings.append(iter(containing[varName]).next(). \
+                    bindings.append(iter(containing[var]).next(). \
                                     copy())
+                    decoupler._addVariable(var, False)
                 except KeyError:
                     # If failed, enrich the contining scope with a
                     # binding to the local scope (it is actually the
                     # local scope that is binding the variable.)
-                    containing[varName] = [bindings[0].copy()]
+                    containing[var] = [bindings[0].copy()]
 
             if len(bindings) >= 2:
                 subconds.append(bindings)
@@ -75,7 +76,7 @@ class Scope(dict):
         """Returns one of the bindings for the variable `var` (a
         `nodes.Var` object). The returned binding is a fresh copy of
         the one stored in the symbol table."""
-        return iter(self[var.name]).next().copy()
+        return iter(self[var]).next().copy()
 
 
 class PatternDecoupler(rewrite.ExpressionTransformer):

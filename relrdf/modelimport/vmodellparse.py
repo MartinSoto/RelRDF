@@ -1,4 +1,5 @@
 import sys
+import urllib
 
 from xml.parsers import expat
 
@@ -32,6 +33,15 @@ class VModellParser(object):
                  'currentElem',
                  'acumText')
 
+
+    # Elements lacking an id attribute, which means their id must be
+    # generated from their name property.
+    nameIdElems = set(('Begriffsabbildung',))
+
+    # The dummy value used to mark name id elements.
+    NAME_ID_URI = '<<Name ID>>'
+
+
     def __init__(self, fileObj,
                  namespace=uri.Namespace('http://www.v-modell-xt.de/'
                                          'model/1#'),
@@ -62,25 +72,6 @@ class VModellParser(object):
 
         elem = self._pushElem(name, attributes)
 
-        if elem.uri is not None:
-            # Create a declaration for the object.
-            self.sink.triple(elem.uri, commonns.rdf.type,
-                             uri.Uri(vModellNs[elem.name]))
-
-            parent = None
-            for superelem in reversed(self.elems[:-1]):
-                if superelem.uri is not None and \
-                   superelem.name != 'V-Modell':
-                    parent = superelem
-                    break
-
-            if parent is not None:
-                self.sink.triple(parent.uri,
-                                 uri.Uri(vModellNs['%s_enthaelt_%s' \
-                                                   % (parent.name,
-                                                      elem.name)]),
-                                 elem.uri)
-
         if 'link' in attributes:
             # We have a relation between objects.
             value = self.namespace['id' + attributes['link']]
@@ -108,10 +99,37 @@ class VModellParser(object):
     def _endElementHandler(self, name):
         elem = self._popElem()
 
+        if elem.uri is not None:
+            # Create a declaration for the object.
+            self.sink.triple(elem.uri, commonns.rdf.type,
+                             uri.Uri(vModellNs[elem.name]))
+
+            # If there is a containing object, create a 'contains'
+            # relationship that reflects the structure.
+
+            parent = None
+            for superelem in reversed(self.elems):
+                if superelem.uri is not None and \
+                   superelem.name != 'V-Modell':
+                    parent = superelem
+                    break
+
+            if parent is not None:
+                self.sink.triple(parent.uri,
+                                 uri.Uri(vModellNs['%s_enthaelt_%s' \
+                                                   % (parent.name,
+                                                      elem.name)]),
+                                 elem.uri)
+
         if self.acumText is not None:
             # Add a property to the current object.
             self._addProperty(elem.name, literal.Literal(self.acumText))
             self.acumText = None
+
+            if self.elems[-1] != self.currentElem:
+                self.warning("property '%s' is not directly contained in"
+                             " current element '%s'" % \
+                             (name, self.currentElem.name))
 
     def _characterDataHandler(self, data):
         if data != '' and not data.isspace():
@@ -128,6 +146,10 @@ class VModellParser(object):
         if 'id' in attributes:
             id = attributes['id']
             elem.uri = self.namespace['id' + id]
+        elif name in self.nameIdElems:
+            # Give the element a dummy URI which will be replaced as
+            # soon as a we see its name property.
+            elem.uri = self.NAME_ID_URI
         elif len(self.elems) == 1:
             # We associate a special URI to the whole model.
             id = 'root'
@@ -154,6 +176,16 @@ class VModellParser(object):
         assert False
 
     def _addProperty(self, propertyName, value):
+        if self.currentElem.uri == self.NAME_ID_URI:
+            if propertyName != 'Name':
+                self.warning("property '%s' from '%s' seen, but no id"
+                             " is available" % \
+                             (propertyName, self.currentElem.name))
+                return
+            self.currentElem.uri = self.namespace['id' +
+                                                  urllib.quote(unicode(value) \
+                                                               .encode('utf-8'))]
+                
         self.sink.triple(self.currentElem.uri, vModellNs[propertyName],
                          value)
 

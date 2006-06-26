@@ -91,6 +91,10 @@
 	 rdfs:label="Begriff">
 	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
 </rdfs:Class>
+<rdfs:Class rdf:about="&Schema_;Begriffsabbildung"
+	 rdfs:label="Begriffsabbildung">
+	<rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
 <rdf:Property rdf:about="&Schema_;BeispielProduktgestaltung"
 	 rdfs:label="BeispielProduktgestaltung">
 	<rdfs:domain rdf:resource="&Schema_;Produkt"/>
@@ -261,6 +265,7 @@
 	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
 	<rdfs:domain rdf:resource="&Schema_;Aktivitätsgruppe"/>
 	<rdfs:domain rdf:resource="&Schema_;Begriff"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
 	<rdfs:domain rdf:resource="&Schema_;Entscheidungspunkt"/>
 	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
@@ -295,6 +300,7 @@
 	 rdfs:label="Nummer">
 	<rdfs:domain rdf:resource="&Schema_;Aktivität"/>
 	<rdfs:domain rdf:resource="&Schema_;Aktivitätsgruppe"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
 	<rdfs:domain rdf:resource="&Schema_;Entscheidungspunkt"/>
 	<rdfs:domain rdf:resource="&Schema_;ErzeugendeAbhängigkeit"/>
@@ -758,86 +764,86 @@
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchAGRef"
 	 rdfs:label="wird_abgebildet_durchAGRef">
 	<rdfs:range rdf:resource="&Schema_;Aktivitätsgruppe"/>
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchAbschnittRef"
 	 rdfs:label="wird_abgebildet_durchAbschnittRef">
 	<rdfs:range rdf:resource="&Schema_;Abschnitt"/>
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchAktivitätRef"
 	 rdfs:label="wird_abgebildet_durchAktivitätRef">
 	<rdfs:range rdf:resource="&Schema_;Aktivität"/>
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchEntscheidungspunktRef"
 	 rdfs:label="wird_abgebildet_durchEntscheidungspunktRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Entscheidungspunkt"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchKapitelRef"
 	 rdfs:label="wird_abgebildet_durchKapitelRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Kapitel"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchKonventionsabbildungRef"
 	 rdfs:label="wird_abgebildet_durchKonventionsabbildungRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Konventionsabbildung"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchMethodenreferenzRef"
 	 rdfs:label="wird_abgebildet_durchMethodenreferenzRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Methodenreferenz"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchPDSRef"
 	 rdfs:label="wird_abgebildet_durchPDSRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Projektdurchführungsstrategie"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchPGRef"
 	 rdfs:label="wird_abgebildet_durchPGRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Produktgruppe"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchProduktRef"
 	 rdfs:label="wird_abgebildet_durchProduktRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Produkt"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchRolleRef"
 	 rdfs:label="wird_abgebildet_durchRolleRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Rolle"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchTeilRef"
 	 rdfs:label="wird_abgebildet_durchTeilRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;V-Modell-Teil"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchTeilaktivitätRef"
 	 rdfs:label="wird_abgebildet_durchTeilaktivitätRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Teilaktivität"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchThemaRef"
 	 rdfs:label="wird_abgebildet_durchThemaRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Thema"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchVBRef"
 	 rdfs:label="wird_abgebildet_durchVBRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Vorgehensbaustein"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchWerkzeugr"
 	 rdfs:label="wird_abgebildet_durchWerkzeugr">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&rdfs;Literal"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;wird_abgebildet_durchWerkzeugreferenzRef"
 	 rdfs:label="wird_abgebildet_durchWerkzeugreferenzRef">
-	<rdfs:domain rdf:resource="&Schema_;Bereich"/>
+	<rdfs:domain rdf:resource="&Schema_;Begriffsabbildung"/>
 	<rdfs:range rdf:resource="&Schema_;Werkzeugreferenz"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;xsi:noNamespaceSchemaLocation"

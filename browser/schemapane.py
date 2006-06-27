@@ -1,4 +1,3 @@
-import os
 import cgi
 
 import gtk
@@ -40,7 +39,15 @@ class GetInstancesQuery(PredefQuery):
         if propShort[0] == '<':
             varName = '?prop'
         else:
-            varName = '?' + propShort.replace(':', '_')
+            chrs = list(propShort)
+            for i, c in enumerate(chrs):
+                if not c.isalnum():
+                    chrs[i] = '_'
+
+            if not chrs[0].isalpha():
+                varName = '?prop_' + ''.join(chrs)
+            else:
+                varName = '?' + ''.join(chrs)
 
         if varName in varNames:
             i = 1

@@ -124,8 +124,8 @@ class MainWindow(UiManagerDelegate):
         self.maxHistorySize = 100
 
         # We set, but do not execute an initial query.
-        self._addToHistory("select ?g ?s ?p ?o\n"
-                           "where { graph ?g {?s ?p ?o} }\n")
+        self._addToHistory("select ?s ?p ?o\n"
+                           "where {\n  ?s ?p ?o\n}\n")
 
         # Initialize the results status bar.
         self._statusInit()

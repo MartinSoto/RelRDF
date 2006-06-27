@@ -67,7 +67,7 @@ class GetInstancesQuery(PredefQuery):
             
             if cls in prop.range:
                 varName = self.makeVarName(short + '_pred', varNames)
-                propClauses.append("  optional {\n    %s %s ?inst\n}  \n" %
+                propClauses.append("  optional {\n    %s %s ?inst\n  }\n" %
                                    (varName, short))
 
         return "select %s\nwhere {\n  ?inst rdf:type %s\n%s}" % \
@@ -75,14 +75,65 @@ class GetInstancesQuery(PredefQuery):
              ''.join(propClauses))
 
 
+class CompInstancesQuery(GetInstancesQuery):
+    __slots__ = ()
+
+    def getQuery(self, classes, props, shortener):
+        cls = classes[0]
+
+        varNames = ['?comp', '?inst']
+        propClauses = []
+        for prop in props:
+            short = shortener.shortenUri(prop)
+
+            if cls in prop.domain:
+                varName = self.makeVarName(short, varNames)
+                propClauses.append("  optional { graph relrdf:compAB "
+                                   "{?inst %s %s} }\n" %
+                                   (short, varName))
+            
+                varName = self.makeVarName(short + '_old', varNames)
+                propClauses.append("  optional { graph relrdf:compA "
+                                   "{?inst %s %s} }\n" %
+                                   (short, varName))
+            
+                varName = self.makeVarName(short + '_new', varNames)
+                propClauses.append("  optional { graph relrdf:compB "
+                                   "{?inst %s %s} }\n" %
+                                   (short, varName))
+            
+            if cls in prop.range:
+                varName = self.makeVarName(short + '_pred', varNames)
+                propClauses.append("  optional { graph relrdf:compAB "
+                                   "{ %s %s ?inst} }\n" %
+                                   (varName, short))
+
+                varName = self.makeVarName(short + '_pred_old', varNames)
+                propClauses.append("  optional { graph relrdf:compA "
+                                   "{ %s %s ?inst} }\n" %
+                                   (varName, short))
+
+                varName = self.makeVarName(short + '_pred_new', varNames)
+                propClauses.append("  optional { graph relrdf:compB "
+                                   "{ %s %s ?inst} }\n" %
+                                   (varName, short))
+
+        return "select %s\nwhere {\n  graph ?comp {?inst rdf:type %s}\n%s}" % \
+            (' '.join(varNames), shortener.shortenUri(cls),
+             ''.join(propClauses))    
+
+
 class SchemaBrowser(UiManagerSlaveDelegate):
 
-    popupGroup__actions = [('showInstances', None,
-                            _('Show _Instances'), None, None)]
+    popupGroup__actions = [('showInstProp', None,
+                            _('Show instances & properties'), None, None),
+                           ('compInstProp', None,
+                            _('Compare instances & properties'), None, None)]
 
     uiDefinition = '''<ui>
     <popup name="classPopUp">
-      <menuitem action="showInstances"/>
+      <menuitem action="showInstProp"/>
+      <menuitem action="compInstProp"/>
     </popup>
     </ui>'''
 
@@ -133,6 +184,7 @@ class SchemaBrowser(UiManagerSlaveDelegate):
 
         # Predefined queries.
         self.predefGetInstances = GetInstancesQuery()
+        self.predefCompInstances = CompInstancesQuery()
 
     def setMainWindow(self, mainWindow):
         self.mainWindow = mainWindow
@@ -218,7 +270,9 @@ class SchemaBrowser(UiManagerSlaveDelegate):
 
     def checkPredefQueries(self):
         classes, props = self.getSelectedElems()
-        self.showInstances.set_sensitive(self.predefGetInstances. \
+        self.showInstProp.set_sensitive(self.predefGetInstances. \
+                                         isActive(classes, props))
+        self.compInstProp.set_sensitive(self.predefCompInstances. \
                                          isActive(classes, props))
 
     def _searchEqual(self, model, column, key, itr):
@@ -239,7 +293,12 @@ class SchemaBrowser(UiManagerSlaveDelegate):
             self.classPopUp.popup(None, None, None,
                                   event.button, event.time)
 
-    def on_showInstances__activate(self, widget, *args):
+    def on_showInstProp__activate(self, widget, *args):
         classes, props = self.getSelectedElems()
         self.mainWindow.runQuery(self.predefGetInstances. \
+                                 getQuery(classes, props, self.shortener))
+
+    def on_compInstProp__activate(self, widget, *args):
+        classes, props = self.getSelectedElems()
+        self.mainWindow.runQuery(self.predefCompInstances. \
                                  getQuery(classes, props, self.shortener))

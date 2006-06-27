@@ -282,7 +282,7 @@ class MainWindow(UiManagerDelegate):
         pos = 0
         for name in results.columnNames:
             # Create the column.
-            col = gtk.TreeViewColumn(name)
+            col = gtk.TreeViewColumn(name.replace('_', '__'))
             col.set_resizable(True)
             col.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)
             self.resultsView.append_column(col)

@@ -5,7 +5,74 @@ import gtk
 
 from kiwifixes import UiManagerSlaveDelegate
 
+import schema
 import pixmaps
+
+
+class PredefQuery(object):
+    __slots__ = ()
+
+    def isActive(self, classes, props):
+        raise NotImplementedError
+
+    def getQuery(self, classes, props):
+        raise NotImplementedError
+
+
+class GetInstancesQuery(PredefQuery):
+    __slots__ = ()
+
+    def isActive(self, classes, props):
+        if len(classes) != 1:
+            return False
+
+        cls = classes[0]
+
+        for prop in props:
+            if not cls in prop.domain and \
+               not cls in prop.range:
+                return False
+
+        return True
+
+    @staticmethod
+    def makeVarName(propShort, varNames):
+        if propShort[0] == '<':
+            varName = '?prop'
+        else:
+            varName = '?' + propShort.replace(':', '_')
+
+        if varName in varNames:
+            i = 1
+            while '%s%d' % (varName, i) in varNames:
+                i += 1
+            varName = '%s%d' % (varName, i)
+
+        varNames.append(varName)
+
+        return varName
+
+    def getQuery(self, classes, props, shortener):
+        cls = classes[0]
+
+        varNames = ['?inst']
+        propClauses = []
+        for prop in props:
+            short = shortener.shortenUri(prop)
+
+            if cls in prop.domain:
+                varName = self.makeVarName(short, varNames)
+                propClauses.append("  optional {\n    ?inst %s %s\n  }\n" %
+                                   (short, varName))
+            
+            if cls in prop.range:
+                varName = self.makeVarName(short + '_pred', varNames)
+                propClauses.append("  optional {\n    %s %s ?inst\n}  \n" %
+                                   (varName, short))
+
+        return "select %s\nwhere {\n  ?inst rdf:type %s\n%s}" % \
+            (' '.join(varNames), shortener.shortenUri(cls),
+             ''.join(propClauses))
 
 
 class SchemaBrowser(UiManagerSlaveDelegate):
@@ -46,6 +113,9 @@ class SchemaBrowser(UiManagerSlaveDelegate):
 
         self.classTS = None
 
+        # Allow multiple selection.
+        self.classView.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+
         # Enable searching. The fourth column in the model is special
         # for this purpose.
         self.classView.set_enable_search(True)
@@ -60,6 +130,9 @@ class SchemaBrowser(UiManagerSlaveDelegate):
             gtk.gdk.BUTTON1_MASK,
             [('UTF8_STRING', 0, 0)],
             gtk.gdk.ACTION_COPY)
+
+        # Predefined queries.
+        self.predefGetInstances = GetInstancesQuery()
 
     def setMainWindow(self, mainWindow):
         self.mainWindow = mainWindow
@@ -128,6 +201,26 @@ class SchemaBrowser(UiManagerSlaveDelegate):
         (cls,) = self.classTS.get(tItr, 0)
         return cls
 
+    def getSelectedElems(self):
+        model, pathList = self.classView.get_selection().get_selected_rows()
+
+        classes = []
+        props = []
+        for path in pathList:
+            itr = self.classTS.get_iter(path)
+            obj, = self.classTS.get(itr, 0)
+            if isinstance(obj, schema.RdfClass):
+                classes.append(obj)
+            elif isinstance(obj, schema.RdfProperty):
+                props.append(obj)
+
+        return (classes, props)
+
+    def checkPredefQueries(self):
+        classes, props = self.getSelectedElems()
+        self.showInstances.set_sensitive(self.predefGetInstances. \
+                                         isActive(classes, props))
+
     def _searchEqual(self, model, column, key, itr):
         return not (key in str(model.get_value(itr, column)).lower())
 
@@ -142,10 +235,11 @@ class SchemaBrowser(UiManagerSlaveDelegate):
     # Kiwi/Gazpacho seems to be trapping the event.
     def on_classView__button_release_event(self, widget, event):
         if event.button == 3:
+            self.checkPredefQueries()
             self.classPopUp.popup(None, None, None,
                                   event.button, event.time)
 
     def on_showInstances__activate(self, widget, *args):
-        self.mainWindow.runQuery(
-            "select ?instance\nwhere {?instance rdf:type %s}" % \
-            self.shortener.shortenUri(self.getCurrentClass()))
+        classes, props = self.getSelectedElems()
+        self.mainWindow.runQuery(self.predefGetInstances. \
+                                 getQuery(classes, props, self.shortener))

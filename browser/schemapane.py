@@ -26,10 +26,12 @@ class GetInstancesQuery(PredefQuery):
             return False
 
         cls = classes[0]
+        outgoing = cls.getAllOutgoingProps()
+        incoming = cls.getAllIncomingProps()
 
         for prop in props:
-            if not cls in prop.domain and \
-               not cls in prop.range:
+            if not prop in outgoing and \
+               not prop in incoming:
                 return False
 
         return True
@@ -61,18 +63,20 @@ class GetInstancesQuery(PredefQuery):
 
     def getQuery(self, classes, props, shortener):
         cls = classes[0]
+        outgoing = cls.getAllOutgoingProps()
+        incoming = cls.getAllIncomingProps()
 
         varNames = ['?inst']
         propClauses = []
         for prop in props:
             short = shortener.shortenUri(prop)
 
-            if cls in prop.domain:
+            if prop in outgoing:
                 varName = self.makeVarName(short, varNames)
                 propClauses.append("  optional {\n    ?inst %s %s\n  }\n" %
                                    (short, varName))
             
-            if cls in prop.range:
+            if prop in incoming:
                 varName = self.makeVarName(short + '_pred', varNames)
                 propClauses.append("  optional {\n    %s %s ?inst\n  }\n" %
                                    (varName, short))
@@ -87,13 +91,15 @@ class CompInstancesQuery(GetInstancesQuery):
 
     def getQuery(self, classes, props, shortener):
         cls = classes[0]
+        outgoing = cls.getAllOutgoingProps()
+        incoming = cls.getAllIncomingProps()
 
         varNames = ['?comp', '?inst']
         propClauses = []
         for prop in props:
             short = shortener.shortenUri(prop)
 
-            if cls in prop.domain:
+            if prop in outgoing:
                 varName = self.makeVarName(short, varNames)
                 propClauses.append("  optional { graph relrdf:compAB "
                                    "{?inst %s %s} }\n" %
@@ -109,7 +115,7 @@ class CompInstancesQuery(GetInstancesQuery):
                                    "{?inst %s %s} }\n" %
                                    (short, varName))
             
-            if cls in prop.range:
+            if prop in incoming:
                 varName = self.makeVarName(short + '_pred', varNames)
                 propClauses.append("  optional { graph relrdf:compAB "
                                    "{ %s %s ?inst} }\n" %

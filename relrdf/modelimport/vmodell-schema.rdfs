@@ -624,8 +624,8 @@
 	 rdfs:label="VorgehensbausteinRef">
 	<rdfs:range rdf:resource="&Schema_;Vorgehensbaustein"/>
 </rdf:Property>
-<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthäelt_Aktivität"
-	 rdfs:label="Vorgehensbaustein_enthäelt_Aktivität">
+<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Aktivität"
+	 rdfs:label="Vorgehensbaustein_enthält_Aktivität">
 	<rdfs:range rdf:resource="&Schema_;Aktivität"/>
 	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
 </rdf:Property>

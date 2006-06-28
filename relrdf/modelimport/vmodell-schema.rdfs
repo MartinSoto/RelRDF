@@ -523,11 +523,6 @@
 	<rdfs:range rdf:resource="&Schema_;Ablaufbaustein"/>
 	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
 </rdf:Property>
-<rdf:Property rdf:about="&Schema_;V-Modell_enthält_AbstrakteModellElemente"
-	 rdfs:label="V-Modell_enthält_AbstrakteModellElemente">
-	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
-	<rdfs:range rdf:resource="&rdfs;Resource"/>
-</rdf:Property>
 <rdf:Property rdf:about="&Schema_;V-Modell_enthält_Begriff"
 	 rdfs:label="V-Modell_enthält_Begriff">
 	<rdfs:range rdf:resource="&Schema_;Begriff"/>
@@ -537,11 +532,6 @@
 	 rdfs:label="V-Modell_enthält_Entscheidungspunkt">
 	<rdfs:range rdf:resource="&Schema_;Entscheidungspunkt"/>
 	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
-</rdf:Property>
-<rdf:Property rdf:about="&Schema_;V-Modell_enthält_Glossar"
-	 rdfs:label="V-Modell_enthält_Glossar">
-	<rdfs:domain rdf:resource="&Schema_;V-Modell"/>
-	<rdfs:range rdf:resource="&rdfs;Resource"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;V-Modell_enthält_Konventionsabbildung"
 	 rdfs:label="V-Modell_enthält_Konventionsabbildung">
@@ -633,11 +623,6 @@
 	 rdfs:label="Vorgehensbaustein_enthält_Aktivitätsgruppe">
 	<rdfs:range rdf:resource="&Schema_;Aktivitätsgruppe"/>
 	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
-</rdf:Property>
-<rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_Auswahlkriterien"
-	 rdfs:label="Vorgehensbaustein_enthält_Auswahlkriterien">
-	<rdfs:domain rdf:resource="&Schema_;Vorgehensbaustein"/>
-	<rdfs:range rdf:resource="&rdfs;Resource"/>
 </rdf:Property>
 <rdf:Property rdf:about="&Schema_;Vorgehensbaustein_enthält_ErzeugendeAbhängigkeit"
 	 rdfs:label="Vorgehensbaustein_enthält_ErzeugendeAbhängigkeit">

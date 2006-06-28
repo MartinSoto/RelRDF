@@ -142,11 +142,13 @@ class RdfGraphvizMaker(object):
                     node[i] = self.graph.add_node(str(nodeId))
 
                     for (propPos, propName) in props[i]:
-                        setattr(node[i], propName, result[propPos])
+                        setattr(node[i], propName,
+                                unicode(result[propPos]).encode('utf-8'))
 
             if node[0] is not None and node[1] is not None:
                 edge = self.graph.add_edge(node[0], node[1])
                 
                 for (propPos, propName) in edgeProps:
-                   setattr(edge, propName, result[propPos])
+                   setattr(edge, propName,
+                           unicode(result[propPos]).encode('utf-8'))
 

@@ -46,7 +46,7 @@ class ComparisonMaker(rdfgv.RdfGraphvizMaker):
         }
         """)
 
-    def formatProps(self, props, node):
+    def formatNodeProps(self, props, node):
         return ' '.join(['"%s%d"="%s"' % (key, node, value)
                          for (key, value) in props.items()])
                                     
@@ -54,7 +54,7 @@ class ComparisonMaker(rdfgv.RdfGraphvizMaker):
         params = {
             'rdfCls': rdfCls,
             'labelProp': labelProp,
-            'props': self.formatProps(props, 1)
+            'props': self.formatNodeProps(props, 1)
             }
 
         if self.old:
@@ -91,7 +91,7 @@ class ComparisonMaker(rdfgv.RdfGraphvizMaker):
         self.addResults(results)
 
     relQuery = string.Template("""
-        select ?node1 "edge_label"="$label" "edge_color"="$color" ?node2
+        select ?node1 "edge_color"="$color" $props ?node2
         where {
           $typeCond1
           $typeCond2
@@ -99,13 +99,17 @@ class ComparisonMaker(rdfgv.RdfGraphvizMaker):
         }
         """)
 
-    def getRelQuery(self, rdfRel, label, color, comp,
+    def formatEdgeProps(self, props):
+        return ' '.join(['"edge_%s"="%s"' % (key, value)
+                         for (key, value) in props.items()])
+                                    
+    def getRelQuery(self, rdfRel, props, color, comp,
                     type1=None, type2=None):
         params = {
             'rdfRel': rdfRel,
-            'label': label,
             'color': color,
-            'comp': comp
+            'comp': comp,
+            'props': self.formatEdgeProps(props)
             }
 
         if type1 is not None:
@@ -120,34 +124,34 @@ class ComparisonMaker(rdfgv.RdfGraphvizMaker):
 
         return self.relQuery.substitute(params)
 
-    def addRelation(self, rdfRel, label, type1=None, type2=None):
+    def addRelation(self, rdfRel, type1=None, type2=None, **props):
         if self.old:
-            print self.getRelQuery(rdfRel, label,
+            print self.getRelQuery(rdfRel, props,
                                    'red', 'A',
                                    type1, type2)
             results = self.model.query('SPARQL',
-                                       self.getRelQuery(rdfRel, label,
+                                       self.getRelQuery(rdfRel, props,
                                                         'red', 'A',
                                                         type1, type2))
             print len(results)
             self.addResults(results)
 
-        print self.getRelQuery(rdfRel, label,
+        print self.getRelQuery(rdfRel, props,
                                'black', 'AB',
                                type1, type2)
         results = self.model.query('SPARQL',
-                                   self.getRelQuery(rdfRel, label,
+                                   self.getRelQuery(rdfRel, props,
                                                     'black', 'AB',
                                                     type1, type2))
         print len(results)
         self.addResults(results)
 
         if self.new:
-            print self.getRelQuery(rdfRel, label,
+            print self.getRelQuery(rdfRel, props,
                                    'green', 'B',
                                    type1, type2)
             results = self.model.query('SPARQL',
-                                       self.getRelQuery(rdfRel, label,
+                                       self.getRelQuery(rdfRel, props,
                                                         'green', 'B',
                                                         type1, type2))
             print len(results)

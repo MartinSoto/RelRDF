@@ -438,6 +438,119 @@ class TwoWayComparisonMapper(BasicMapper,
         return self.stmtRepl
 
 
+class ThreeWayComparisonMapper(BasicMapper,
+                               transform.StandardReifTransformer):
+    """Targets an abstract query to a context set presenting three
+    versions (versions A, B and C) as seven contexts, corresponding to
+    all combinations of being in A, and/or C."""
+    
+    __slots__ = ('versionA',
+                 'versionB',
+                 'versionC',
+
+                 'stmtRepl')
+
+    def __init__(self, versionA, versionB, versionC):
+        super(ThreeWayComparisonMapper, self).__init__()
+
+        self.versionA = int(versionA)
+        self.versionB = int(versionB)
+        self.versionC = int(versionC)
+
+        # Cache for the statement pattern replacement expression.
+        self.stmtRepl = None
+
+    def prepareConnection(self, connection):
+        cursor = connection.cursor()
+
+        # We create a temporary table for the comparison statements.
+        # FIXME: The table must be named in such a way the collisions
+        # are avoid between multiple database conections.
+        cursor.execute(
+            """
+            DROP TABLE IF EXISTS comparison
+            """)
+        cursor.execute(
+            """
+            CREATE TABLE comparison (
+              stmt_id integer unsigned NOT NULL,
+              context char(3) NOT NULL,
+              PRIMARY KEY (stmt_id),
+              KEY (context)
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+            """)
+
+        # This is a pretty sui generis way of performing the actual
+        # comparison, but MySQL doesn't have a full outer join, and
+        # this solution not only works properly but seems to be very
+        # efficient. Notice that it relies on the fact that version
+        # numbers are never 0.
+        cursor.execute(
+            """
+              INSERT INTO comparison
+                SELECT
+                  v.stmt_id as stmt_id,
+                  case
+                      sum(case v.version_id
+                        when %d then 1
+                        when %d then 2
+                        when %d then 4
+                      end)
+                    when 1 then "A"
+                    when 2 then "B"
+                    when 3 then "AB"
+                    when 4 then "C"
+                    when 5 then "AC"
+                    when 6 then "BC"
+                    when 7 then "ABC"
+                  end as context
+                FROM version_statement v
+                WHERE v.version_id = %d or v.version_id = %d
+                      or v.version_id = %d
+                GROUP BY v.stmt_id
+            """ % (self.versionA,
+                   self.versionB,
+                   self.versionC,
+                   self.versionA,
+                   self.versionB,
+                   self.versionC))
+
+    def replStatementPattern(self, expr):
+        if self.stmtRepl is not None:
+            return self.stmtRepl
+                     
+        rel = build.buildExpression(
+            (nodes.Select,
+             (nodes.Product,
+              (sqlnodes.SqlRelation, 1, 'comparison'),
+              (sqlnodes.SqlRelation, 2, 'statements')),
+             (nodes.Equal,
+              (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+              (sqlnodes.SqlFieldRef, 2, 'id')))
+            )
+
+        replExpr = \
+          nodes.MapResult(['context', 'type__context',
+                           'subject', 'type__subject',
+                           'predicate', 'type__predicate',
+                           'object', 'type__object'],
+                          rel,
+                          SqlUriValueRef(1, 'context',
+                                         commonns.relrdf.comp),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(2, 'subject'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(2, 'predicate'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          sqlnodes.SqlFieldRef(2, 'object'),
+                          sqlnodes.SqlFieldRef(2, 'object_type'))
+
+        self.stmtRepl = (replExpr,
+                         ('context', 'subject', 'predicate', 'object'))
+
+        return self.stmtRepl
+
+
 class Results(object):
     __slots__ = ('cursor',
                  'columnNames',
@@ -579,7 +692,8 @@ _modelFactories = {
     'metaversion': MetaVersionMapper,
     'singleversion': SingleVersionMapper,
     'allversions': AllVersionsMapper,
-    'twoway': TwoWayComparisonMapper
+    'twoway': TwoWayComparisonMapper,
+    'threeway': ThreeWayComparisonMapper
     }
 
 def getModel(connection, modelType, **modelArgs):

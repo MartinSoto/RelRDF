@@ -10,6 +10,8 @@ class Font(object):
                  'fw',
                  'fh')
 
+    DPI = 96.0
+
     def __init__(self, fd):
         # PyGtk doesn't really support using Pango outside of GTK. We
         # need to do a hack to be able to access a real Pango context.
@@ -19,12 +21,14 @@ class Font(object):
         # We have to convert back from device coordinates to
         # milimeters.
         screen = window.get_screen()
-        self.fw = float(screen.get_width_mm()) / \
-                  (float(pango.SCALE * screen.get_width()) *
-                   units.TO_MM)
-        self.fh = float(screen.get_height_mm()) / \
-                  (float(pango.SCALE * screen.get_height()) *
-                   units.TO_MM)
+#         self.fw = float(screen.get_width_mm()) / \
+#                   (float(pango.SCALE * screen.get_width()) *
+#                    units.TO_MM)
+#         self.fh = float(screen.get_height_mm()) / \
+#                   (float(pango.SCALE * screen.get_height()) *
+#                    units.TO_MM)
+        self.fw = 1 / (pango.SCALE * self.DPI * units.TO_INCHES)
+        self.fh = self.fw
 
         self._makeCssProps(fd)
 
@@ -32,7 +36,7 @@ class Font(object):
         self.layout.set_font_description(fd)
 
     def getExtents(self, text):
-        self.layout.set_text(text)
+        self.layout.set_text(unicode(text))
         ink, logical = self.layout.get_line(0).get_extents()
         return (logical[2] * self.fw, logical[3] * self.fh,
                 pango.DESCENT(logical) * self.fh)

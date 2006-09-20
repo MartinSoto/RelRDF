@@ -1,11 +1,11 @@
 import string
 
-import rdfgv
+import maker
 
 import resulttransf
 
 
-class ComparisonMaker(rdfgv.RdfGraphvizMaker):
+class ComparisonMaker(maker.RdfGraphvizMaker):
 
     __slots__ = ('model',
 
@@ -30,21 +30,22 @@ class ComparisonMaker(rdfgv.RdfGraphvizMaker):
             assert False, compType
 
     classQuery = string.Template("""
-        select ?node1 ?label1 "color1"="$color" $props
+    select ?node1 ?label1 "nodeStyle1"="stroke:$color;fill:white:" $props
         where {
           graph relrdf:comp$comp {?node1 rdf:type <$rdfCls>}
           {?node1 <$labelProp> ?label1}
         }
         """)
 
-    modifLabelQuery = string.Template("""
-        select ?node1 ?oldName ?newName "fontcolor1"="red"
+    modifLabelQuery = string.Template('''
+        select ?node1 ?oldName ?newName
+               "labelStyle1"="fill:red;"
         where {
           graph relrdf:compAB {?node1 rdf:type <$rdfCls>}
           graph relrdf:compA {?node1 <$labelProp> ?oldName}
           graph relrdf:compB {?node1 <$labelProp> ?newName}
         }
-        """)
+        ''')
 
     def formatNodeProps(self, props, node):
         return ' '.join(['"%s%d"="%s"' % (key, node, value)
@@ -90,14 +91,17 @@ class ComparisonMaker(rdfgv.RdfGraphvizMaker):
         results = resulttransf.LabelFromOldNewName(results)
         self.addResults(results)
 
-    relQuery = string.Template("""
-        select ?node1 "edge_color"="$color" $props ?node2
+    relQuery = string.Template('''
+        select ?node1
+               "edge_edgeStyle"="stroke:$color;fill:none;"
+               "edge_arrowStyle"="stroke:$color;stroke-width:0;fill:$color;"
+               $props ?node2
         where {
           $typeCond1
           $typeCond2
           graph relrdf:comp$comp {?node1 <$rdfRel> ?node2}
         }
-        """)
+        ''')
 
     def formatEdgeProps(self, props):
         return ' '.join(['"edge_%s"="%s"' % (key, value)

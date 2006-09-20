@@ -3,6 +3,7 @@ import re
 
 class RdfGraphvizMaker(object):
     __slots__ = ('graph',
+                 'nodes',
                  'subgraphs')
 
     _subgraphProps = set([
@@ -111,13 +112,21 @@ class RdfGraphvizMaker(object):
 
     def __init__(self, graph):
         self.graph = graph
+        self.nodes = {}
         self.subgraphs = {}
 
-        # FIXME: Yapgvb seems not to accept subgraph attributes if
-        # they weren't set for the main graph first.
-        self.graph.label = ''
-        self.graph.style = 'filled'
-        self.graph.fillcolor = 'white'
+    def getNode(self, name, cluster=None):
+        name = unicode(name).encode('utf-8')
+        try:
+            node = self.nodes[name]
+        except KeyError:
+            if cluster is None:
+                node = self.graph.add_node(name)
+            else:
+                node = cluster.add_node(name)
+            self.nodes[name] = node
+
+        return node
 
     def getSubgraph(self, name):
         name = unicode(name).encode('utf-8')
@@ -149,14 +158,14 @@ class RdfGraphvizMaker(object):
                 if isEdge:
                     if nodeNumber is not None:
                         continue
-                    if propName not in self._edgeProps:
-                        continue
+                    #if propName not in self._edgeProps:
+                    #    continue
                     edgeProps.append((i, propName))
                 elif isCluster:
                     if nodeNumber is None:
                         continue
-                    if propName not in self._subgraphProps:
-                        continue
+                    #if propName not in self._subgraphProps:
+                    #    continue
                     cluster_props[int(nodeNumber)-1].append((i, propName))
                 elif nodeNumber is not None:
                     if propName == 'node':
@@ -164,8 +173,8 @@ class RdfGraphvizMaker(object):
                     elif propName == 'cluster':
                         cluster_pos[int(nodeNumber)-1] = i
                     else:
-                        if propName not in self._nodeProps:
-                            continue
+                        #if propName not in self._nodeProps:
+                        #    continue
                         props[int(nodeNumber)-1].append((i, propName))
 
         if pos[0] is None and pos[1] is None and \
@@ -190,10 +199,7 @@ class RdfGraphvizMaker(object):
             for i in range(2):
                 if pos[i] is not None:
                     nodeId = result[pos[i]]
-                    if cluster[i] is None:
-                        node[i] = self.graph.add_node(str(nodeId))
-                    else:
-                        node[i] = cluster[i].add_node(str(nodeId))
+                    node[i] = self.getNode(nodeId, cluster[i])
 
                     for (propPos, propName) in props[i]:
                         setattr(node[i], propName,

@@ -15,7 +15,7 @@ def _nodeProp(name):
     return property(getProp)
 
 class Node(object):
-    def __init__(self, graph, name, attributes):
+    def __init__(self, graph, name):
         self._graph = graph
         self._node = graph._graph.add_node(name)
 
@@ -24,10 +24,6 @@ class Node(object):
 
         # Clear the actual internal label.
         self._node.label = ''
-        self._node.shape = 'box'
-
-        for attr, value in attributes.items():
-            setattr(self, attr, value)
 
     pos = _nodeProp('pos')
     width = _nodeProp('width')
@@ -49,7 +45,7 @@ class Node(object):
     def _layout(self, pntr):
         shape = self._getProp('shape')
         self._node.shape = shape
-        self._shape = shapes.shapeClasses[shape]()
+        self._shape = shapes.getShapeFactory(shape)()
         w, h = self._shape.layout(self, pntr)
         self._node.width = w * units.TO_INCHES
         self._node.height = h * units.TO_INCHES
@@ -115,7 +111,10 @@ def _graphProp(name):
     def getProp(self):
         return getattr(self._graph, name)
 
-    return property(getProp)
+    def setProp(self, value):
+        return setattr(self._graph, name, value)
+
+    return property(getProp, setProp)
 
 class GraphBase(object):
     def __init__(self, _graph, _parent=None):
@@ -125,14 +124,23 @@ class GraphBase(object):
         self._edges = set()
         self._subgraphs = {}
 
+        # FIXME: yapgvb has problems with subgraph attributes.
+        self.label = ''
+
     def subgraph(self, name):
         subgraph = GraphBase(self._graph.subgraph(name), self)
         self._subgraphs[name] = subgraph
         return subgraph
 
     def add_node(self, name, **attributes):
-        node = Node(self, name, attributes)
-        self._nodes[name] = node
+        try:
+            node = self._nodes[name]
+        except KeyError:
+            node = Node(self, name)
+            self._nodes[name] = node
+
+        for attr, value in attributes.items():
+            setattr(node, attr, value)
         return node
 
     def add_edge(self, start, end):
@@ -141,6 +149,10 @@ class GraphBase(object):
         return edge
 
     def _layout(self, engine, pntr):
+        # Set the label.
+        if hasattr(self, 'label'):
+            self._graph.label = self.label
+
         for node in self._nodes.values():
             node._layout(pntr)
 
@@ -163,6 +175,18 @@ class GraphBase(object):
             pntr.polygon(((x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)),
                          style=self._getProp('clusterStyle'))
 
+            # Paint the label.
+            if self._graph.lp is not None:
+                x, y = self._graph.lp
+                x = x / units.TO_POINTS
+                y = y / units.TO_POINTS
+
+                font = pntr.getFont(self._getProp('clusterLabelFont'))
+                w, h, d = font.getExtents(self.label)
+                pntr.text((x, y - d), self.label,
+                          style=font.getCssProps() +
+                          self._getProp('clusterLabelStyle'))
+
         for node in self._nodes.values():
             node._paint(pntr)
 
@@ -176,12 +200,18 @@ class GraphBase(object):
             pntr.close()
 
     bb = _graphProp('bb')
+    overlap = _graphProp('overlap')
+    rankdir = _graphProp('rankdir')
+    nodesep = _graphProp('nodesep')
 
     _defaults = {
+        'arrowStyle': 'stroke: black; stroke-width:0; fill: black;',
         'clusterStyle': 'stroke: black; fill: white;',
+        'clusterLabelFont': 'Sans, bold 14',
+        'clusterLabelStyle': 'fill: black;',
         'edgeStyle': 'stroke: black; fill: none;',
         'label': '',
-        'labelFont': 'Sans 14',
+        'labelFont': 'Sans, 14',
         'labelMargin': 0.15,
         'labelStyle': '',
         'nodeStyle': 'stroke: black; fill: white;',

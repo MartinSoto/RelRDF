@@ -1,6 +1,6 @@
 import math
 
-import extents
+import font
 
 
 class SimpleShape(object):
@@ -39,12 +39,33 @@ class SimpleShape(object):
 class Box(SimpleShape):
     __slots__ = ()
 
+    def extendSize(self):
+        w, h = self.size
+        # FIXME: For some reason metrics arent't exact.
+        self.size = (w * 1.05, h)
+
     def paintShape(self, node, pntr, x, y, w, h):
         pntr.polygon(((x - w / 2, y - h / 2),
                       (x - w / 2, y + h / 2),
                       (x + w / 2, y + h / 2),
                       (x + w / 2, y - h / 2),
                       (x - w / 2, y - h / 2)),
+                     style=node._getProp('nodeStyle'))
+
+
+class Parallelogram(SimpleShape):
+    __slots__ = ()
+
+    def extendSize(self):
+        w, h = self.size
+        self.size = (w / 0.6, h)
+
+    def paintShape(self, node, pntr, x, y, w, h):
+        pntr.polygon(((x - w * 0.5, y - h * 0.5),
+                      (x - w * 0.3, y + h * 0.5),
+                      (x + w * 0.5, y + h * 0.5),
+                      (x + w * 0.3, y - h * 0.5),
+                      (x - w * 0.5, y - h * 0.5)),
                      style=node._getProp('nodeStyle'))
 
 
@@ -64,7 +85,15 @@ class Ellipse(SimpleShape):
                      style=node._getProp('nodeStyle'))
 
 
-shapeClasses = {
+_shapeClasses = {
     'box': Box,
-    'ellipse': Ellipse
+    'ellipse': Ellipse,
+    'parallelogram': Parallelogram
     }
+
+
+def getShapeFactory(shapeName):
+    try:
+        return _shapeClasses[str(shapeName).lower()]
+    except KeyError:
+        assert False, "Shape '%s' not found" % shapeName

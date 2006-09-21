@@ -118,9 +118,7 @@ class VModellParser(object):
 
             if parent is not None:
                 self.sink.triple(parent.uri,
-                                 uri.Uri(vModellNs['%s_enthält_%s' \
-                                                   % (parent.name,
-                                                      elem.name)]),
+                                 uri.Uri(vModellNs['enthält']),
                                  elem.uri)
 
         if self.acumText is not None:

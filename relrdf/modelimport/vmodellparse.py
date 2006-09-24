@@ -111,8 +111,7 @@ class VModellParser(object):
 
             parent = None
             for superelem in reversed(self.elems):
-                if superelem.uri is not None and \
-                   superelem.name != 'V-Modell':
+                if superelem.uri is not None:
                     parent = superelem
                     break
 

@@ -263,6 +263,7 @@ class MainWindow(UiManagerDelegate):
 
         if len(results) == 0:
             self.showMessage(_("No results found"))
+            self.hideResultCount()
             return
 
         # Move the query results to the list store.

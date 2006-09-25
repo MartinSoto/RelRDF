@@ -345,9 +345,7 @@ class TwoWayComparisonMapper(BasicMapper,
     one containing the statements common to both versions."""
     
     __slots__ = ('versionA',
-                 'versionB',
-
-                 'stmtRepl')
+                 'versionB')
 
     def __init__(self, versionA, versionB):
         super(TwoWayComparisonMapper, self).__init__()
@@ -403,39 +401,74 @@ class TwoWayComparisonMapper(BasicMapper,
                    self.versionB))
 
     def replStatementPattern(self, expr):
-        if self.stmtRepl is not None:
-            return self.stmtRepl
-                     
-        rel = build.buildExpression(
-            (nodes.Select,
-             (nodes.Product,
-              (sqlnodes.SqlRelation, 1, 'comparison'),
-              (sqlnodes.SqlRelation, 2, 'statements')),
-             (nodes.Equal,
-              (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-              (sqlnodes.SqlFieldRef, 2, 'id')))
-            )
+        # Check for complete version matching.
+        if isinstance(expr[0], nodes.Uri) and \
+               expr[0].uri.startswith(commonns.relrdf.model) and \
+               len(expr[0].uri) == len(commonns.relrdf.model) + 1 and \
+               expr[0].uri[len(commonns.relrdf.model)] in ('A', 'B'):
+            modelLetter = expr[0].uri[len(commonns.relrdf.model)]
+            if modelLetter == 'A':
+                versionId = self.versionA
+            else:
+                versionId = self.versionB
 
-        replExpr = \
-          nodes.MapResult(['context', 'type__context',
-                           'subject', 'type__subject',
-                           'predicate', 'type__predicate',
-                           'object', 'type__object'],
-                          rel,
-                          SqlUriValueRef(1, 'context',
-                                         commonns.relrdf.comp),
-                          nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(2, 'subject'),
-                          nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(2, 'predicate'),
-                          nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(2, 'object'),
-                          sqlnodes.SqlFieldRef(2, 'object_type'))
+            rel = build.buildExpression(
+                (nodes.Select,
+                 (nodes.Product,
+                  (sqlnodes.SqlRelation, 1, 'version_statement'),
+                  (sqlnodes.SqlRelation, 2, 'statements')),
+                 (nodes.And,
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'version_id'),
+                   (nodes.Literal, versionId)),
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+                   (sqlnodes.SqlFieldRef, 2, 'id'))))
+                )
 
-        self.stmtRepl = (replExpr,
-                         ('context', 'subject', 'predicate', 'object'))
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              nodes.Uri(commonns.relrdf.model + modelLetter),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'subject'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'predicate'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'object'),
+                              sqlnodes.SqlFieldRef(2, 'object_type'))
+        else:
+            rel = build.buildExpression(
+                (nodes.Select,
+                 (nodes.Product,
+                  (sqlnodes.SqlRelation, 1, 'comparison'),
+                  (sqlnodes.SqlRelation, 2, 'statements')),
+                 (nodes.Equal,
+                  (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+                  (sqlnodes.SqlFieldRef, 2, 'id')))
+                )
 
-        return self.stmtRepl
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              SqlUriValueRef(1, 'context',
+                                             commonns.relrdf.comp),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'subject'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'predicate'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'object'),
+                              sqlnodes.SqlFieldRef(2, 'object_type'))
+
+        return (replExpr,
+                ('context', 'subject', 'predicate', 'object'))
 
 
 class ThreeWayComparisonMapper(BasicMapper,
@@ -446,9 +479,7 @@ class ThreeWayComparisonMapper(BasicMapper,
     
     __slots__ = ('versionA',
                  'versionB',
-                 'versionC',
-
-                 'stmtRepl')
+                 'versionC')
 
     def __init__(self, versionA, versionB, versionC):
         super(ThreeWayComparisonMapper, self).__init__()
@@ -516,39 +547,76 @@ class ThreeWayComparisonMapper(BasicMapper,
                    self.versionC))
 
     def replStatementPattern(self, expr):
-        if self.stmtRepl is not None:
-            return self.stmtRepl
-                     
-        rel = build.buildExpression(
-            (nodes.Select,
-             (nodes.Product,
-              (sqlnodes.SqlRelation, 1, 'comparison'),
-              (sqlnodes.SqlRelation, 2, 'statements')),
-             (nodes.Equal,
-              (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-              (sqlnodes.SqlFieldRef, 2, 'id')))
-            )
+        # Check for complete version matching.
+        if isinstance(expr[0], nodes.Uri) and \
+               expr[0].uri.startswith(commonns.relrdf.model) and \
+               len(expr[0].uri) == len(commonns.relrdf.model) + 1 and \
+               expr[0].uri[len(commonns.relrdf.model)] in ('A', 'B', 'C'):
+            modelLetter = expr[0].uri[len(commonns.relrdf.model)]
+            if modelLetter == 'A':
+                versionId = self.versionA
+            elif modelLetter == 'B':
+                versionId = self.versionB
+            else:
+                versionId = self.versionC
 
-        replExpr = \
-          nodes.MapResult(['context', 'type__context',
-                           'subject', 'type__subject',
-                           'predicate', 'type__predicate',
-                           'object', 'type__object'],
-                          rel,
-                          SqlUriValueRef(1, 'context',
-                                         commonns.relrdf.comp),
-                          nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(2, 'subject'),
-                          nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(2, 'predicate'),
-                          nodes.Literal(TYPE_ID_RESOURCE),
-                          sqlnodes.SqlFieldRef(2, 'object'),
-                          sqlnodes.SqlFieldRef(2, 'object_type'))
+            rel = build.buildExpression(
+                (nodes.Select,
+                 (nodes.Product,
+                  (sqlnodes.SqlRelation, 1, 'version_statement'),
+                  (sqlnodes.SqlRelation, 2, 'statements')),
+                 (nodes.And,
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'version_id'),
+                   (nodes.Literal, versionId)),
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+                   (sqlnodes.SqlFieldRef, 2, 'id'))))
+                )
 
-        self.stmtRepl = (replExpr,
-                         ('context', 'subject', 'predicate', 'object'))
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              nodes.Uri(commonns.relrdf.model + modelLetter),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'subject'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'predicate'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'object'),
+                              sqlnodes.SqlFieldRef(2, 'object_type'))
+        else:
+            rel = build.buildExpression(
+                (nodes.Select,
+                 (nodes.Product,
+                  (sqlnodes.SqlRelation, 1, 'comparison'),
+                  (sqlnodes.SqlRelation, 2, 'statements')),
+                 (nodes.Equal,
+                  (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+                  (sqlnodes.SqlFieldRef, 2, 'id')))
+                )
 
-        return self.stmtRepl
+            replExpr = \
+              nodes.MapResult(['context', 'type__context',
+                               'subject', 'type__subject',
+                               'predicate', 'type__predicate',
+                               'object', 'type__object'],
+                              rel,
+                              SqlUriValueRef(1, 'context',
+                                             commonns.relrdf.comp),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'subject'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'predicate'),
+                              nodes.Literal(TYPE_ID_RESOURCE),
+                              sqlnodes.SqlFieldRef(2, 'object'),
+                              sqlnodes.SqlFieldRef(2, 'object_type'))
+
+        return (replExpr,
+                ('context', 'subject', 'predicate', 'object'))
 
 
 class Results(object):

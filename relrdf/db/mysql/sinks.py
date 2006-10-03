@@ -13,6 +13,9 @@ class VersionRdfSink(object):
 
                  'pendingRows')
 
+    # Maximum number of rows per insert query.
+    ROWS_PER_QUERY = 100
+
     def __init__(self, connection, versionId):
         self.connection = connection
         self.versionId = versionId
@@ -59,30 +62,24 @@ class VersionRdfSink(object):
         m.update(objectType.encode('utf-8'))
         m.update(unicode(object).encode('utf-8'))
 
-        self.pendingRows.append("(%s,%s,%s,%s,%s)" %
-                                (self.connection.escape(
-                                     m.digest()),
-                                 self.connection.escape(
-                                     unicode(subject).encode('utf-8')),
-                                 self.connection.escape(
-                                     unicode(pred).encode('utf-8')),
-                                 self.connection.escape(
-                                     unicode(objectType).encode('utf-8')),
-                                 self.connection.escape(
-                                     unicode(object).encode('utf-8'))))
-        if len(self.pendingRows) >= 100:
+        self.pendingRows.append((m.digest(),
+                                 unicode(subject).encode('utf-8'),
+                                 unicode(pred).encode('utf-8'),
+                                 unicode(objectType).encode('utf-8'),
+                                 unicode(object).encode('utf-8')))
+        if len(self.pendingRows) >= self.ROWS_PER_QUERY:
             self._writePendingRows()
                                 
     def _writePendingRows(self):
         if len(self.pendingRows) == 0:
             return
 
-        self.cursor.execute(
+        self.cursor.executemany(
             """
             INSERT INTO statements_temp
               (hash, subject, predicate, object_type, object)
-            VALUES %s;""" %
-            ','.join(self.pendingRows))
+            VALUES (_binary%s,_utf8%s,_utf8%s,_utf8%s,_utf8%s)""",
+            self.pendingRows)
 
         self.pendingRows = []
 

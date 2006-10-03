@@ -655,7 +655,7 @@ class Results(object):
             try:
                 rawValue = rawValue.decode('utf8')
             except UnicodeDecodeError:
-                rawValue = "ERROR"
+                rawValue = "<<Character encoding error>>"
 
         # FIXME: This must be converted to using type names.
         if rawValue is None:

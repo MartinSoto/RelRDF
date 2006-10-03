@@ -3,7 +3,7 @@ import md5
 from relrdf.expression import uri, blanknode, literal
 
 
-class VersionRdfSink(object):
+class SingleVersionRdfSink(object):
     """An RDF sink that sends all tuples to a single model version in
     the database."""
 
@@ -93,3 +93,15 @@ class VersionRdfSink(object):
 
         self.cursor.close()
 
+
+_sinkFactories = {
+    'singleversion': SingleVersionRdfSink,
+    }
+
+def getSink(connection, sinkType, **sinkArgs):
+    sinkTypeNorm = sinkType.lower()
+
+    try:
+        return _sinkFactories[sinkTypeNorm](connection, **sinkArgs)
+    except KeyError:
+        assert False, "Invalid sink type '%s'" % modelType

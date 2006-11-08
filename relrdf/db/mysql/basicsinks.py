@@ -1,5 +1,6 @@
 import md5
 
+from relrdf.error import InstantiationError
 from relrdf.expression import uri, blanknode, literal
 
 
@@ -104,4 +105,7 @@ def getSink(connection, sinkType, **sinkArgs):
     try:
         return _sinkFactories[sinkTypeNorm](connection, **sinkArgs)
     except KeyError:
-        assert False, "Invalid sink type '%s'" % modelType
+        raise InstantiationError(_("Invalid sink type '%s'") % sinkType)
+    except TypeError, e:
+        raise InstantiationError(_("Missing or invalid sink arguments: %s") %
+                                 e)

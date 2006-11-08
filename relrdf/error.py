@@ -4,12 +4,18 @@ from relrdf.expression import nodes
 
 
 class Error(Exception):
-    """Base class for exceptions raised when parsing queries."""
+    """Base class for RelRDF errors."""
 
     def __init__(self, msg):
         Exception.__init__(self, msg)
 
         self.msg = msg
+
+
+class InstantiationError(Error):
+    """Exception class for error happening when instantiating objects
+    from factories."""
+    pass
 
 
 class PositionError(Error):

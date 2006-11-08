@@ -1,9 +1,19 @@
-from db import mysql
+from error import InstantiationError
 
 
 def getModelBase(modelBaseType, **modelBaseArgs):
     modelBaseTypeNorm = modelBaseType.lower()
+
     if modelBaseTypeNorm == "mysql":
-        return mysql.getModelBase(**modelBaseArgs)
+        from db import mysql
+        module = mysql
     else:
-        assert False, "invalid model base type '%s'" % modelBaseType
+        raise InstantiationError("invalid model base type '%s'"
+                                 % modelBaseType)
+
+    try:
+        return module.getModelBase(**modelBaseArgs)
+    except TypeError, e:
+        raise InstantiationError(
+            _("Missing or invalid model base arguments: %s") % e)
+

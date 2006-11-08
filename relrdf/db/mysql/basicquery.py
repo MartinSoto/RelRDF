@@ -1,3 +1,4 @@
+from relrdf.error import InstantiationError
 from relrdf import parserfactory, commonns
 
 from relrdf.typecheck import dynamic
@@ -770,6 +771,9 @@ def getModel(connection, modelType, **modelArgs):
     try:
         transf = _modelFactories[modelTypeNorm](**modelArgs)
     except KeyError:
-        assert False, "invalid model type '%s'" % modelType
+        raise InstantiationError(_("invalid model type '%s'") % modelType)
+    except TypeError, e:
+        raise InstantiationError(_("Missing or invalid model arguments: %s") %
+                                 e)
 
     return Model(connection, transf, **modelArgs)

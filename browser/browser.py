@@ -158,8 +158,8 @@ class MainWindow(UiManagerDelegate):
         self.schemaBrowser.setSchema(schema.RdfSchema(self.model),
                                      self.shortener)
 
-        self.mainWindow.set_title("%s - %s" % (db, self.appName))
-        self.showMessage("Model '%s' opened succesfully." % db)
+        self.mainWindow.set_title("%s" % (self.appName,))
+        self.showMessage("Model opened succesfully.")
 
 
     #
@@ -372,23 +372,25 @@ class MainWindow(UiManagerDelegate):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    from relrdf.error import InstantiationError
+    from relrdf.factory import parseCmdLineArgs
+
+    if len(sys.argv) < 2:
         print >> sys.stderr, \
-              'usage: browser <host> <database> <model type> [<model params>]'
+              _("usage: browser :<model base type> [<model base params] "
+                ":<model type> [<model params>]")
         sys.exit(1)
 
-    host, db, modelType = sys.argv[1:4]
+    argv = list(sys.argv[1:])
+    try:
+        baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
+        modelType, modelArgs = parseCmdLineArgs(argv, 'model')
 
-    modelArgs = {}
-    for arg in sys.argv[4:]:
-        key, value = arg.split('=')
-        modelArgs[key] = value
-
-    main_window = MainWindow()
-    main_window.openModel('mysql',
-                          {'host': host, 'db': db,
-                           'read_default_group': 'client'},
-                          modelType, modelArgs)
+        main_window = MainWindow()
+        main_window.openModel(baseType, baseArgs, modelType, modelArgs)
+    except InstantiationError, e:
+        print >> sys.stderr, _("Error: %s") % e
+        sys.exit(1)
 
     main_window.show()
 

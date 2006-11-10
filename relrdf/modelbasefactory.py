@@ -7,6 +7,9 @@ def getModelBase(modelBaseType, **modelBaseArgs):
     if modelBaseTypeNorm == "mysql":
         from db import mysql
         module = mysql
+    elif modelBaseTypeNorm == "sqlite":
+        from db import sqlite
+        module = sqlite
     else:
         raise InstantiationError("invalid model base type '%s'"
                                  % modelBaseType)

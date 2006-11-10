@@ -2,8 +2,6 @@
 
 import sys
 
-import MySQLdb
-
 import relrdf
 from relrdf.error import InstantiationError
 from relrdf.factory import parseCmdLineArgs
@@ -46,3 +44,4 @@ else:
     error("Invalid file type '%s'" % fileType)
 
 sink.close()
+modelBase.close()

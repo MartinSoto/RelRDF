@@ -1,4 +1,4 @@
-import MySQLdb
+from pysqlite2 import dbapi2 as sqlite
 
 import basicquery
 import basicsinks
@@ -9,15 +9,8 @@ class ModelBase(object):
                  'querySchema',
                  'sinkSchema')
 
-    def __init__(self, host, db, **mysqlParams):
-        self.connection = MySQLdb.connect(host=host, db=db, **mysqlParams)
-
-        # MySQLdb seems to send queries correctly to the server, but
-        # it doesn't decode the results accordingly. We tell the
-        # database to send results back in UTF-8.
-        cursor = self.connection.cursor()
-        cursor.execute('SET character_set_results = utf8')
-        cursor.close()
+    def __init__(self, dbFileName, **sqliteParams):
+        self.connection = sqlite.connect(dbFileName)
 
         # We have only one database schema at this time.
         self.sinkSchema = basicsinks

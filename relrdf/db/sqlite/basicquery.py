@@ -2,7 +2,7 @@ from relrdf import parserfactory, commonns
 
 from relrdf.typecheck import dynamic
 from relrdf.expression import uri, blanknode, literal, nodes, build
-from relrdf.sqlmap import transform, valueref, sqlnodes, emit
+from relrdf.mapping import transform, valueref, sqlnodes, emit
 
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
      ResourceType, RdfNodeType, resourceType, rdfNodeType

@@ -1,9 +1,9 @@
 header {
     from relrdf.commonns import rdf, xsd
     from relrdf.expression import nodes
-    from relrdf.sqlmap import sqlnodes
 
     import parser
+    import sqlnodes
 }
 
 options {

@@ -20,7 +20,7 @@ class SqlRelation(nodes.ExpressionNode):
         return '%s, %s' % (repr(self.sqlCode), repr(self.incarnation))
 
     def prettyPrintAttributes(self, stream, indentLevel):
-        stream.write(' %s %d' % (self.sqlCode, self.incarnation))
+        stream.write(' %s %s' % (self.sqlCode, self.incarnation))
 
 
 class SqlFieldRef(nodes.ExpressionNode):
@@ -38,7 +38,7 @@ class SqlFieldRef(nodes.ExpressionNode):
 
     def attributesRepr(self):
         return '%s, %s' % (repr(self.incarnation),
-                               repr(self.fieldId))
+                           repr(self.fieldId))
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.attributesRepr())

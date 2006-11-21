@@ -20,6 +20,11 @@ from schemapane import SchemaBrowser
 from queryeditor import QueryEditor
 
 
+# Detect the library directory.
+libdir = os.path.dirname(__file__)
+print os.path.join(libdir, "browser")
+
+
 class MainWindow(UiManagerDelegate):
     """Main browser window."""
 
@@ -56,7 +61,8 @@ class MainWindow(UiManagerDelegate):
     </ui>'''
 
     def __init__(self):
-        UiManagerDelegate.__init__(self, gladefile="browser",
+        UiManagerDelegate.__init__(self,
+                                   gladefile=os.path.join(libdir, "browser.glade"),
                                    toplevel_name='mainWindow')
 
         # Give the window a reasonable minimum size.
@@ -371,7 +377,7 @@ class MainWindow(UiManagerDelegate):
             self.sidePane.hide()
 
 
-if __name__ == "__main__":
+def main():
     from relrdf.error import InstantiationError
     from relrdf.factory import parseCmdLineArgs
 
@@ -396,3 +402,6 @@ if __name__ == "__main__":
 
     gtk.main()
 
+
+if __name__ == "__main__":
+    main()

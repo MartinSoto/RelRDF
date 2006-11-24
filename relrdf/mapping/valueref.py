@@ -1,48 +1,58 @@
+"""Conversion between internal and external value representations.
+
+RDF literals and URIs stored by RelRDF have a database representation
+that normally isn't equal to the textual RDF value. We call the
+database representation "internal", and the RDF
+representation "external".
+
+For optimization purposes, it is generally better to compare internal
+representations whenever possible, since this usually makes it easier
+for the database to optimize select and join operations. The classes
+in this module support conversions between internal and external
+representations and their related optimizations.
+"""
+
+
 from relrdf.expression import nodes, rewrite
 
 
+class ValueMapping(object):
+    """Abstract convertor between internal and external value
+    representations."""
+
+    __slots__ = ()
+
+    def intToExt(self, internal):
+        """Given an expression corresponding to the internal
+        representation of a value, construct an expression
+        corresponding to its external representation."""
+        return NotImplemented
+
+    def extToInt(self, external):
+        """Given an expression corresponding to the external
+        representation of a value, construct an expression
+        corresponding to its internal representation."""
+
+
 class ValueRef(nodes.ExpressionNode):
-    """An abstract expression node referencing a value stored in a SQL
-    table.
+    """An expression node packaging an internal value.
 
-    Values have an internal and an external representation. The
-    internal representation corresponds to the way the value is
-    actually stored in the table. The external representation is a
-    string corresponding directly to an RDF value, i.e., a literal, a
-    blank node label or an URI.
+    A `ValueRef` has a single subexpression, which evaluates to an
+    internal value representation. The node also points to a
+    `ValueMapping`, which is used to convert back and forth to the
+    external representation."""
 
-    For optimization purposes, it is generally better to compare
-    internal representations whenever possible (this usually make it
-    easier for the database to optimize joins.) The methods in this
-    class are intented to support comparison of internal
-    representations whenever possible."""
+    __slots__ = ('mapping')
 
-    __slots__ = ('mappingType')
+    def __init__(self, mapping, subexpr):
+        super(ValueRef, self).__init__(subexpr)
 
-    def __init__(self, mappingType):
-        super(ValueRef, self).__init__()
-
-        # A token to unambiguously identify the type of internal <-->
-        # external mapping type performed by this object.
-        self.mappingType = mappingType
-
-    def getInternal(self):
-        """Build an expression corresponding to the internal
-        representation of the referenced value."""
-        raise NotImplementedError
+        self.mapping = mapping
 
     def getExternal(self):
         """Build an expression corresponding to the external
         representation of the referenced value."""
-        raise NotImplementedError
-
-    def getConvertToInternal(self, expr):
-        """Build an expression capable of converting `expr`, an
-        expression producing an external representation, into its
-        corresponding internal representation.
-
-        `expr` must be copied whenever used as part of the produced
-        value."""
+        return self.mapping.intToExt(self[0])
 
 
 class ValueRefDereferencer(rewrite.ExpressionProcessor):
@@ -68,18 +78,18 @@ class ValueRefDereferencer(rewrite.ExpressionProcessor):
         node.
 
         This function tries to optimize comparisons by comparing
-        internal values whenever possible. This is often necessary in
-        order for the database to be able to optimize certain joins."""
+        internal values whenever possible. This is necessary in order
+        for the underlying database to be able to optimize certain
+        select and join operations."""
 
-        # We only optimize the case where value references of the same
-        # mapping type are compared, possibly mixed with some
-        # constants.
-        valueRef = None
+        # We only optimize the case where value references using the
+        # same mapping are compared, possibly mixed with constants.
+        mapping = None
         for subexpr in subexprs:
             if isinstance(subexpr, ValueRef):
-                if valueRef is None:
-                    valueRef = subexpr
-                elif valueRef.mappingType != subexpr.mappingType:
+                if mapping is None:
+                    mapping = subexpr.mapping
+                elif mapping != subexpr.mapping:
                     # Different types of ValueRef's are mixed.
                     return self.Default(expr, *subexprs)
             elif not isinstance(subexpr, nodes.Literal) and \
@@ -87,16 +97,16 @@ class ValueRefDereferencer(rewrite.ExpressionProcessor):
                 # A different type of expression is present.
                 return self.Default(expr, *subexprs)
 
-        if valueRef is None:
+        if mapping is None:
             # Only comparing constants here.
             return expr
 
         for i, subexpr in enumerate(subexprs):
             if isinstance(subexpr, ValueRef):
-                expr[i] = subexpr.getInternal()
+                expr[i] = subexpr[0]
             elif isinstance(subexpr, nodes.Literal) or \
                  isinstance(subexpr, nodes.Uri):
-                expr[i] = valueRef.getConvertToInternal(subexpr)
+                expr[i] = mapping.extToInt(subexpr)
             else:
                 expr[i] = subexpr
 

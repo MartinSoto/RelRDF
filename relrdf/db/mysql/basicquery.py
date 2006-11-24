@@ -14,26 +14,37 @@ TYPE_ID_BLANKNODE = literal.Literal(2)
 TYPE_ID_LITERAL = literal.Literal(3)
 
 
-class SqlUriValueRef(sqlnodes.SqlExprValueRef):
-    """A value reference whose internal representation is the value of
-    an incarnation field and whose external representation is an URI
-    built by prepending a base URI to the canonical string
-    representation of the internal value."""
+class UriValueMapping(valueref.ValueMapping):
+    """A value mapping capable of converting from arbitrary internal
+    values to a external representation formed by prepending a base
+    URI to the canonical string representation of the internal value."""
 
-    __slots__ = ('baseUri',)
+    __slots__ = ('baseUri',
+                 'intToExtExpr',
+                 'extToIntExpr')
 
-    def __init__(self, incarnation, fieldId, baseUri):
+    def __init__(self, baseUri):
+        super(UriValueMapping, self).__init__()
+
         self.baseUri = baseUri
 
-        intToExt = 'CONCAT("%s", $0$)' % baseUri
+        self.intToExtExpr = 'CONCAT("%s", $0$)' % baseUri
+
         l = len(baseUri.encode('utf-8'))
-        extToInt = '''
+        self.extToIntExpr = '''
         IF(SUBSTRING($0$, 1, %d) = "%s",
            SUBSTRING($0$, %d), "<<<NO VALUE>>>")''' % (l, baseUri, l + 1)
 
-        # We use the base URI as mapping type.
-        super(SqlUriValueRef, self).\
-            __init__(baseUri, incarnation, fieldId, intToExt, extToInt)
+    def intToExt(self, internal):
+        return sqlnodes.SqlScalarExpr(self.intToExtExpr, internal)
+
+    def extToInt(self, expr):
+        return sqlnodes.SqlScalarExpr(self.extToIntExpr, expr)
+
+
+def uriValueRef(incarnation, fieldId, mapping):
+    return valueref.ValueRef(mapping,
+                             sqlnodes.SqlFieldRef(incarnation, fieldId))
 
 
 class BasicMapper(transform.PureRelationalTransformer):
@@ -69,7 +80,8 @@ class BasicSingleVersionMapper(BasicMapper):
     
     __slots__ = ('versionId',
                  'versionUri',
-                 
+
+                 'versionMapping',
                  'stmtRepl')
 
     def __init__(self, versionId, versionUri):
@@ -77,6 +89,8 @@ class BasicSingleVersionMapper(BasicMapper):
 
         self.versionId = int(versionId)
         self.versionUri = versionUri
+
+        self.versionMapping = UriValueMapping(versionUri)
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
@@ -139,7 +153,7 @@ class AllVersionsMapper(BasicMapper,
     """Targets an abstract query to a context set whose elements are
     the versions of a model."""
     
-    __slots__ = ('versionUri',
+    __slots__ = ('versionMapping',
 
                  'stmtRepl')
 
@@ -147,7 +161,7 @@ class AllVersionsMapper(BasicMapper,
                  stmtUri=commonns.relrdf.stmt, metaInfoVersion=1):
         super(AllVersionsMapper, self).__init__()
 
-        self.versionUri = versionUri
+        self.versionMapping = versionUri
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
@@ -172,7 +186,7 @@ class AllVersionsMapper(BasicMapper,
                            'predicate', 'type__predicate',
                            'object', 'type__object'],
                           rel,
-                          SqlUriValueRef(1, 'version_id', self.versionUri),
+                          uriValueRef(1, 'version_id', self.versionMapping),
                           nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(2, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
@@ -197,6 +211,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
 
     __slots__ = ('stmtUri',
 
+                 'stmtMapping',
                  'reifStmtRepl')
 
     def __init__(self, versionUri=commonns.relrdf.version,
@@ -204,6 +219,8 @@ class MetaVersionMapper(BasicSingleVersionMapper,
         super(MetaVersionMapper, self).__init__(1, versionUri)
 
         self.stmtUri = stmtUri
+
+        self.stmtMapping = UriValueMapping(stmtUri)
 
         # Cache for the reified statement pattern replacement expression.
         self.reifStmtRepl = None
@@ -224,7 +241,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               rel,
                               nodes.Uri(self.versionUri + '1'),
                               nodes.Literal(TYPE_ID_RESOURCE),
-                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              uriValueRef(1, 'id', self.stmtMapping),
                               nodes.Literal(TYPE_ID_RESOURCE),
                               nodes.Literal(commonns.rdf.type),
                               nodes.Literal(TYPE_ID_RESOURCE),
@@ -241,14 +258,13 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               rel,
                               nodes.Uri(self.versionUri + '1'),
                               nodes.Literal(TYPE_ID_RESOURCE),
-                              SqlUriValueRef(1, 'version_id',
-                                             self.versionUri),
+                              uriValueRef(1, 'version_id',
+                                          self.versionMapping),
                               nodes.Literal(TYPE_ID_RESOURCE),
                               nodes.Literal(commonns.relrdf. \
                                             versionContainsStmt),
                               nodes.Literal(TYPE_ID_RESOURCE),
-                              SqlUriValueRef(1, 'stmt_id',
-                                             self.stmtUri),
+                              uriValueRef(1, 'stmt_id', self.stmtMapping),
                               nodes.Literal(TYPE_ID_RESOURCE))
         elif isinstance(expr[2], nodes.Uri) and \
              expr[2].uri == commonns.rdf.subject:
@@ -261,7 +277,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               rel,
                               nodes.Uri(self.versionUri + '1'),
                               nodes.Literal(TYPE_ID_RESOURCE),
-                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              uriValueRef(1, 'id', self.stmtMapping),
                               nodes.Literal(TYPE_ID_RESOURCE),
                               nodes.Literal(commonns.rdf.subject),
                               nodes.Literal(TYPE_ID_RESOURCE),
@@ -278,7 +294,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               rel,
                               nodes.Uri(self.versionUri + '1'),
                               nodes.Literal(TYPE_ID_RESOURCE),
-                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              uriValueRef(1, 'id', self.stmtMapping),
                               nodes.Literal(TYPE_ID_RESOURCE),
                               nodes.Literal(commonns.rdf.predicate),
                               nodes.Literal(TYPE_ID_RESOURCE),
@@ -295,7 +311,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               rel,
                               nodes.Uri(self.versionUri + '1'),
                               nodes.Literal(TYPE_ID_RESOURCE),
-                              SqlUriValueRef(1, 'id', self.stmtUri),
+                              uriValueRef(1, 'id', self.stmtMapping),
                               nodes.Literal(TYPE_ID_RESOURCE),
                               nodes.Literal(commonns.rdf.object),
                               nodes.Literal(TYPE_ID_RESOURCE),
@@ -323,7 +339,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                           rel,
                           nodes.Uri(self.versionUri + '1'),
                           nodes.Literal(TYPE_ID_RESOURCE),
-                          SqlUriValueRef(1, 'id', self.stmtUri),
+                          uriValueRef(1, 'id', self.stmtMapping),
                           nodes.Literal(TYPE_ID_RESOURCE),
                           sqlnodes.SqlFieldRef(1, 'subject'),
                           nodes.Literal(TYPE_ID_RESOURCE),
@@ -336,6 +352,9 @@ class MetaVersionMapper(BasicSingleVersionMapper,
             ('context', 'stmt', 'subject', 'predicate', 'object'))
 
         return self.reifStmtRepl
+
+
+compMapping = UriValueMapping(commonns.relrdf.comp)
 
 
 class TwoWayComparisonMapper(BasicMapper,
@@ -361,7 +380,7 @@ class TwoWayComparisonMapper(BasicMapper,
         cursor = connection.cursor()
 
         # We create a temporary table for the comparison statements.
-        # FIXME: The table must be named in such a way the collisions
+        # FIXME: The table must be named in such a way that collisions
         # are avoid between multiple database conections.
         cursor.execute(
             """
@@ -458,8 +477,7 @@ class TwoWayComparisonMapper(BasicMapper,
                                'predicate', 'type__predicate',
                                'object', 'type__object'],
                               rel,
-                              SqlUriValueRef(1, 'context',
-                                             commonns.relrdf.comp),
+                              uriValueRef(1, 'context', compMapping),
                               nodes.Literal(TYPE_ID_RESOURCE),
                               sqlnodes.SqlFieldRef(2, 'subject'),
                               nodes.Literal(TYPE_ID_RESOURCE),
@@ -476,7 +494,7 @@ class ThreeWayComparisonMapper(BasicMapper,
                                transform.StandardReifTransformer):
     """Targets an abstract query to a context set presenting three
     versions (versions A, B and C) as seven contexts, corresponding to
-    all combinations of being in A, and/or C."""
+    all combinations of being in A, B, and/or C."""
     
     __slots__ = ('versionA',
                  'versionB',
@@ -496,7 +514,7 @@ class ThreeWayComparisonMapper(BasicMapper,
         cursor = connection.cursor()
 
         # We create a temporary table for the comparison statements.
-        # FIXME: The table must be named in such a way the collisions
+        # FIXME: The table must be named in such a way that collisions
         # are avoid between multiple database conections.
         cursor.execute(
             """
@@ -606,8 +624,7 @@ class ThreeWayComparisonMapper(BasicMapper,
                                'predicate', 'type__predicate',
                                'object', 'type__object'],
                               rel,
-                              SqlUriValueRef(1, 'context',
-                                             commonns.relrdf.comp),
+                              uriValueRef(1, 'context', compMapping),
                               nodes.Literal(TYPE_ID_RESOURCE),
                               sqlnodes.SqlFieldRef(2, 'subject'),
                               nodes.Literal(TYPE_ID_RESOURCE),

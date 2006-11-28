@@ -7,8 +7,8 @@ from relrdf import error
 from relrdf.expression import nodes, rewrite, simplify
 
 
-import ExpressionLexer
-import ExpressionParser
+import SchemaLexer
+import SchemaParser
 
 
 def checkNotSupported(expr):
@@ -44,14 +44,14 @@ class ParseEnvironment(object):
         else:
             stream = queryText
 
-        lexer = ExpressionLexer.Lexer() 
+        lexer = SchemaLexer.Lexer() 
         lexer.setInput(stream)
 
-        parser = ExpressionParser.Parser(lexer, prefixes=self.prefixes)
+        parser = SchemaParser.Parser(lexer, prefixes=self.prefixes)
         parser.setFilename(fileName)
 
         try:
-            expr = parser.expression()
+            expr = parser.main()
         except antlr.RecognitionException, e:
             new = error.SyntaxError.create(e)
             if new:
@@ -68,7 +68,7 @@ class ParseEnvironment(object):
                 raise e
 
         # Check for use of not implemented features.
-        checkNotSupported(expr)
+        #checkNotSupported(expr)
 
         return expr
 
@@ -78,4 +78,4 @@ if __name__ == '__main__':
 
     env = ParseEnvironment()
     expr = env.parse(sys.stdin)
-    expr.prettyPrint()
+    #expr.prettyPrint()

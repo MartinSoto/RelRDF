@@ -2,8 +2,8 @@ header {
     from relrdf.commonns import rdf, xsd
     from relrdf.expression import nodes
 
+    from relrdf.mapping import sqlnodes
     import parser
-    import sqlnodes
 }
 
 options {
@@ -14,11 +14,114 @@ options {
  * Parser
  *--------------------------------------------------------------------*/
 
-class ExpressionParser extends Parser("parser.Parser");
+class SchemaParser extends Parser("parser.Parser");
 
 options {
+    k=2;
     defaultErrorHandler=false;
 }
+
+main returns [expr]
+    :   schema
+    ;
+
+
+schema
+    :   (   declaration SEMICOLON )+
+    ;
+
+declaration
+    :   tableDecl
+    |   indexDecl
+    |   macroDef
+    |   valueMappingDecl
+    |   mappingDecl
+    ;
+
+
+tableDecl
+    :   "table" tableName LPAREN columnDeclList RPAREN
+    ;
+
+tableName
+    :   IDENTIFIER
+    ;
+
+columnDeclList
+    :   columnDecl ( COMMA columnDecl )*
+    ;
+
+columnDecl
+    :   columnName columnType columnOptions
+    ;
+
+columnName
+    :   IDENTIFIER
+    ;
+
+columnType
+    :   QNAME
+    ;
+
+columnOptions
+    :   (   columnOption )*
+    ;
+
+columnOption
+    :   "unsigned"
+    |   "notnull"
+    |   "autoincrement"
+    ;
+
+
+indexDecl
+    :   "index" indexName tableName columnList indexOptions
+    ;
+
+indexName
+    :   IDENTIFIER
+    ;
+
+columnList
+    :   LPAREN columnName ( COMMA columnName )* RPAREN
+    ;
+
+indexOptions
+    :   (   indexOption )*
+    ;
+
+indexOption
+    :   "unique"
+    |   "primary"
+    ;
+
+
+macroDef
+    :   "def" macroName macroArgList expr=expression
+    ;
+
+macroName
+    :   IDENTIFIER
+    ;
+
+macroArgList
+    :   LPAREN ( arg=macroArg ( COMMA Argument )* )? RPAREN
+    ;
+
+macroArg returns [expr]
+    :   v:VAR
+        { expr = sqlnodes.MacroArgument(v.getText()); }
+    ;
+
+
+valueMappingDecl
+    :   "valuemapping" macroName macroArgList macroDef SEMICOLON macroDef
+    ;
+
+
+mappingDecl
+    :   "mapping" macroName macroArgList expr=expression
+    ;
 
 
 expression returns [expr]
@@ -27,8 +130,7 @@ expression returns [expr]
 
 mapTableExpression returns [expr]
     :   expr=selectTableExpression
-    |   m:"map" expr=mapTableExpression "to" rp:LPAREN
-        specs=mapList RPAREN
+    |   m:"mapto" rp:LPAREN specs=mapList RPAREN expr=mapTableExpression
         { expr = nodes.MapResult(specs[1], expr, *specs[0]); \
           expr.setExtentsStartFromToken(m, self); \
           expr.setExtentsEndFromToken(rp) }
@@ -41,7 +143,7 @@ mapList returns [specs]
     ;
 
 colSpec[specs]
-    :   expr=scalarExpression
+    :   expr=expression
         { colName = ""; }
         (   "as" cn:IDENTIFIER
             { colName = cn.getText() }
@@ -52,67 +154,18 @@ colSpec[specs]
 
 selectTableExpression returns [expr]
     :   expr=productTableExpression
-        (   "on" pred=scalarExpression
+        (   "on" pred=conditionalOrExpression
             { expr = nodes.Select(expr, pred) }
         )?
     ;
 
 productTableExpression returns [expr]
-    :   expr=basicTableExpression
+    :   expr=conditionalOrExpression
         (   "cross" expr2=productTableExpression
             { expr = nodes.Product(expr, expr2) }
         )?
     ;
 
-basicTableExpression returns [expr]
-    :   expr=tableRef
-    |   LPAREN expr=expression RPAREN
-    ;
-
-
-
-tableRef returns [expr]
-    :   t:IDENTIFIER
-        { expr = sqlnodes.SqlRelation(t.getText(), t.getText()); \
-          expr.setExtentsFromToken(t, self) }
-        (   "as" i:IDENTIFIER
-            { expr.incarnation = i.getText(); \
-              expr.setExtentsEndFromToken(i) }
-        )?
-    ;
-
-
-
-functionCall returns [expr]
-    :   name=iriRef
-        { expr = nodes.FunctionCall(name) }
-        argList[expr]
-        { expr = nodes.NotSupported(expr) }
-    ;
-
-argList[funcCall]
-    :   (   nil:NIL
-            { funcCall.setExtentsEndFromToken(nil) }
-        |   LPAREN param=scalarExpression
-            { funcCall.append(param) }
-            (    COMMA param=scalarExpression
-                { funcCall.append(param) }
-            )*
-            rp:RPAREN
-            { funcCall.setExtentsEndFromToken(rp) }
-        )
-    ;
-
-columnRef returns [expr]
-    :   t:IDENTIFIER DOT cn:IDENTIFIER
-        { expr = sqlnodes.SqlFieldRef(t.getText(), cn.getText()); \
-          expr.setExtentsStartFromToken(t, self); \
-          expr.setExtentsEndFromToken(cn) }
-    ;
-
-scalarExpression returns [expr]
-    :   expr=conditionalOrExpression
-    ;
 
 conditionalOrExpression returns [expr]
     :   expr=conditionalAndExpression
@@ -186,32 +239,70 @@ unaryExpression returns [expr]
 
 primaryExpression returns [expr]
     :   expr=brackettedExpression
-    |   expr=iriRefOrFunction
+    |   expr=tableRef
+    |   expr=columnRef
+    |   expr=functionCall
+    |   expr=iriRef
+    |   expr=macroArg
     |   expr=rdfLiteral
     |   expr=numericLiteral
     |   expr=booleanLiteral
-    |   expr=columnRef
     ;
 
 brackettedExpression returns [expr]
-    :   LPAREN expr=scalarExpression RPAREN
+    :   LPAREN expr=expression RPAREN
     ;
 
+tableRef returns [expr]
+    :   t:IDENTIFIER
+        { expr = sqlnodes.SqlRelation(t.getText(), t.getText()); \
+          expr.setExtentsFromToken(t, self) }
+        (   i:IDENTIFIER
+            { expr.incarnation = i.getText(); \
+              expr.setExtentsEndFromToken(i) }
+        )?
+    ;
+
+columnRef returns [expr]
+    :   t:IDENTIFIER DOT cn:IDENTIFIER
+        { expr = sqlnodes.SqlFieldRef(t.getText(), cn.getText()); \
+          expr.setExtentsStartFromToken(t, self); \
+          expr.setExtentsEndFromToken(cn) }
+    ;
+
+
+functionCall returns [expr]
+    :   name=functionName
+        { expr = sqlnodes.SqlFunctionCall(name) }
+        argList[expr]
+    ;
+
+functionName returns [name]
+    :   id:IDENTIFIER
+        { name = id.getText(); }
+    ;
+
+argList[funcCall]
+    :   (   nil:NIL
+            { funcCall.setExtentsEndFromToken(nil) }
+        |   LPAREN param=expression
+            { funcCall.append(param) }
+            (   COMMA param=expression
+                { funcCall.append(param) }
+            )*
+            rp:RPAREN
+            { funcCall.setExtentsEndFromToken(rp) }
+        )
+    ;
+
+
 regexExpression returns [expr]
-    :   rg:REGEX LPAREN expr1=scalarExpression
-        COMMA expr2=scalarExpression
-        ( COMMA expr3=scalarExpression )? rp:RPAREN
+    :   rg:REGEX LPAREN expr1=expression
+        COMMA expr2=expression
+        ( COMMA expr3=expression )? rp:RPAREN
         { expr = nodes.NotSupported(); \
           expr.setExtentsStartFromToken(rg, self); \
           expr.setExtentsEndFromToken(rp); }
-    ;
-
-iriRefOrFunction returns [expr]
-    :   expr=iriRef
-        (   { expr = nodes.FunctionCall(expr) }
-            argList[expr]
-            { expr = nodes.NotSupported(expr) }
-        )?
     ;
 
 rdfLiteral returns [expr]
@@ -276,7 +367,7 @@ qname returns [expr]
  * Lexical Analyzer
  *--------------------------------------------------------------------*/
 
-class ExpressionLexer extends Lexer;
+class SchemaLexer extends Lexer;
 
 options {
     k = 4;
@@ -374,7 +465,6 @@ DCARET
     :   "^^"
     ;
 
-protected  /* See LPAREN_OR_NIL. */
 LPAREN
     :   '('
     ;
@@ -383,7 +473,6 @@ RPAREN
     :   ')'
     ;
 
-protected  /* See LBRACKET_OR_ANON. */
 LBRACKET
     :   '['
     ;
@@ -399,7 +488,6 @@ LBRACE
 RBRACE
     :   '}'
     ;
-
 
 
 /*
@@ -427,6 +515,10 @@ QNAME_OR_IDENTIFIER
         { $setType(QNAME) }
     |   ( IDENTIFIER ) => IDENTIFIER
         { $setType(IDENTIFIER) }
+    ;
+
+VAR
+    :   '$'! IDENTIFIER
     ;
 
 
@@ -501,35 +593,6 @@ INTEGER_OR_DECIMAL_OR_DOUBLE_OR_DOT
         { $setType(INTEGER) }
     |   ( DOT ) => DOT
         { $setType(DOT) }
-    ;
-
-
-/*
- * Nil and Anon
- */
-
-protected  /* See LPAREN_OR_NIL. */
-NIL
-    :   '(' ( WS )* ')'
-    ;
-
-LPAREN_OR_NIL
-    :   ( NIL ) => NIL
-        { $setType(NIL) }
-    |   ( LPAREN ) => LPAREN
-        { $setType(LPAREN) }
-    ;
-
-protected  /* See LBRACKET_OR_ANON. */
-ANON
-    :   '[' ( WS )* ']'
-    ;
-
-LBRACKET_OR_ANON
-    :   ( ANON ) => ANON
-        { $setType(ANON) }
-    |   ( LBRACKET ) => LBRACKET
-        { $setType(LBRACKET) }
     ;
 
 

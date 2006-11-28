@@ -44,6 +44,22 @@ class SqlFieldRef(nodes.ExpressionNode):
         stream.write(' %s' % self.attributesRepr())
 
 
+class SqlFunctionCall(nodes.ExpressionNode):
+    """A SQL function call."""
+
+    __slots__ = ('name')
+
+    def __init__(self, name, *params):
+        super(SqlFunctionCall, self).__init__(*params)
+        self.name = name
+
+
+class MacroArgument(nodes.Var):
+    """A schema macro argument."""
+
+    __slots__ = ()
+
+
 class SqlScalarExpr(nodes.ExpressionNode):
     """An expression node corresponding to a SQL expression producing
     an scalar value.

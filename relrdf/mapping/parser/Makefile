@@ -1,6 +1,6 @@
 ANTLR=runantlr
 
-all: ExpressionParser.py
+all: SchemaParser.py
 
-ExpressionParser.py: parser.g
+SchemaParser.py: parser.g
 	$(ANTLR) parser.g

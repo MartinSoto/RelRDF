@@ -2,7 +2,7 @@ header {
     from relrdf.commonns import rdf, xsd
     from relrdf.expression import nodes
 
-    from relrdf.mapping import sqlnodes
+    from relrdf.mapping import sqlnodes, schema, macro
     import parser
 }
 
@@ -21,106 +21,136 @@ options {
     defaultErrorHandler=false;
 }
 
-main returns [expr]
-    :   schema
+main
+    :   schemaDef
     ;
 
 
-schema
-    :   (   declaration SEMICOLON )+
+schemaDef
+    :   (   defObj=declaration sm:SEMICOLON
+            { defObj.setExtentsEndFromToken(sm); \
+              self.schema.addDef(defObj); }
+        )+
     ;
 
-declaration
-    :   tableDecl
-    |   indexDecl
-    |   macroDef
-    |   valueMappingDecl
+declaration returns [defObj]
+    :   defObj=tableDecl
+    |   defObj=indexDecl
+    |   defObj=macroDef
+    |   defObj=valueMappingDecl
     |   mappingDecl
     ;
 
 
-tableDecl
-    :   "table" tableName LPAREN columnDeclList RPAREN
+tableDecl returns [table]
+    :   tb:"table" name=objName
+        { table = schema.Table(name); \
+          table.setExtentsStartFromToken(tb, self); }
+        LPAREN columnDeclList[table] RPAREN
     ;
 
-tableName
-    :   IDENTIFIER
+objName returns [name]
+    :   id:IDENTIFIER
+        { name = nodes.Literal(id.getText()); \
+          name.setExtentsFromToken(id, self); }
     ;
 
-columnDeclList
-    :   columnDecl ( COMMA columnDecl )*
+columnDeclList[table]
+    :   columnDecl[table] ( COMMA columnDecl[table] )*
     ;
 
-columnDecl
-    :   columnName columnType columnOptions
+columnDecl[table]
+    :   name=objName type=columnType opts=columnOptions
+        { colObj = schema.Column(name, type, opts); \
+          table.addColumn(colObj); }
     ;
 
-columnName
-    :   IDENTIFIER
+columnType returns [expr]
+    :   expr=iriRef
     ;
 
-columnType
-    :   QNAME
+columnOptions returns [opts]
+    :   { opts = set(); }
+        (   option=columnOption
+            { opts.add(option); }
+        )*
     ;
 
-columnOptions
-    :   (   columnOption )*
-    ;
-
-columnOption
-    :   "unsigned"
-    |   "notnull"
+columnOption returns [option]
+    :   "notnull"
+        { option = schema.COL_OPT_NOT_NULL; }
     |   "autoincrement"
+        { option = schema.COL_OPT_AUTO_INCR; }
     ;
 
 
-indexDecl
-    :   "index" indexName tableName columnList indexOptions
+indexDecl returns [index]
+    :   id:"index" name=objName tableName=objName
+        { index = schema.Index(name, self.schema.getTable(tableName)); \
+          index.setExtentsStartFromToken(id, self); }
+        columnList[index] indexOptions[index]
     ;
 
-indexName
-    :   IDENTIFIER
+columnList[index]
+    :   LPAREN colName=objName
+        { index.addColumn(colName); }
+        (   COMMA colName=objName
+            { index.addColumn(colName); }
+        )* RPAREN
     ;
 
-columnList
-    :   LPAREN columnName ( COMMA columnName )* RPAREN
+indexOptions[index]
+    :   (   opt=indexOption
+            { index.options.add(opt); }
+        )*
     ;
 
-indexOptions
-    :   (   indexOption )*
-    ;
-
-indexOption
+indexOption returns [opt]
     :   "unique"
+        { option = schema.INDEX_OPT_UNIQUE; }
     |   "primary"
+        { option = schema.INDEX_OPT_PRIMARY; }
     ;
 
 
-macroDef
-    :   "def" macroName macroArgList expr=expression
+macroDef returns [macroDef]
+    :   df:"def" name=objName params=macroParamList expr=expression
+        { closure = macro.MacroClosure(params, self.mainEnv, expr); \
+          macroDef = schema.MacroDef(name, closure); \
+          macroDef.setExtentsStartFromToken(df, self); }
     ;
 
-macroName
-    :   IDENTIFIER
+macroParamList returns [params]
+    :   LPAREN
+        { params = []; }
+        (   param=macroParam
+            { params.append(param); }
+            (   COMMA param=macroParam
+                { params.append(param); }
+            )*
+        )?
+        RPAREN
     ;
 
-macroArgList
-    :   LPAREN ( arg=macroArg ( COMMA Argument )* )? RPAREN
-    ;
-
-macroArg returns [expr]
+macroParam returns [param]
     :   v:VAR
-        { expr = sqlnodes.MacroArgument(v.getText()); }
+        { param = v.getText(); }
     ;
 
 
-valueMappingDecl
-    :   "valuemapping" macroName macroArgList macroDef SEMICOLON macroDef
+valueMappingDecl returns [valueMappingDef]
+    :   vm:"valuemapping" name=objName params=macroParamList
+        intToExtDef=macroDef SEMICOLON extToIntDef=macroDef
+        { valueMappingDef = schema.ValueMappingDef(name, params, \
+                                                   intToExtDef, \
+                                                   extToIntDef); \
+          valueMappingDef.setExtentsStartFromToken(vm, self);
+        }
     ;
 
 
 mappingDecl
-    :   "mapping" macroName macroArgList expr=expression
+    :   "mapping" name=objName params=macroParamList expr=expression
     ;
 
 
@@ -243,7 +273,7 @@ primaryExpression returns [expr]
     |   expr=columnRef
     |   expr=functionCall
     |   expr=iriRef
-    |   expr=macroArg
+    |   expr=macroVar
     |   expr=rdfLiteral
     |   expr=numericLiteral
     |   expr=booleanLiteral
@@ -273,7 +303,7 @@ columnRef returns [expr]
 
 functionCall returns [expr]
     :   name=functionName
-        { expr = sqlnodes.SqlFunctionCall(name) }
+        { expr = self.createCallExpr(name) }
         argList[expr]
     ;
 
@@ -282,16 +312,16 @@ functionName returns [name]
         { name = id.getText(); }
     ;
 
-argList[funcCall]
-    :   (   nil:NIL
-            { funcCall.setExtentsEndFromToken(nil) }
-        |   LPAREN param=expression
-            { funcCall.append(param) }
-            (   COMMA param=expression
-                { funcCall.append(param) }
-            )*
+argList[callExpr]
+    :   (   LPAREN
+            (   param=expression
+                { callExpr.append(param) }
+                (   COMMA param=expression
+                    { callExpr.append(param) }
+                )*
+            )?
             rp:RPAREN
-            { funcCall.setExtentsEndFromToken(rp) }
+            { callExpr.setExtentsEndFromToken(rp) }
         )
     ;
 
@@ -363,6 +393,12 @@ qname returns [expr]
     ;
 
 
+macroVar returns [expr]
+    :   v:VAR
+        { expr = macro.MacroVar(v.getText()); }
+    ;
+
+
 /*----------------------------------------------------------------------
  * Lexical Analyzer
  *--------------------------------------------------------------------*/
@@ -386,6 +422,11 @@ WS
         | '\n' { $newline }
         | '\r' { $newline }
         )
+        { $skip }
+    ;
+
+COMMENT
+    :   '#' ( ~( '\n' | '\r' ) )*
         { $skip }
     ;
 

@@ -13,8 +13,14 @@ class Error(Exception):
 
 
 class InstantiationError(Error):
-    """Exception class for error happening when instantiating objects
+    """Exception class for errors happening when instantiating objects
     from factories."""
+    pass
+
+
+class MacroError(Error):
+    """Exception class for errors related to macro expressions
+    processing."""
     pass
 
 

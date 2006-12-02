@@ -54,12 +54,6 @@ class SqlFunctionCall(nodes.ExpressionNode):
         self.name = name
 
 
-class MacroArgument(nodes.Var):
-    """A schema macro argument."""
-
-    __slots__ = ()
-
-
 class SqlScalarExpr(nodes.ExpressionNode):
     """An expression node corresponding to a SQL expression producing
     an scalar value.

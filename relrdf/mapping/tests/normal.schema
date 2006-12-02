@@ -1,0 +1,50 @@
+# Test schema
+
+table statements (
+  id xsd:unsignedInt notNull autoIncrement,
+  hash xsd:hexBinary notNull,
+  subject xsd:string notNull,
+  predicate xsd:string notNull,
+  object_type xsd:unsignedShort notNull,
+  object xsd:string notNull
+);
+
+index statements_primary statements (id) primary unique;
+index statements_unique statements (hash) unique;
+index statements_subject_index statements (subject);
+index statements_predicate_index statements (predicate);
+
+
+table data_types (
+  id xsd:unsignedShort notNull autoIncrement,
+  uri xsd:string notNull
+);
+
+index data_types_primary data_types (id) primary unique;
+index data_types_unique data_types (uri) unique;
+
+
+table version_statement (
+  version_id xsd:unsignedInt notNull,
+  stmt_id xsd:int notNull
+);
+
+index version_statement_primary version_statement (stmt_id) primary unique;
+index version_statement_unique version_statement (version_id, stmt_id) unique;
+
+
+valuemapping valueUri($uri)
+  def inttoext($int) concat($uri, $int);
+  def exttoint($int) concat($uri, $int);
+
+def refVersion($numExpr) Ref(valueUri(relrdf:version), $numExpr);
+
+
+valuemapping idType()
+  def inttoext($int)
+    mapto (dt.uri) data_types dt on dt.id = $int;
+
+  def exttoint($ext)
+    mapto (dt.id) data_types dt on dt.uri = $ext;
+
+def refType($tidExpr) Ref(idType, $tidExpr);

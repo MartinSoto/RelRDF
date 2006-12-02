@@ -1,0 +1,18 @@
+table statements (
+  hash xsd:hexBinary notNull,
+  id xsd:unsignedInt notNull autoIncrement,
+  subject xsd:string notNull,
+  predicate xsd:string,
+  object_type xsd:unsignedShort notNull,
+  object xsd:string notNull
+);
+
+table data_types (
+  id xsd:unsignedShort notNull autoIncrement,
+  uri xsd:string notNull
+);
+
+table statements (
+  version_id xsd:unsignedInt notNull,
+  stmt_id xsd:unsignedInt notNull
+);

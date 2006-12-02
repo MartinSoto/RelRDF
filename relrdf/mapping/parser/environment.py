@@ -11,17 +11,6 @@ import SchemaLexer
 import SchemaParser
 
 
-def checkNotSupported(expr):
-    if isinstance(expr, nodes.NotSupported):
-        new = error.NotSupportedError(expr.getExtents(),
-                                      msg=_("This feature is not yet "
-                                            "supported. Sorry!"))
-        raise new
-
-    for subexpr in expr:
-        checkNotSupported(subexpr)
-
-
 class ParseEnvironment(object):
     """A parsing environment for the internal expression language. It
     contains high level operations for obtaining expression trees out
@@ -51,7 +40,7 @@ class ParseEnvironment(object):
         parser.setFilename(fileName)
 
         try:
-            expr = parser.main()
+            parser.main()
         except antlr.RecognitionException, e:
             new = error.SyntaxError.create(e)
             if new:
@@ -67,15 +56,9 @@ class ParseEnvironment(object):
             else:
                 raise e
 
-        # Check for use of not implemented features.
-        #checkNotSupported(expr)
-
-        return expr
-
 
 if __name__ == '__main__':
     import sys
 
     env = ParseEnvironment()
-    expr = env.parse(sys.stdin)
-    #expr.prettyPrint()
+    env.parse(sys.stdin)

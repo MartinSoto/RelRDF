@@ -2,6 +2,7 @@ import antlr
 
 from relrdf import commonns, error
 from relrdf.expression import literal, uri, nodes
+from relrdf.mapping import schema, sqlnodes, macro
 
 
 class Parser(antlr.LLkParser):
@@ -9,7 +10,10 @@ class Parser(antlr.LLkParser):
 
     __slots__ = ('basePrefixes',
                  'externalPrefixes',
-                 'localPrefixes')
+                 'localPrefixes',
+
+                 'schema',
+                 'mainEnv',)
 
     # A number of namespace prefixes offered by default by this
     # implementation.
@@ -50,6 +54,12 @@ class Parser(antlr.LLkParser):
         # The set of locally defined namespace prefixes (prefixes
         # defined by the query itself through PREFIX clauses.)
         self.localPrefixes = {}
+
+        # Schema object being defined.
+        self.schema = schema.Schema()
+
+        # Main environment (for schema arguments.)
+        self.mainEnv = macro.Environment()
 
 
     @staticmethod
@@ -116,3 +126,10 @@ class Parser(antlr.LLkParser):
     def checkDefinedPrefix(self, token):
         """Make sure the prefix does not start with `'_'`."""
         return token.getText()
+
+    def createCallExpr(self, name):
+        closure = self.schema.getMacro(name)
+        if closure is not None:
+            return macro.MacroCall(closure)
+        else:
+            return sqlnodes.SqlFunctionCall(name)

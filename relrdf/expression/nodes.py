@@ -630,7 +630,9 @@ class GreaterThanOrEqual(Comparison, BinaryOperation):
 
 
 class Different(Comparison):
-    """Determine if two or more operands are different from each other.""" 
+    """Determine if two or more operands are different from each other.
+
+    The result is True if there are two operands that are different.""" 
 
     __slots__ = ()
 

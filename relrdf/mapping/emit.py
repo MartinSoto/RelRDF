@@ -1,7 +1,7 @@
 import re
 
 from relrdf.commonns import xsd
-from relrdf.expression import rewrite, nodes, simplify
+from relrdf.expression import rewrite, nodes, simplify, evaluate
 
 
 class SqlEmitter(rewrite.ExpressionProcessor):
@@ -20,11 +20,16 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def Uri(self, expr):
         return '"%s"' % expr.uri
 
+    _noStringTypes = set((xsd.boolean,
+                          xsd.integer,
+                          xsd.decimal,
+                          xsd.double))
+
     def Literal(self, expr):
-        if expr.literal.typeUri == xsd.decimal:
-            return "%s"  % str(expr.literal)
+        if expr.literal.typeUri in self._noStringTypes:
+            return "%s"  % unicode(expr.literal)
         else:
-            return '"%s"' % str(expr.literal)
+            return '"%s"' % unicode(expr.literal)
 
     def FunctionCall(self, expr, *params):
         return '%s(%s)' % (expr.functionName, ', '.join(params))
@@ -168,5 +173,8 @@ def emit(expr):
 
     # Simplify the expression first.
     expr = simplify.simplify(expr)
+
+    # Reduce constant expressions.
+    expr = evaluate.reduceConst(expr)
 
     return emitter.process(expr)

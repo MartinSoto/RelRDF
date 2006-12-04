@@ -1,31 +1,8 @@
 import operator
 
 import nodes
+import constnodes
 import rewrite
-
-
-def isConstNode(expr):
-    return isinstance(expr, nodes.Uri) or \
-           isinstance(expr, nodes.Literal)
-
-def constValue(expr):
-    if isinstance(expr, nodes.Uri):
-        return expr.uri
-    elif isinstance(expr, nodes.Literal):
-        return expr.literal.value
-    return None
-
-def constValues(exprs):
-    for expr in exprs:
-        if isinstance(expr, nodes.Uri):
-            yield expr.uri
-        elif isinstance(expr, nodes.Literal):
-            yield expr.literal.value
-
-def nonConstExprs(exprs):
-    for expr in exprs:
-        if not isConstNode(expr):
-            yield expr
 
 
 class Evaluator(rewrite.ExpressionTransformer):
@@ -34,7 +11,7 @@ class Evaluator(rewrite.ExpressionTransformer):
 
     def Equal(self, expr, *args):
         common = None
-        for value in constValues(args):
+        for value in constnodes.constValues(args):
             if common is None:
                 common = value
             elif unicode(common) != unicode(value):
@@ -46,7 +23,7 @@ class Evaluator(rewrite.ExpressionTransformer):
             expr[:] = args
             return expr
 
-        expr[:] = nonConstExprs(args)
+        expr[:] = constnodes.nonConstExprs(args)
 
         if len(expr) > 0:
             expr[:0] = [nodes.Literal(common)]
@@ -57,7 +34,7 @@ class Evaluator(rewrite.ExpressionTransformer):
 
     def Different(self, expr, op1, op2):
         common = None
-        for value in constValues(args):
+        for value in constnodes.constValues(args):
             if common is None:
                 common = value
             elif unicode(common) != unicode(value):
@@ -70,7 +47,7 @@ class Evaluator(rewrite.ExpressionTransformer):
             expr[:] = args
             return expr
 
-        expr[:] = nonConstExprs(args)
+        expr[:] = constnodes.nonConstExprs(args)
 
         if len(expr) > 0:
             expr[:0] = [nodes.Literal(common)]
@@ -81,8 +58,8 @@ class Evaluator(rewrite.ExpressionTransformer):
 
 
     def _compOp(self, expr, operator, op1, op2):
-        val1 = constValue(op1)
-        val2 = constValue(op2)
+        val1 = constnodes.constValue(op1)
+        val2 = constnodes.constValue(op2)
 
         if val1 is None or val2 is None:
             expr[0] = op1
@@ -105,18 +82,20 @@ class Evaluator(rewrite.ExpressionTransformer):
 
 
     def Or(self, expr, *args):
-        if reduce(operator.__or__, constValues(args), False):
+        if reduce(operator.__or__,
+                  constnodes.constValues(args), False):
             return nodes.Literal(True)
         else:
-            expr[:] = nonConstExprs(args)
+            expr[:] = constnodes.nonConstExprs(args)
             if len(expr) > 0:
                 return expr
             else:
                 return nodes.Literal(False)
 
     def And(self, expr, *args):
-        if reduce(operator.__and__, constValues(args), True):
-            expr[:] = nonConstExprs(args)
+        if reduce(operator.__and__,
+                  constnodes.constValues(args), True):
+            expr[:] = constnodes.nonConstExprs(args)
             if len(expr) > 0:
                 return expr
             else:
@@ -125,7 +104,7 @@ class Evaluator(rewrite.ExpressionTransformer):
             return nodes.Literal(False)
 
     def Not(self, expr, op):
-        val = constValue(op)
+        val = constnodes.constValue(op)
         if val is not None:
             return nodes.Literal(not value)
         else:

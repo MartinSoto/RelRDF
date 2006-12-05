@@ -335,14 +335,10 @@ columnRef returns [expr]
 
 
 functionCall returns [expr]
-    :   name=functionName
-        { expr = self.createCallExpr(name) }
-        argList[expr]
-    ;
-
-functionName returns [name]
     :   id:IDENTIFIER
-        { name = id.getText(); }
+        { expr = self.createCallExpr(id.getText()); \
+          expr.setExtentsStartFromToken(id, self); }
+        argList[expr]
     ;
 
 argList[callExpr]

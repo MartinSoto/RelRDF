@@ -114,6 +114,11 @@ class TypeCheckError(PositionError):
     pass
 
 
+class SchemaError(PositionError):
+    """An error produced while working with macro-based schemas."""
+    pass
+
+
 class NotSupportedError(PositionError):
     """Exception raised when there is an attempt to use planned, but
     not yet supported features from a query language."""

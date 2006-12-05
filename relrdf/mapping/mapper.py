@@ -1,5 +1,6 @@
 import operator
 
+from relrdf import error
 from relrdf.expression import nodes, evaluate
 
 import valueref
@@ -83,9 +84,14 @@ class MacroMapper(BasicMapper,
                 continue
 
             # If there's a condition, verify it.
-            if condCls is not None and \
-               not evaluate.reduceToValue(condCls.expand(*clauseArgs)):
-                continue
+            if condCls is not None:
+               val = evaluate.reduceToValue(condCls.expand(*clauseArgs))
+               if val is None:
+                   raise error.SchemaError(msg=('Condition must be a '
+                                                'constant expression'),
+                                           extents=condCls.getExtents())
+               if not val:
+                   continue
 
             # This match clause has been selected. Expand the
             # expression and return it.

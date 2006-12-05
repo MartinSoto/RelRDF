@@ -1,5 +1,9 @@
 import unittest
 
+# PyUnit's asserRaise seems to need that exceptions are imported into
+# the namespace.
+from relrdf.error import SchemaError
+
 from relrdf.expression import nodes
 from relrdf.mapping import sqlnodes, environment
 
@@ -7,15 +11,16 @@ from relrdf.mapping import sqlnodes, environment
 class TestSchema(unittest.TestCase):
 
     __slots__ = ('env',
-                 'schema')
+                 'schema',
+                 'qpattern')
 
     def setUp(self):
         self.env = environment.ParseEnvironment()
         self.schema = None
-
-    def tearDown(self):
-        self.env = None
-        self.schema = None
+        self.qPattern = nodes.StatementPattern(nodes.Uri('http://xxxy'),
+                                               nodes.Uri('http://xxxy'),
+                                               nodes.Uri('http://xxxy'),
+                                               nodes.Uri('http://xxxy'))
 
     def loadSchema(self, name):
         fileName = '%s.schema' % name
@@ -28,30 +33,25 @@ class TestSchema(unittest.TestCase):
 
         self.loadSchema('simple-mapping-matching')
         mapper = self.schema.getMapper('testMapping')
-        qPattern = nodes.StatementPattern(nodes.Var('a'),
-                                          nodes.Var('b'),
-                                          nodes.Var('c'),
-                                          nodes.Var('d'))
 
         for i in range(4):
-            expr = qPattern.copy()
+            expr = self.qPattern.copy()
             expr[i] = nodes.Uri('http://xxx%d' % i)
             expr = mapper.replStatementPattern(expr)
 
             self.assert_(isinstance(expr, sqlnodes.SqlRelation))
             self.assert_(expr.sqlCode == 'tab%d' % i)
 
-        expr = qPattern.copy()
+        expr = self.qPattern.copy()
         expr[1] = nodes.Uri('http://xxx1')
         expr[3] = nodes.Uri('http://xxx3')
         expr = mapper.replStatementPattern(expr)
-        expr.prettyPrint()
         self.assert_(isinstance(expr, sqlnodes.SqlRelation))
         self.assert_(expr.sqlCode == 'tab4')
 
         # Not matching cases:
 
-        expr = mapper.replStatementPattern(qPattern)
+        expr = mapper.replStatementPattern(self.qPattern)
         self.assert_(isinstance(expr, sqlnodes.SqlRelation))
         self.assert_(expr.sqlCode == 'tabDefault')
 
@@ -71,20 +71,38 @@ class TestSchema(unittest.TestCase):
                                        sb1='http://sb1',
                                        sb2='http://sb2')
     
-        qPattern = nodes.StatementPattern(nodes.Var('a'),
-                                          nodes.Var('b'),
-                                          nodes.Var('c'),
-                                          nodes.Var('d'))
-
         for uri, tab in (('http://sb1', 'tab1'),
                          ('http://sb2', 'tab2'),
                          ('http://sb3', 'tabDefault')):
-            expr = qPattern.copy()
+            expr = self.qPattern.copy()
             expr[1] = nodes.Uri(uri)
             expr = mapper.replStatementPattern(expr)
             self.assert_(isinstance(expr, sqlnodes.SqlRelation))
             self.assert_(expr.sqlCode == tab)
 
+    def testMappingCondNoReduceError(self):
+        """Test for exception when a mapping condition cannot be
+        reduced."""
+
+        self.loadSchema('mapping-cond-no-reduce-error')
+        mapper = self.schema.getMapper('testMapping')
+
+        self.assertRaises(SchemaError, mapper.replStatementPattern,
+                          self.qPattern)
+
+    def testSimpleMacro(self):
+        """Test simple macro definitions."""
+
+        self.loadSchema('simple-macro')
+        mapper = self.schema.getMapper('testMapping')
+
+        for uri, tab in (('http://xxx1', 'tab1'),
+                         ('http://xxx2', 'tabDefault')):
+            expr = self.qPattern.copy()
+            expr[1] = nodes.Uri(uri)
+            expr = mapper.replStatementPattern(expr)
+            self.assert_(isinstance(expr, sqlnodes.SqlRelation))
+            self.assert_(expr.sqlCode == tab)
 
 if __name__ == '__main__':
     unittest.main()

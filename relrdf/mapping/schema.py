@@ -1,9 +1,8 @@
 from relrdf import error
 from relrdf.expression import nodes
 
-import valueref
-import transform
 import macro
+import mapper
 
 
 class SchemaObject(object):
@@ -155,23 +154,6 @@ class MacroDef(SchemaObject):
         self.closure = closure
 
 
-class MacroValueMapping(valueref.ValueMapping):
-    """A value mapping based on schema macro expressions."""
-
-    __slots__ = ('intToExtCls',
-                 'extToIntCls',)
-
-    def __init__(self, intToExtCls, extToIntCls):
-        self.intToExtCls = intToExtCls
-        self.extToIntCls = extToIntCls
-
-    def intToExt(self, internal):
-        return self.intToExtCls.expand(internal)
-
-    def extToInt(self, external):
-        return self.extToIntCls.expand(external)
-
-
 class ValueMappingDef(SchemaObject):
     """An object representing a schema value mapping definition."""
 
@@ -183,7 +165,8 @@ class ValueMappingDef(SchemaObject):
         intToExtExpr = self._processDef(intToExtDef, 'intToExt', params)
         extToIntExpr = self._processDef(intToExtDef, 'intToExt', params)
         
-        self.valueMapping = MacroValueMapping(intToExtExpr, extToIntExpr)
+        self.valueMapping = mapper.MacroValueMapping(intToExtExpr,
+                                                     extToIntExpr)
 
     def _processDef(self, macroDef, expectedName, params):
         # Check the name.
@@ -207,9 +190,60 @@ class ValueMappingDef(SchemaObject):
         return closure
 
 
-class MacroMapper(transform.PureRelationalTransformer):
-    """A mapper based on macro expressions."""
-    pass
+class MappingDef(SchemaObject):
+    """An object representing a schema mapping definition."""
+
+    __slots__ = ('params',
+                 'matchClauses',
+                 'defCls',)
+
+    def __init__(self, name, params):
+        super(MappingDef, self).__init__(name)
+
+        self.params = params
+
+        self.matchClauses = []
+        self.defCls = None
+
+    def addMatch(self, pattern, expr, cond=None):
+        # Calculate the actual parameters and corresponding argument
+        # positions.
+        argPos = []
+        params = []
+        for i, elem in enumerate(pattern):
+            if elem is not None:
+                argPos.append(i)
+                params.append(elem)
+
+        # The matching closures are dependent both on the pattern and
+        # on the mapping parameters.
+        exprCls = macro.MacroClosure(params, None, expr)
+        exprCls = macro.MacroClosure(self.params, None, exprCls)
+        if cond is not None:
+            condCls = macro.MacroClosure(params, None, cond)
+            condCls = macro.MacroClosure(self.params, None, condCls)
+        else:
+            condCls = None
+
+        self.matchClauses.append((argPos, exprCls, condCls))
+
+    def setDefault(self, expr):
+        self.defCls = macro.MacroClosure(self.params, None, expr)
+
+    def getMapper(self, **keywords):
+        # Calculate the arguments only once.
+        args = self.defCls.argsFromKeywords(keywords, objName=self.name)
+
+        mp = mapper.MacroMapper()
+        for argPos, exprCls, condCls in self.matchClauses:
+            exprCls = exprCls.expand(*args)
+            if condCls is not None:
+                condCls = condCls.expand(*args)
+            mp.addMatch(argPos, exprCls, condCls)
+
+        mp.setDefault(self.defCls.expand(*args))
+
+        return mp
 
 
 class Schema(object):
@@ -268,3 +302,20 @@ class Schema(object):
             return None
 
         return macroDef.closure
+
+    def getMapper(self, name, **keywords):
+        """Return the mapper object defined by mapping `name`
+        and the keyword parameters.
+
+        `mappingName` is a string."""
+        try:
+            mappingDef = self.defs[name]
+        except KeyError:
+            mappingDef = None
+
+        if mappingDef is None or not isinstance(mappingDef, MappingDef):
+            raise error.InstantiationError(_("Undefined mapping '%s'") %
+                                           name)
+
+        return mappingDef.getMapper(**keywords)
+

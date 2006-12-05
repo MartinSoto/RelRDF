@@ -59,6 +59,12 @@ class MacroClosure(nodes.ExpressionNode):
         self.params = params
         self.env = env
 
+    def attributesRepr(self):
+        return repr(self.params)
+
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' [%s]' % ', '.join(self.params))
+
     def expand(self, *args):
         """Expand the macro in its context and with the given
         arguments.
@@ -69,7 +75,7 @@ class MacroClosure(nodes.ExpressionNode):
         expression, that do not correspond to a parameter will be
         searched for in the macro's environment, if it is not `None`.
 
-        The macros subexpression is copied on expansion and returned."""
+        The macro subexpression is copied on expansion and returned."""
 
         if len(self.params) != len(args):
             raise error.MacroError(_("Invalid argument count"))
@@ -80,29 +86,70 @@ class MacroClosure(nodes.ExpressionNode):
         for param, arg in zip(self.params, args):
             env.set(param, arg)
 
-        self._expand(self[0].copy(), env)
+        return self._expand(self[0].copy(), env)
 
     def _expand(self, expr, env):
-        for i, subexpr in enumerate(expr):
-            if isinstance(subexpr, MacroVar):
-                # Look up the macro variable.
-                expr[i] = env.get(subexpr.name)
-            elif isinstance(subexpr, MacroClosure):
-                # Just set the closure environment and don't recur.
-                assert subexpr.env is None
-                subexpr.env = env
-            elif isinstance(subexpr, MacroCall):
-                # Expand the arguments before passing them to the
-                # macro.
-                args = self._expand(subexpr, env)
-
-                # Expand the macro and return the result in place of
-                # its invocation.
-                return subexpr.closure.expand(*args)
-            else:
+        if isinstance(expr, MacroVar):
+            # Look up the macro variable.
+            return env.get(expr.name)
+        elif isinstance(expr, MacroClosure):
+            # Just set the closure environment and don't recur.
+            assert expr.env is None
+            expr.env = env
+            return expr
+        elif isinstance(expr, MacroCall):
+            # Expand the arguments before passing them to the
+            # macro.
+            for i, subexpr in enumerate(expr):
                 expr[i] = self._expand(subexpr, env)
 
-        return expr
+            # Expand the macro and return the result in place of
+            # its invocation.
+            return expr.closure.expand(*expr)
+        else:
+            for i, subexpr in enumerate(expr):
+                expr[i] = self._expand(subexpr, env)
+            return expr
+
+    def expandFromValues(self, *args):
+        """A wrapper for the `expand` method, that converts python
+        value arguments into expressions."""
+
+        for i, arg in enumerate(args):
+            if not isinstance(arg, nodes.ExpressionNode):
+                args[i] = nodes.Literal(arg)
+
+        return self.expand(*args)
+
+    def argsFromKeywords(self, keywords, objName=_('<unknown>')):
+        """Return an argument array for this macro based on the given
+        keywords.
+
+        Matching is done a way similar to that used by Python to match
+        keyword parameters to arguments. `objName` is used to report
+        parameter matching errors."""
+
+        if len(keywords) != len(self.params):
+            raise TypeError(_("'%s' takes exactly %d arguments (%d given)") %
+                            (objName, len(self.params), len(keywords)))
+
+        args = [None] * len(self.params)
+        for name, value in keywords.items():
+            try:
+                args[self.params.index(name)] = value
+            except ValueError:
+                raise TypeError(_("'%s' got an unexpected keyword "
+                                  "argument '%s'") % (objName, name))
+
+        return args
+
+    def expandFromKeywords(self, **keywords):
+        """A wrapper for the `expand` method, that takes parameter
+        values from a set of keywords.
+
+        This method performs value conversion if necessary."""
+
+        return self.expandFromValues(*self.argsFromKeywords(keywords))
 
 
 class MacroCall(nodes.ExpressionNode):

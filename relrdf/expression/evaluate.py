@@ -117,3 +117,10 @@ _evaluator = Evaluator()
 def reduceConst(expr):
     """Reduce constant subexpressions in `expr` to simple constants."""
     return _evaluator.process(expr)
+
+def reduceToValue(expr):
+    """Reduce a constant expression to a single Python value.
+
+    Returns `None` if the expression can't be reduced."""
+    reduced = _evaluator.process(expr)
+    return constnodes.constValue(reduced)

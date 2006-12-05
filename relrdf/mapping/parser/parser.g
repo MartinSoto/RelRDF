@@ -38,7 +38,7 @@ declaration returns [defObj]
     |   defObj=indexDecl
     |   defObj=macroDef
     |   defObj=valueMappingDecl
-    |   mappingDecl
+    |   defObj=mappingDecl
     ;
 
 
@@ -149,8 +149,39 @@ valueMappingDecl returns [valueMappingDef]
     ;
 
 
-mappingDecl
-    :   "mapping" name=objName params=macroParamList expr=expression
+mappingDecl returns [mappingDef]
+    :   "mapping" name=objName params=macroParamList
+        { mappingDef = schema.MappingDef(name, params); }
+        matchList[mappingDef]
+        "default" expr=expression
+        { mappingDef.setDefault(expr); }
+    ;
+
+matchList[mappingDef]
+    :   (   "match" pattern=matchPattern
+            { cond = None; }
+            (   "on" LPAREN cond=expression RPAREN
+            )?
+            expr=expression
+            { mappingDef.addMatch(pattern, expr, cond); }
+        )*
+    ;
+
+matchPattern returns [pattern]
+    :   LPAREN
+        graph=matchPatternElem COMMA
+        subj=matchPatternElem COMMA
+        pred=matchPatternElem COMMA
+        obj=matchPatternElem
+        RPAREN
+        { pattern = [graph, subj, pred, obj]; }
+    ;
+
+matchPatternElem returns [elem]
+    :   v:VAR
+        { elem = v.getText(); }
+    |   DOT
+        { elem = None; }
     ;
 
 

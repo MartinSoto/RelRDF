@@ -48,3 +48,11 @@ valuemapping idType()
     mapto (dt.id) data_types dt on dt.uri = $ext;
 
 def refType($tidExpr) Ref(idType, $tidExpr);
+
+
+mapping testMapping ($a)
+  match (., ., $pred, .) on ($pred = "http://xxx")
+    tab2
+
+  default
+    tab1;

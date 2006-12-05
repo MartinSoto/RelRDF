@@ -28,12 +28,13 @@ class Environment(dict):
             return self[varName].copy()
         except KeyError:
             if self.outer is not None:
-                return outer.get(varName)
+                return self.outer.get(varName)
             else:
                 raise error.MacroError(_("Parameter '%s' not found")
                                        % varName)
 
     def set(self, varName, value):
+        assert(isinstance(value, nodes.ExpressionNode))
         self[varName] = value
 
 
@@ -115,6 +116,7 @@ class MacroClosure(nodes.ExpressionNode):
         """A wrapper for the `expand` method, that converts python
         value arguments into expressions."""
 
+        args = list(args)
         for i, arg in enumerate(args):
             if not isinstance(arg, nodes.ExpressionNode):
                 args[i] = nodes.Literal(arg)
@@ -172,8 +174,3 @@ class MacroVar(nodes.Var):
     The name attribute corresponds to the parameter name."""
 
     __slots__ = ()
-
-
-
-
-    

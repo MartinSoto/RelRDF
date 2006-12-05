@@ -1,0 +1,19 @@
+mapping testMapping ()
+  match (., $subj, ., $obj) on ($subj = "http://xxx1" &&
+	                        $obj = "http://xxx3")
+    tab4
+
+  match ($graph, ., ., .) on ($graph = "http://xxx0")
+    tab0
+
+  match (., $subj, ., .) on ($subj = "http://xxx1")
+    tab1
+
+  match (., ., $pred, .) on ($pred = "http://xxx2")
+    tab2
+
+  match (., ., ., $obj) on ($obj = "http://xxx3")
+    tab3
+
+  default
+    tabDefault;

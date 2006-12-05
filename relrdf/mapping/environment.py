@@ -64,22 +64,3 @@ if __name__ == '__main__':
 
     env = ParseEnvironment()
     schema = env.parse(sys.stdin)
-
-    # FIXME: Create a real test routine.
-    mapper = schema.getMapper('testMapping', a=3)
-
-    expr = mapper.replStatementPattern(nodes. \
-                                       StatementPattern(nodes.Var('a'),
-                                                        nodes.Var('b'),
-                                                        nodes.Var('c'),
-                                                        nodes.Var('d')))
-    expr.prettyPrint()
-    print '---------------'
-
-    expr = mapper.replStatementPattern(nodes. \
-                                       StatementPattern(nodes.Var('a'),
-                                                        nodes.Var('b'),
-                                                        nodes.Uri('http://xxx'),
-                                                        nodes.Var('d')))
-    expr.prettyPrint()
-    print '---------------'

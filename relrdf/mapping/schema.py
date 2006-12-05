@@ -236,12 +236,12 @@ class MappingDef(SchemaObject):
 
         mp = mapper.MacroMapper()
         for argPos, exprCls, condCls in self.matchClauses:
-            exprCls = exprCls.expand(*args)
+            exprCls = exprCls.expandFromValues(*args)
             if condCls is not None:
-                condCls = condCls.expand(*args)
+                condCls = condCls.expandFromValues(*args)
             mp.addMatch(argPos, exprCls, condCls)
 
-        mp.setDefault(self.defCls.expand(*args))
+        mp.setDefault(self.defCls.expandFromValues(*args))
 
         return mp
 

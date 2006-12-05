@@ -50,9 +50,3 @@ valuemapping idType()
 def refType($tidExpr) Ref(idType, $tidExpr);
 
 
-mapping testMapping ($a)
-  match (., ., $pred, .) on ($pred = "http://xxx")
-    tab2
-
-  default
-    tab1;

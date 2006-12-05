@@ -2,7 +2,9 @@ header {
     from relrdf.commonns import rdf, xsd
     from relrdf.expression import nodes
 
-    from relrdf.mapping import sqlnodes, schema, macro
+    import sqlnodes
+    import schema
+    import macro
     import parser
 }
 

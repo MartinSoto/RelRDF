@@ -2,7 +2,10 @@ import antlr
 
 from relrdf import commonns, error
 from relrdf.expression import literal, uri, nodes
-from relrdf.mapping import schema, sqlnodes, macro
+
+import schema
+import sqlnodes
+import macro
 
 
 class Parser(antlr.LLkParser):

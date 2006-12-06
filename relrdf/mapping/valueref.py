@@ -16,9 +16,11 @@ representations and their related optimizations.
 from relrdf.expression import nodes, rewrite
 
 
-class ValueMapping(object):
+class ValueMapping(nodes.ExpressionNode):
     """Abstract convertor between internal and external value
-    representations."""
+    representations.
+
+    For uniformity, value mappings are also expressions."""
 
     __slots__ = ()
 
@@ -34,25 +36,38 @@ class ValueMapping(object):
         corresponding to its internal representation."""
 
 
+class MacroValueMapping(ValueMapping):
+    """A value mapping based on schema macro expressions.
+
+    The mapping is a expression node with two subexpressions. The
+    subexpressions must be macro closures, and correspond in order to
+    the internal-to-external, and to the external-to-internal value
+    conversions."""
+
+    __slots__ = ()
+
+    def __init__(self, intToExtCls, extToIntCls):
+        super(MacroValueMapping, self).__init__(intToExtCls, extToIntCls)
+
+    def intToExt(self, internal):
+        return self.intToExtCls.expand(internal)
+
+    def extToInt(self, external):
+        return self.extToIntCls.expand(external)
+
+
 class ValueRef(nodes.ExpressionNode):
     """An expression node packaging an internal value.
 
-    A `ValueRef` has a single subexpression, which evaluates to an
-    internal value representation. The node also points to a
-    `ValueMapping`, which is used to convert back and forth to the
-    external representation."""
+    A `ValueRef` has a two subexpressions. The first subexpression is
+    a `ValueMapping`, which is used to convert back and forth to the
+    external representation. The second subexpression evaluates to the
+    internal value representation the `ValueRef` refers to."""
 
-    __slots__ = ('mapping')
+    __slots__ = ()
 
     def __init__(self, mapping, subexpr):
-        super(ValueRef, self).__init__(subexpr)
-
-        self.mapping = mapping
-
-    def getExternal(self):
-        """Build an expression corresponding to the external
-        representation of the referenced value."""
-        return self.mapping.intToExt(self[0])
+        super(ValueRef, self).__init__(mapping, subexpr)
 
 
 class ValueRefDereferencer(rewrite.ExpressionProcessor):
@@ -67,7 +82,7 @@ class ValueRefDereferencer(rewrite.ExpressionProcessor):
         value."""
         for i, subexpr in enumerate(subexprs):
             if isinstance(subexpr, ValueRef):
-                expr[i] = subexpr.getExternal()
+                expr[i] = subexpr[0].intToExt(subexpr[1])
             else:
                 expr[i] = subexpr
 
@@ -88,8 +103,8 @@ class ValueRefDereferencer(rewrite.ExpressionProcessor):
         for subexpr in subexprs:
             if isinstance(subexpr, ValueRef):
                 if mapping is None:
-                    mapping = subexpr.mapping
-                elif mapping != subexpr.mapping:
+                    mapping = subexpr[0]
+                elif mapping != subexpr[0]:
                     # Different types of ValueRef's are mixed.
                     return self.Default(expr, *subexprs)
             elif not isinstance(subexpr, nodes.Literal) and \
@@ -103,7 +118,7 @@ class ValueRefDereferencer(rewrite.ExpressionProcessor):
 
         for i, subexpr in enumerate(subexprs):
             if isinstance(subexpr, ValueRef):
-                expr[i] = subexpr[0]
+                expr[i] = subexpr[1]
             elif isinstance(subexpr, nodes.Literal) or \
                  isinstance(subexpr, nodes.Uri):
                 expr[i] = mapping.extToInt(subexpr)

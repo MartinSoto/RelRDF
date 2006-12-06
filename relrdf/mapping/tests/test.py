@@ -5,7 +5,7 @@ import unittest
 from relrdf.error import SchemaError
 
 from relrdf.expression import nodes
-from relrdf.mapping import sqlnodes, environment
+from relrdf.mapping import sqlnodes, environment, valueref
 
 
 class TestSchema(unittest.TestCase):
@@ -103,6 +103,19 @@ class TestSchema(unittest.TestCase):
             expr = mapper.replStatementPattern(expr)
             self.assert_(isinstance(expr, sqlnodes.SqlRelation))
             self.assert_(expr.sqlCode == tab)
+
+    def testSimpleValueMapping(self):
+        """Test simple value mapping definitions."""
+
+        self.loadSchema('simple-value-mapping')
+        mapper = self.schema.getMapper('singleVersion', versionId=3)
+        expr = mapper.replStatementPattern(self.qPattern)
+
+        self.assert_(isinstance(expr[1], valueref.ValueRef))
+        self.assert_(isinstance(expr[1][0], valueref.MacroValueMapping))
+        self.assert_(expr[1][0][0].params == ['int'])
+        self.assert_(expr[1][0][1].params == ['ext'])
+
 
 if __name__ == '__main__':
     unittest.main()

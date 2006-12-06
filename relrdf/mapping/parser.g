@@ -2,10 +2,11 @@ header {
     from relrdf.commonns import rdf, xsd
     from relrdf.expression import nodes
 
+    import parser
     import sqlnodes
     import schema
     import macro
-    import parser
+    import valueref
 }
 
 options {
@@ -39,7 +40,6 @@ declaration returns [defObj]
     :   defObj=tableDecl
     |   defObj=indexDecl
     |   defObj=macroDef
-    |   defObj=valueMappingDecl
     |   defObj=mappingDecl
     ;
 
@@ -137,17 +137,6 @@ macroParamList returns [params]
 macroParam returns [param]
     :   v:VAR
         { param = v.getText(); }
-    ;
-
-
-valueMappingDecl returns [valueMappingDef]
-    :   vm:"valuemapping" name=objName params=macroParamList
-        intToExtDef=macroDef SEMICOLON extToIntDef=macroDef
-        { valueMappingDef = schema.ValueMappingDef(name, params, \
-                                                   intToExtDef, \
-                                                   extToIntDef); \
-          valueMappingDef.setExtentsStartFromToken(vm, self);
-        }
     ;
 
 
@@ -305,6 +294,8 @@ primaryExpression returns [expr]
     |   expr=tableRef
     |   expr=columnRef
     |   expr=functionCall
+    |   expr=valueMapping
+    |   expr=valueRef
     |   expr=iriRef
     |   expr=macroVar
     |   expr=rdfLiteral
@@ -355,14 +346,24 @@ argList[callExpr]
     ;
 
 
-regexExpression returns [expr]
-    :   rg:REGEX LPAREN expr1=expression
-        COMMA expr2=expression
-        ( COMMA expr3=expression )? rp:RPAREN
-        { expr = nodes.NotSupported(); \
-          expr.setExtentsStartFromToken(rg, self); \
-          expr.setExtentsEndFromToken(rp); }
+valueMapping returns [expr]
+    :   vm:"valuemapping" LPAREN
+        "inttoext" LPAREN param1=macroParam RPAREN expr1=expression
+        "exttoint" LPAREN param2=macroParam RPAREN expr2=expression
+        RPAREN
+        { intToExtCls = macro.MacroClosure([param1], None, expr1); \
+          extToIntCls = macro.MacroClosure([param2], None, expr2); \
+          expr = valueref.MacroValueMapping(intToExtCls, extToIntCls); \
+          expr.setExtentsStartFromToken(vm, self);
+        }
     ;
+
+valueRef returns [expr]
+    :   r:"ref" LPAREN mapping=expression COMMA expr=expression RPAREN
+        { expr = valueref.ValueRef(mapping, expr); \
+          expr.setExtentsStartFromToken(r, self); }
+    ;
+
 
 rdfLiteral returns [expr]
     :   expr=string

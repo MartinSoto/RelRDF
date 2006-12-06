@@ -7,24 +7,6 @@ import valueref
 import transform
 
 
-class MacroValueMapping(valueref.ValueMapping):
-    """A value mapping based on schema macro expressions."""
-
-    __slots__ = ('intToExtCls',
-                 'extToIntCls',)
-
-    def __init__(self, intToExtCls, extToIntCls):
-        self.intToExtCls = intToExtCls
-        self.extToIntCls = extToIntCls
-
-    def intToExt(self, internal):
-        return self.intToExtCls.expand(internal)
-
-    def extToInt(self, external):
-        return self.extToIntCls.expand(external)
-
-
-
 class BasicMapper(transform.PureRelationalTransformer):
     """A base mapper for the MySQL basic schema. It handles the
     mapping of type expressions."""

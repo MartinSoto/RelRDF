@@ -154,42 +154,6 @@ class MacroDef(SchemaObject):
         self.closure = closure
 
 
-class ValueMappingDef(SchemaObject):
-    """An object representing a schema value mapping definition."""
-
-    __slots__ = ('valueMapping',)
-
-    def __init__(self, name, params, intToExtDef, extToIntDef):
-        super(ValueMappingDef, self).__init__(name)
-
-        intToExtExpr = self._processDef(intToExtDef, 'intToExt', params)
-        extToIntExpr = self._processDef(intToExtDef, 'intToExt', params)
-        
-        self.valueMapping = mapper.MacroValueMapping(intToExtExpr,
-                                                     extToIntExpr)
-
-    def _processDef(self, macroDef, expectedName, params):
-        # Check the name.
-        if macroDef.name.lower() != expectedName.lower():
-            raise error.SyntaxError(_("Definition for '%s' expected") %
-                                    expectedName,
-                                    extents=macroDef.getExtents())
-
-        # Extract the actual closure and check the number of
-        # parameters.
-        closure = macroDef.closure
-        if len(closure.params) != 1:
-            raise error.SyntaxError(_("Definition must have exactly one "
-                                      "parameter"),
-                                    extents=macroDef.getExtents())
-
-        # Wrap the closure in a second closure to handle the mapping
-        # parameters.
-        closure = macro.MacroClosure(params, None, closure)
-
-        return closure
-
-
 class MappingDef(SchemaObject):
     """An object representing a schema mapping definition."""
 

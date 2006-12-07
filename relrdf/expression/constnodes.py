@@ -15,12 +15,14 @@ def constValue(expr):
         return expr.literal.value
     return None
 
-def constValues(exprs):
+def constValues(exprs, all=False):
     for expr in exprs:
         if isinstance(expr, nodes.Uri):
             yield expr.uri
         elif isinstance(expr, nodes.Literal):
             yield expr.literal.value
+        elif all:
+            raise ValueError
 
 def nonConstExprs(exprs):
     for expr in exprs:

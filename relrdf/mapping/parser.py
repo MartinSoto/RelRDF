@@ -131,8 +131,9 @@ class Parser(antlr.LLkParser):
         return token.getText()
 
     def createCallExpr(self, name):
-        closure = self.schema.getMacro(name)
-        if closure is not None:
-            return macro.MacroCall(closure)
-        else:
-            return sqlnodes.SqlFunctionCall(name)
+        if self.schema is not None:
+            closure = self.schema.getMacro(name)
+            if closure is not None:
+                return macro.MacroCall(closure)
+
+        return sqlnodes.SqlFunctionCall(name)

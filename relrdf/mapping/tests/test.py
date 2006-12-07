@@ -5,7 +5,7 @@ import unittest
 from relrdf.error import SchemaError
 
 from relrdf.expression import nodes
-from relrdf.mapping import sqlnodes, parseenv, valueref
+from relrdf.mapping import sqlnodes, sqleval, parseenv, valueref
 
 
 class TestSchema(unittest.TestCase):
@@ -114,6 +114,35 @@ class TestSchema(unittest.TestCase):
         self.assert_(isinstance(expr[1][0], valueref.MacroValueMapping))
         self.assert_(expr[1][0][0].params == ['int'])
         self.assert_(expr[1][0][1].params == ['ext'])
+
+
+class TestSqlFunctions(unittest.TestCase):
+
+    __slots__ = ('env',)
+
+    def setUp(self):
+        self.env = parseenv.ParseEnvironment()
+
+    def testFunctioNoEval(self):
+        """Expressions with function that cannot be reduced."""
+
+        expr = self.env.parseExpr("kkqq(1, 2)")
+        self.assert_(sqleval.reduceToValue(expr) is None)
+
+        expr = self.env.parseExpr("substr($a, 1, 2)")
+        self.assert_(sqleval.reduceToValue(expr) is None)
+
+    def testStringFunctions(self):
+        """Substr function."""
+
+        for exprTxt, val in (("len('abcd')", 4),
+                             ("substr('abcd', 1, 2)", 'ab'),):
+            expr = self.env.parseExpr(exprTxt)
+            self.assert_(isinstance(expr, sqlnodes.SqlFunctionCall))
+            real = sqleval.reduceToValue(expr)
+            self.assert_(real == val,
+                         "Value for '%s' should be '%s' (was '%s')" %
+                         (exprTxt, str(val), str(real)))
 
 
 if __name__ == '__main__':

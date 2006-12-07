@@ -382,22 +382,22 @@ rdfLiteral returns [expr]
 
 numericLiteral returns [expr]
     :   i:INTEGER
-        { expr = self.makeTypedLiteral(i.getText(), xsd.integer); \
+        { expr = self.makeTypedLiteral(int(i.getText()), xsd.integer); \
           expr.setExtentsFromToken(i, self)}
     |   de:DECIMAL
-        { expr = self.makeTypedLiteral(de.getText(), xsd.decimal); \
+        { expr = self.makeTypedLiteral(float(de.getText()), xsd.decimal); \
           expr.setExtentsFromToken(de, self)}
     |   db:DOUBLE
-        { expr = self.makeTypedLiteral(db.getText(), xsd.double); \
+        { expr = self.makeTypedLiteral(float(db.getText()), xsd.double); \
           expr.setExtentsFromToken(db, self)}
     ;
 
 booleanLiteral returns [expr]
     :   t:"true"
-        { expr = self.makeTypedLiteral("true", xsd.boolean); \
+        { expr = self.makeTypedLiteral(True, xsd.boolean); \
           expr.setExtentsFromToken(t, self)}
     |   f:"false"
-        { expr = self.makeTypedLiteral("false", xsd.boolean); \
+        { expr = self.makeTypedLiteral(False, xsd.boolean); \
           expr.setExtentsFromToken(f, self)}
     ;
 

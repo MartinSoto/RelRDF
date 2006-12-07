@@ -66,11 +66,11 @@ class Parser(antlr.LLkParser):
 
 
     @staticmethod
-    def makeTypedLiteral(string, typeUri):
+    def makeTypedLiteral(value, typeUri):
         """Make a `nodes.Literal` expression node with the value given
-        by `string` and the data type given by `typeUri`, and return
+        by `value` and the data type given by `typeUri`, and return
         it.""" 
-        lt = literal.Literal(string, typeUri=typeUri)
+        lt = literal.Literal(value, typeUri=typeUri)
         return nodes.Literal(lt)
 
 

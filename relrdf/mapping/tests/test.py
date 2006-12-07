@@ -14,7 +14,8 @@ class TestSchema(unittest.TestCase):
                  'schema',
                  'qpattern')
 
-    def setUp(self):        self.env = parseenv.ParseEnvironment()
+    def setUp(self):
+        self.env = parseenv.ParseEnvironment()
         self.schema = None
         self.qPattern = nodes.StatementPattern(nodes.Uri('http://xxxy'),
                                                nodes.Uri('http://xxxy'),

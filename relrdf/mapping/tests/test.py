@@ -1,7 +1,7 @@
 import unittest
 
-# PyUnit's assertRaise seems to need that exceptions are imported into
-# the namespace.
+# PyUnit's assertRaise seems to require exceptions to be imported into
+# the namespace (i.e., importing just the error module doesn't work.)
 from relrdf.error import SchemaError
 
 from relrdf.expression import nodes
@@ -28,8 +28,7 @@ class TestSchema(unittest.TestCase):
         self.schema = self.env.parseSchema(stream, fileName)
 
     def testSimpleMappingMatch(self):
-        """Test simple positional mapping pattern matching for cases
-        where patterns match."""
+        """Test simple positional mapping pattern matching."""
 
         self.loadSchema('simple-mapping-matching')
         mapper = self.schema.getMapper('testMapping')

@@ -300,6 +300,7 @@ primaryExpression returns [expr]
     |   expr=tableRef
     |   expr=columnRef
     |   expr=functionCall
+    |   expr=ifExpr
     |   expr=valueMapping
     |   expr=valueRef
     |   expr=iriRef
@@ -349,6 +350,15 @@ argList[callExpr]
             rp:RPAREN
             { callExpr.setExtentsEndFromToken(rp) }
         )
+    ;
+
+
+ifExpr returns [expr]
+    :   ift:"if" LPAREN cond=expression COMMA
+        elseExpr=expression COMMA
+        thenExpr=expression RPAREN
+        { expr = nodes.If(cond, elseExpr, thenExpr); \
+          expr.setExtentsStartFromToken(ift, self); }
     ;
 
 

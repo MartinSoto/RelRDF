@@ -9,6 +9,9 @@ class Evaluator(rewrite.ExpressionTransformer):
     """An expression transformer that reduces all constant
     subexpressions of an expression to simple constants."""
 
+    def __init__(self):
+        super(Evaluator, self).__init__(prePrefix='pre')
+
     def Equal(self, expr, *args):
         common = None
         for value in constnodes.constValues(args):
@@ -110,6 +113,31 @@ class Evaluator(rewrite.ExpressionTransformer):
         else:
             expr[0] = [op]
             return expr
+
+    def preIf(self, expr):
+        # Evaluate the condition first.
+        cond = self.process(expr[0])
+        condVal = constnodes.constValue(cond)
+
+        if condVal is None:
+            # The condition can't be reduced to a boolean value.
+            return (cond, self.process(expr[1]), self.process(expr[2]))
+        elif condVal:
+            # Only evaluate the 'then' part.
+            return (cond, self.process(expr[1]), expr[2])
+        else:
+            # Only evaluate the 'else' part.
+            return (cond, expr[1], self.process(expr[2]))#
+
+    def If(self, expr, cond, thenExpr, elseExpr):
+        condVal = constnodes.constValue(cond)
+        if condVal is None:
+            expr[:] = (cond, thenExpr, elseExpr)
+            return expr
+        elif condVal:
+            return thenExpr
+        else:
+            return elseExpr
 
 
 _evaluator = Evaluator()

@@ -541,6 +541,19 @@ class FunctionCall(ExpressionNode):
         super(FunctionCall, self).__init__(functionName, *params)
 
 
+class If(ExpressionNode):
+    """A functional if expression.
+
+    An 'if' expression selects among two expressions based on a
+    condition. THe intended semantics are that onyl the selected
+    expression is evaluated."""
+
+    __slots__ = ()
+
+    def __init__(self, cond, thenExpr, elseExpr):
+        super(If, self).__init__(cond, thenExpr, elseExpr)
+
+
 class StatementPattern(ExpressionNode):
     """An expression node representing an statement pattern."""
 

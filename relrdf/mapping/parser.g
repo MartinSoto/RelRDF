@@ -24,16 +24,22 @@ options {
     defaultErrorHandler=false;
 }
 
-main
-    :   schemaDef
+
+// This symbol won't normally be used directly, but is necessary for
+// the parser to be able to recognize single expressions.
+main returns [value]
+    :   value=schemaDef
+    |   value=expression
     ;
 
 
-schemaDef
-    :   (   defObj=declaration sm:SEMICOLON
+schemaDef returns [sch]
+    :   { self.schema = schema.Schema(); }
+        (   defObj=declaration sm:SEMICOLON
             { defObj.setExtentsEndFromToken(sm); \
               self.schema.addDef(defObj); }
         )+
+        { sch = self.schema }
     ;
 
 declaration returns [defObj]

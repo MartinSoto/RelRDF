@@ -1,11 +1,11 @@
 import unittest
 
-# PyUnit's asserRaise seems to need that exceptions are imported into
+# PyUnit's assertRaise seems to need that exceptions are imported into
 # the namespace.
 from relrdf.error import SchemaError
 
 from relrdf.expression import nodes
-from relrdf.mapping import sqlnodes, environment, valueref
+from relrdf.mapping import sqlnodes, parseenv, valueref
 
 
 class TestSchema(unittest.TestCase):
@@ -14,8 +14,7 @@ class TestSchema(unittest.TestCase):
                  'schema',
                  'qpattern')
 
-    def setUp(self):
-        self.env = environment.ParseEnvironment()
+    def setUp(self):        self.env = parseenv.ParseEnvironment()
         self.schema = None
         self.qPattern = nodes.StatementPattern(nodes.Uri('http://xxxy'),
                                                nodes.Uri('http://xxxy'),
@@ -25,7 +24,7 @@ class TestSchema(unittest.TestCase):
     def loadSchema(self, name):
         fileName = '%s.schema' % name
         stream = file(fileName)
-        self.schema = self.env.parse(stream, fileName)
+        self.schema = self.env.parseSchema(stream, fileName)
 
     def testSimpleMappingMatch(self):
         """Test simple positional mapping pattern matching for cases

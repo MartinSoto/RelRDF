@@ -59,7 +59,7 @@ class Parser(antlr.LLkParser):
         self.localPrefixes = {}
 
         # Schema object being defined.
-        self.schema = schema.Schema()
+        self.schema = None
 
         # Main environment (for schema arguments.)
         self.mainEnv = macro.Environment()

@@ -27,11 +27,11 @@ class ParseEnvironment(object):
     def getPrefixes(self):
         return self.prefixes
 
-    def parse(self, queryText, fileName=_("<unknown>")):
-        if isinstance(queryText, str) or isinstance(queryText, unicode):
-            stream = StringIO.StringIO(queryText)
+    def _parse(self, text, fileName, productionName):
+        if isinstance(text, str) or isinstance(text, unicode):
+            stream = StringIO.StringIO(text)
         else:
-            stream = queryText
+            stream = text
 
         lexer = SchemaLexer.Lexer() 
         lexer.setInput(stream)
@@ -40,7 +40,7 @@ class ParseEnvironment(object):
         parser.setFilename(fileName)
 
         try:
-            parser.main()
+            value = getattr(parser, productionName)()
         except antlr.RecognitionException, e:
             new = error.SyntaxError.create(e)
             if new:
@@ -56,7 +56,13 @@ class ParseEnvironment(object):
             else:
                 raise e
 
-        return parser.schema
+        return value
+
+    def parseSchema(self, text, fileName=_("<unknown>")):
+        return self._parse(text, fileName, 'schemaDef')
+
+    def parseExpr(self, text, fileName=_("<unknown>")):
+        return self._parse(text, fileName, 'expression')
 
 
 if __name__ == '__main__':

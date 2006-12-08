@@ -6,8 +6,7 @@ import relrdf
 from relrdf.error import InstantiationError
 from relrdf.factory import parseCmdLineArgs
 
-import rdfxmlparse
-import vmodellparse
+from relrdf.modelimport import rdfxmlparse, vmodellparse
 
 
 def error(msg):

@@ -674,6 +674,42 @@ class Not(BooleanOperation, UnaryOperation):
     __slots__ = ()
 
 
+class ArithmeticOperation(Operation):
+    """A node representing an arithmetic operation."""
+
+    __slots__ = ()
+
+
+class Plus(ArithmeticOperation):
+    """An arithmetic addition."""
+
+    __slots__ = ()
+
+
+class Minus(ArithmeticOperation, BinaryOperation):
+    """An arithmetic subtraction."""
+
+    __slots__ = ()
+
+    
+class UMinus(ArithmeticOperation, UnaryOperation):
+    """An arithmetic unary minus."""
+
+    __slots__ = ()
+
+    
+class Times(ArithmeticOperation):
+    """An arithmetic multiplication."""
+
+    __slots__ = ()
+
+    
+class DividedBy(ArithmeticOperation, BinaryOperation):
+    """An arithmetic division."""
+
+    __slots__ = ()
+
+
 class Optional(ExpressionNode):
     """A node representing an optional relation."""
 

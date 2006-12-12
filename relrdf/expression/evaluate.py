@@ -1,3 +1,5 @@
+from __future__ import division
+
 import operator
 
 import nodes
@@ -109,10 +111,68 @@ class Evaluator(rewrite.ExpressionTransformer):
     def Not(self, expr, op):
         val = constnodes.constValue(op)
         if val is not None:
-            return nodes.Literal(not value)
+            return nodes.Literal(not val)
         else:
             expr[0] = [op]
             return expr
+
+
+    def Plus(self, expr, *args):
+        constSum = reduce(operator.__add__,
+                          constnodes.constValues(args), 0)
+        expr[:] = constnodes.nonConstExprs(args)
+        if constSum != 0:
+            expr.append(nodes.Literal(constSum))
+        if len(expr) >= 2:
+            return expr
+        elif len(expr) == 1:
+            return expr[0]
+        else:
+            return nodes.Literal(0)
+
+    def Minus(self, expr, op1, op2):
+        val1 = constnodes.constValue(op1)
+        val2 = constnodes.constValue(op2)
+
+        if val1 is None or val2 is None:
+            expr[0] = op1
+            expr[1] = op2
+            return expr
+
+        return nodes.Literal(val1 - val2)
+
+    def UMinus(self, expr, op):
+        val = constnodes.constValue(op)
+        if val is not None:
+            return nodes.Literal(-val)
+        else:
+            expr[0] = [op]
+            return expr
+
+    def Times(self, expr, *args):
+        constProd = reduce(operator.__mul__,
+                           constnodes.constValues(args), 1)
+        expr[:] = constnodes.nonConstExprs(args)
+        if constProd != 1:
+            expr.append(nodes.Literal(constProd))
+        if len(expr) >= 2:
+            return expr
+        elif len(expr) == 1:
+            return expr[0]
+        else:
+            return nodes.Literal(0)
+
+    def DividedBy(self, expr, op1, op2):
+        val1 = constnodes.constValue(op1)
+        val2 = constnodes.constValue(op2)
+
+        if val1 is None or val2 is None:
+            expr[0] = op1
+            expr[1] = op2
+            return expr
+
+        return nodes.Literal(val1 / val2)
+
 
     def preIf(self, expr):
         # Evaluate the condition first.

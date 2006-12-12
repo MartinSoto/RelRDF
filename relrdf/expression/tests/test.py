@@ -27,6 +27,28 @@ class TestNodes(unittest.TestCase):
                          "Value for '%s' should be '%s' (was '%s')" %
                          (exprTxt, str(val), str(real)))
 
+    def testArithmetic(self):
+        """Arithmetic expressions."""
+
+        for exprTxt, val in (("1 + 2", 3),
+                             ("3.5 + 4", 7.5),
+                             ("-3 + 2", -1),
+                             ("3 - 2", 1),
+                             ("7-3 -2", 2),
+                             ("-10-(3+2)", -15),
+                             ("2*4", 8),
+                             ("2.5 * 4", 10),
+                             ("10 / 4", 2.5),
+                             ("10 / 2.5", 4),
+                             ("3 + 2*5", 13),
+                             ("(3 + 2) * 5", 25),):
+            expr = self.env.parseExpr(exprTxt)
+            self.assert_(isinstance(expr, nodes.ArithmeticOperation))
+            real = evaluate.reduceToValue(expr)
+            self.assert_(real == val,
+                         "Value for '%s' should be '%s' (was '%s')" %
+                         (exprTxt, str(val), str(real)))
+
     def testIf(self):
         """If expressions."""
 

@@ -267,30 +267,29 @@ numericExpression returns [expr]
 additiveExpression returns [expr]
     :   expr=multiplicativeExpression
         (   PLUS mult=multiplicativeExpression
-            { expr = nodes.NotSupported(expr, mult); }
+            { expr = nodes.Plus(expr, mult); }
         |   MINUS mult=multiplicativeExpression
-            { expr = nodes.NotSupported(expr, mult); }
+            { expr = nodes.Minus(expr, mult); }
         )*
     ;
 
 multiplicativeExpression returns [expr]
     :   expr=unaryExpression
         (   TIMES unary=unaryExpression
-            { expr = nodes.NotSupported(expr, unary); }
+            { expr = nodes.Times(expr, unary); }
         |   DIV unary=unaryExpression
-            { expr = nodes.NotSupported(expr, unary); }
+            { expr = nodes.DividedBy(expr, unary); }
         )*
     ;
 
 unaryExpression returns [expr]
     :   on:OP_NOT prim=primaryExpression
-        { expr = nodes.NotSupported(prim); \
+        { expr = nodes.Not(prim); \
           expr.setExtentsStartFromToken(on, self); }
     |   plus:PLUS prim=primaryExpression
-        { expr = nodes.NotSupported(prim); \
-          expr.setExtentsStartFromToken(plus, self); }
+        { expr = prim; }
     |   minus:MINUS prim=primaryExpression
-        { expr = nodes.NotSupported(prim); \
+        { expr = nodes.UMinus(prim); \
           expr.setExtentsStartFromToken(minus, self); }
     |   expr=primaryExpression
     ;

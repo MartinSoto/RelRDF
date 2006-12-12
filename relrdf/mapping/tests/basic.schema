@@ -39,7 +39,7 @@ def uriValue($uri)
   valuemapping (
     inttoext($int) concat($uri, $int)
     exttoint($ext) if(substring($ext, 1, length($uri)) = $uri,
-                      substring($ext, length($uri)),
+                      substring($ext, length($uri) + 1),
                       "<<<NO VALUE>>>")
   );
 

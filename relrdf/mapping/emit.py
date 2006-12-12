@@ -68,6 +68,21 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def And(self, expr, *operands):
         return '(' + ') AND ('.join(operands) + ')'
 
+    def Plus(self, expr, *operands):
+        return '(' + ') + ('.join(operands) + ')'
+
+    def Minus(self, expr, op1, op2):
+        return '(%s) - (%s)' % (op1, op2)
+
+    def UMinus(self, expr, op):
+        return '-(%s)' % op
+
+    def Times(self, expr, *args):
+        return '(' + ') * ('.join(operands) + ')'
+
+    def DividedBy(self, expr, op1, op2):
+        return '(%s) / (%s)' % (op1, op2)
+
     def Product(self, expr, *operands):
         return '(' + ') CROSS JOIN ('.join(operands) + ')'
 

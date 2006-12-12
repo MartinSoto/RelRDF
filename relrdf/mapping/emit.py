@@ -34,6 +34,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def FunctionCall(self, expr, *params):
         return '%s(%s)' % (expr.functionName, ', '.join(params))
 
+    def If(self, expr, cond, thenExpr, elseExpr):
+        return 'IF(%s, %s, %s)' % (cond, thenExpr, elseExpr)
+
     def Equal(self, expr, operand1, *operands):
         return ' AND '.join(['(%s) = (%s)' % (operand1, o) for o in operands])
 
@@ -166,6 +169,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             return subexprs[int(match.group(1))]
 
         return self._subexprPattern.sub(repl, expr.sqlExpr)
+
+    def SqlFunctionCall(self, expr, *args):
+        return '%s(%s)' % (expr.name, ', '.join(args))
 
 
 def emit(expr):

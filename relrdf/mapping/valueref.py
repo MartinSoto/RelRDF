@@ -50,16 +50,16 @@ class MacroValueMapping(ValueMapping):
         super(MacroValueMapping, self).__init__(intToExtCls, extToIntCls)
 
     def intToExt(self, internal):
-        return self.intToExtCls.expand(internal)
+        return self[0].expand(internal)
 
     def extToInt(self, external):
-        return self.extToIntCls.expand(external)
+        return self[1].expand(external)
 
 
 class ValueRef(nodes.ExpressionNode):
     """An expression node packaging an internal value.
 
-    A `ValueRef` has a two subexpressions. The first subexpression is
+    A `ValueRef` has two subexpressions. The first subexpression is
     a `ValueMapping`, which is used to convert back and forth to the
     external representation. The second subexpression evaluates to the
     internal value representation the `ValueRef` refers to."""

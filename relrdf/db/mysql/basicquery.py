@@ -1,5 +1,5 @@
 from relrdf.error import InstantiationError
-from relrdf import parserfactory, commonns
+from relrdf import mapping, parserfactory, commonns
 
 from relrdf.typecheck import dynamic
 from relrdf.expression import uri, blanknode, literal, nodes, build
@@ -782,15 +782,23 @@ _modelFactories = {
     'threeway': ThreeWayComparisonMapper
     }
 
-def getModel(connection, modelType, **modelArgs):
+def getModel(connection, modelType, schema=None, **modelArgs):
     modelTypeNorm = modelType.lower()
 
-    try:
-        transf = _modelFactories[modelTypeNorm](**modelArgs)
-    except KeyError:
-        raise InstantiationError(_("invalid model type '%s'") % modelType)
-    except TypeError, e:
-        raise InstantiationError(_("Missing or invalid model arguments: %s") %
-                                 e)
+    if schema is not None:
+        # Try to load the schema.
+        schema = mapping.loadSchema(schema)
+        if schema is None:
+            raise InstantiationError(_("Schema '%s' not found") % schema)
+
+        transf = schema.getMapper(modelType, **modelArgs)
+    else:
+        try:
+            transf = _modelFactories[modelTypeNorm](**modelArgs)
+        except KeyError:
+            raise InstantiationError(_("Invalid model type '%s'") % modelType)
+        except TypeError, e:
+            raise InstantiationError(_("Missing or invalid model "
+                                       "arguments: %s") % e)
 
     return Model(connection, transf, **modelArgs)

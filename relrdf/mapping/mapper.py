@@ -2,6 +2,8 @@ import operator
 
 from relrdf import error
 from relrdf.expression import nodes, evaluate
+from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
+     ResourceType
 
 import valueref
 import transform
@@ -24,11 +26,11 @@ class BasicMapper(transform.PureRelationalTransformer):
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
             # FIXME:Search for the actual type id.
-            return nodes.Literal(TYPE_ID_LITERAL)
+            return nodes.Literal(3)
         elif isinstance(typeExpr, BlankNodeType):
-            return nodes.Literal(TYPE_ID_BLANKNODE)
+            return nodes.Literal(2)
         elif isinstance(typeExpr, ResourceType):
-            return nodes.Literal(TYPE_ID_RESOURCE)
+            return nodes.Literal(1)
         else:
             assert False, "Cannot determine type"
 
@@ -77,8 +79,12 @@ class MacroMapper(BasicMapper,
 
             # This match clause has been selected. Expand the
             # expression and return it.
-            return exprCls.expand(*clauseArgs)
+            replExpr = exprCls.expand(*clauseArgs)
+            return (replExpr,
+                    ('context', 'subject', 'predicate', 'object'))
 
-        # No match clause was selected. Expand a return the default
+        # No match clause was selected. Expand and return the default
         # expression.
-        return self.defCls
+        replExpr = self.defCls
+        return (replExpr,
+                ('context', 'subject', 'predicate', 'object'))

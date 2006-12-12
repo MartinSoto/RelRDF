@@ -53,6 +53,13 @@ class SqlFunctionCall(nodes.ExpressionNode):
         super(SqlFunctionCall, self).__init__(*params)
         self.name = name
 
+    def attributesRepr(self):
+        return '%s' % (repr(self.name))
+
+    def prettyPrintAttributes(self, stream, indentLevel):
+        stream.write(' %s' % self.name)
+
+
 
 class SqlScalarExpr(nodes.ExpressionNode):
     """An expression node corresponding to a SQL expression producing

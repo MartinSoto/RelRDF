@@ -69,4 +69,4 @@ if __name__ == '__main__':
     import sys
 
     env = ParseEnvironment()
-    schema = env.parse(sys.stdin)
+    schema = env.parseExpr(sys.stdin)

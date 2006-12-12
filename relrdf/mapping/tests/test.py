@@ -27,8 +27,12 @@ class TestSchema(unittest.TestCase):
         stream = file(fileName)
         self.schema = self.env.parseSchema(stream, fileName)
 
+    def testParse(self):
+        """Parse a complete schema."""
+        self.loadSchema('basic')
+
     def testSimpleMappingMatch(self):
-        """Test simple positional mapping pattern matching."""
+        """Simple positional mapping pattern matching."""
 
         self.loadSchema('simple-mapping-matching')
         mapper = self.schema.getMapper('testMapping')
@@ -36,7 +40,7 @@ class TestSchema(unittest.TestCase):
         for i in range(4):
             expr = self.qPattern.copy()
             expr[i] = nodes.Uri('http://xxx%d' % i)
-            expr = mapper.replStatementPattern(expr)
+            expr = mapper.replStatementPattern(expr)[0]
 
             self.assert_(isinstance(expr, sqlnodes.SqlRelation))
             self.assert_(expr.sqlCode == 'tab%d' % i)
@@ -44,13 +48,13 @@ class TestSchema(unittest.TestCase):
         expr = self.qPattern.copy()
         expr[1] = nodes.Uri('http://xxx1')
         expr[3] = nodes.Uri('http://xxx3')
-        expr = mapper.replStatementPattern(expr)
+        expr = mapper.replStatementPattern(expr)[0]
         self.assert_(isinstance(expr, sqlnodes.SqlRelation))
         self.assert_(expr.sqlCode == 'tab4')
 
         # Not matching cases:
 
-        expr = mapper.replStatementPattern(self.qPattern)
+        expr = mapper.replStatementPattern(self.qPattern)[0]
         self.assert_(isinstance(expr, sqlnodes.SqlRelation))
         self.assert_(expr.sqlCode == 'tabDefault')
 
@@ -58,12 +62,12 @@ class TestSchema(unittest.TestCase):
                                           nodes.Uri('http://xxxy'),
                                           nodes.Uri('http://xxxy'),
                                           nodes.Uri('http://xxxy'))
-        expr = mapper.replStatementPattern(qPattern)
+        expr = mapper.replStatementPattern(qPattern)[0]
         self.assert_(isinstance(expr, sqlnodes.SqlRelation))
         self.assert_(expr.sqlCode == 'tabDefault')
 
     def testSimpleMappingParam(self):
-        """Test mapping parameters."""
+        """Mapping parameters."""
 
         self.loadSchema('simple-mapping-param')
         mapper = self.schema.getMapper('testMapping',
@@ -75,13 +79,12 @@ class TestSchema(unittest.TestCase):
                          ('http://sb3', 'tabDefault')):
             expr = self.qPattern.copy()
             expr[1] = nodes.Uri(uri)
-            expr = mapper.replStatementPattern(expr)
+            expr = mapper.replStatementPattern(expr)[0]
             self.assert_(isinstance(expr, sqlnodes.SqlRelation))
             self.assert_(expr.sqlCode == tab)
 
     def testMappingCondNoReduceError(self):
-        """Test for exception when a mapping condition cannot be
-        reduced."""
+        """Exception when a mapping condition cannot be reduced."""
 
         self.loadSchema('mapping-cond-no-reduce-error')
         mapper = self.schema.getMapper('testMapping')
@@ -90,7 +93,7 @@ class TestSchema(unittest.TestCase):
                           self.qPattern)
 
     def testSimpleMacro(self):
-        """Test simple macro definitions."""
+        """Simple macro definitions."""
 
         self.loadSchema('simple-macro')
         mapper = self.schema.getMapper('testMapping')
@@ -99,16 +102,16 @@ class TestSchema(unittest.TestCase):
                          ('http://xxx2', 'tabDefault')):
             expr = self.qPattern.copy()
             expr[1] = nodes.Uri(uri)
-            expr = mapper.replStatementPattern(expr)
+            expr = mapper.replStatementPattern(expr)[0]
             self.assert_(isinstance(expr, sqlnodes.SqlRelation))
             self.assert_(expr.sqlCode == tab)
 
     def testSimpleValueMapping(self):
-        """Test simple value mapping definitions."""
+        """Simple value mapping definitions."""
 
         self.loadSchema('simple-value-mapping')
         mapper = self.schema.getMapper('singleVersion', versionId=3)
-        expr = mapper.replStatementPattern(self.qPattern)
+        expr = mapper.replStatementPattern(self.qPattern)[0]
 
         self.assert_(isinstance(expr[1], valueref.ValueRef))
         self.assert_(isinstance(expr[1][0], valueref.MacroValueMapping))

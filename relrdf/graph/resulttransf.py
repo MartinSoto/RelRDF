@@ -24,27 +24,6 @@ class ResultTransformer(object):
     __iter__ = iterAll
 
 
-class LabelFromOldNewName(ResultTransformer):
-    __slots__ = ('posOld',
-                 'posNew')
-
-    def __init__(self, origResults):
-        columnNames = list(origResults.columnNames)
-
-        self.posOld = columnNames.index('oldName')
-        self.posNew = columnNames.index('newName')
-
-        columnNames.append('label1')
-
-        super(LabelFromOldNewName, self).__init__(origResults,
-                                                  columnNames)
-
-    def transformResult(self, result):
-        result = list(result)
-        result.append("%s -> %s" % (result[self.posOld], result[self.posNew]))
-        return result
-
-
 class ShortenUris(ResultTransformer):
     __slots__ = ('shortener',)
 
@@ -71,3 +50,52 @@ class ShortenUris(ResultTransformer):
                 shortened.append(field)
 
         return shortened
+
+
+class Extender(ResultTransformer):
+    __slots__ = ('functions',
+                 'fixed',
+                 'posMap',
+                 'currentResult')
+
+    def __init__(self, origResults, **newCols):
+        self.posMap = {}
+        for i, name in enumerate(origResults.columnNames):
+            self.posMap[name] = i
+
+        funcNames = []
+        self.functions = []
+        fixedNames = []
+        self.fixed = []
+        for colName, value in newCols.items():
+            if hasattr(value, '__call__'):
+                funcNames.append(colName)
+                self.functions.append(value)
+            else:
+                fixedNames.append(colName)
+                self.fixed.append(unicode(value))
+
+        columnNames = list(origResults.columnNames)
+        columnNames.extend(fixedNames)
+        columnNames.extend(funcNames)
+
+        super(Extender,
+              self).__init__(origResults, columnNames=columnNames)
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.currentResult[key]
+        else:
+            return self.currentResult[self.posMap[key]]
+
+    def transformResult(self, result):
+        newResult = list(result)
+
+        newResult.extend(self.fixed)
+
+        self.currentResult = result
+        newResult.extend((func(self)
+                          for func in self.functions))
+
+        return newResult
+

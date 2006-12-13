@@ -161,7 +161,7 @@ class AllVersionsMapper(BasicMapper,
                  stmtUri=commonns.relrdf.stmt, metaInfoVersion=1):
         super(AllVersionsMapper, self).__init__()
 
-        self.versionMapping = versionUri
+        self.versionMapping = UriValueMapping(versionUri)
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None

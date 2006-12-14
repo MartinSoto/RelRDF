@@ -1,4 +1,0 @@
-TO_INCHES = 1.0 / 72.0
-TO_POINTS = 1.0
-TO_MM = 25.4 / 72.0
-

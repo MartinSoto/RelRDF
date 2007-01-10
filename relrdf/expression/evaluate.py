@@ -38,6 +38,7 @@ class Evaluator(rewrite.ExpressionTransformer):
             return nodes.Literal(True)
 
     def Different(self, expr, op1, op2):
+        args = (op1, op2)
         common = None
         for value in constnodes.constValues(args):
             if common is None:

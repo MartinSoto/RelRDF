@@ -400,23 +400,25 @@ class TwoWayComparisonMapper(BasicMapper,
         # comparison, but MySQL doesn't have a full outer join, and
         # this solution not only works properly but seems to be very
         # efficient. Notice that it relies on the fact that version
-        # numbers are never 0.
+        # numbers are never 0. The IF expressions inside the sum are
+        # necessary to guarantee correct results when versionA and
+        # versionB are equal.
         cursor.execute(
             """
               INSERT INTO comparison
                 SELECT
-                  v.stmt_id as stmt_id,
-                  case sum(v.version_id)
-                    when %d then "A"
-                    when %d then "B"
-                    when %d then "AB"
-                  end as context
+                  v.stmt_id AS stmt_id,
+                  CASE sum(IF(v.version_id = %d, 1, 0) +
+                           IF(v.version_id = %d, 2, 0))
+                    WHEN 1 THEN "A"
+                    WHEN 2 THEN "B"
+                    WHEN 3 THEN "AB"
+                  END AS context
                 FROM version_statement v
                 WHERE v.version_id = %d or v.version_id = %d
                 GROUP BY v.stmt_id
             """ % (self.versionA,
                    self.versionB,
-                   self.versionA + self.versionB,
                    self.versionA,
                    self.versionB))
 
@@ -534,26 +536,26 @@ class ThreeWayComparisonMapper(BasicMapper,
         # comparison, but MySQL doesn't have a full outer join, and
         # this solution not only works properly but seems to be very
         # efficient. Notice that it relies on the fact that version
-        # numbers are never 0.
+        # numbers are never 0. The IF expressions inside the sum are
+        # necessary to guarantee correct results when versionA,
+        # versionB and versionC are not all different from each other.
         cursor.execute(
             """
               INSERT INTO comparison
                 SELECT
-                  v.stmt_id as stmt_id,
-                  case
-                      sum(case v.version_id
-                        when %d then 1
-                        when %d then 2
-                        when %d then 4
-                      end)
-                    when 1 then "A"
-                    when 2 then "B"
-                    when 3 then "AB"
-                    when 4 then "C"
-                    when 5 then "AC"
-                    when 6 then "BC"
-                    when 7 then "ABC"
-                  end as context
+                  v.stmt_id AS stmt_id,
+                  CASE
+                      sum(IF(v.version_id = %d, 1, 0) +
+                          IF(v.version_id = %d, 2, 0) +
+                          IF(v.version_id = %d, 4, 0))
+                    WHEN 1 THEN "A"
+                    WHEN 2 THEN "B"
+                    WHEN 3 THEN "AB"
+                    WHEN 4 THEN "C"
+                    WHEN 5 THEN "AC"
+                    WHEN 6 THEN "BC"
+                    WHEN 7 THEN "ABC"
+                  END AS context
                 FROM version_statement v
                 WHERE v.version_id = %d or v.version_id = %d
                       or v.version_id = %d

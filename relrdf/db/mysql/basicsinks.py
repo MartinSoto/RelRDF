@@ -1,5 +1,3 @@
-import md5
-
 from relrdf.error import InstantiationError
 from relrdf.expression import uri, blanknode, literal
 
@@ -30,14 +28,16 @@ class SingleVersionRdfSink(object):
             DROP TABLE IF EXISTS statements_temp;
             """)
 
+        # We create the hash column but don't fill it. Stored
+        # procedure insert_version does it at the server side.
         self.cursor.execute(
             """
             CREATE TEMPORARY TABLE statements_temp (
-              hash binary(16) NOT NULL,
-              subject varchar(255) NOT NULL,
-              predicate varchar(255) NOT NULL,
-              object_type varchar(255) NOT NULL,
-              object longtext NOT NULL
+              hash binary(16),
+              subject_text longtext NOT NULL,
+              predicate_text longtext NOT NULL,
+              object_type longtext NOT NULL,
+              object_text longtext NOT NULL
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8
             COMMENT='Available statements';
             """)
@@ -56,15 +56,7 @@ class SingleVersionRdfSink(object):
             assert False, "Unexpected object type '%d'" \
                    % object.__class__.__name__
 
-        # Calculate a hash value for the statement.
-        m = md5.new()
-        m.update(subject.encode('utf-8'))
-        m.update(pred.encode('utf-8'))
-        m.update(objectType.encode('utf-8'))
-        m.update(unicode(object).encode('utf-8'))
-
-        self.pendingRows.append((m.digest(),
-                                 unicode(subject).encode('utf-8'),
+        self.pendingRows.append((unicode(subject).encode('utf-8'),
                                  unicode(pred).encode('utf-8'),
                                  unicode(objectType).encode('utf-8'),
                                  unicode(object).encode('utf-8')))
@@ -78,8 +70,8 @@ class SingleVersionRdfSink(object):
         self.cursor.executemany(
             """
             INSERT INTO statements_temp
-              (hash, subject, predicate, object_type, object)
-            VALUES (_binary%s,_utf8%s,_utf8%s,_utf8%s,_utf8%s)""",
+              (subject_text, predicate_text, object_type, object_text)
+            VALUES (_utf8%s, _utf8%s, _utf8%s, _utf8%s)""",
             self.pendingRows)
 
         self.pendingRows = []

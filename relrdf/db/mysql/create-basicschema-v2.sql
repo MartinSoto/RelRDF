@@ -24,7 +24,7 @@ CREATE TABLE statements (
 	 COMMENT '128 bit hash value for the object',
   subject_text longtext NOT NULL
 	 COMMENT 'Statement subject text',
-  predicate_text varchar(255) NOT NULL
+  predicate_text longtext NOT NULL
 	 COMMENT 'Statement predicate text',
   object_type mediumint NOT NULL
 	 COMMENT 'Statement object type',

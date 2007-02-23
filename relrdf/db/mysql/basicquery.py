@@ -410,7 +410,7 @@ class TwoWayComparisonMapper(BasicMapper,
 
         # We create a temporary table for the comparison statements.
         # FIXME: The table must be named in such a way that collisions
-        # are avoid between multiple database conections.
+        # are avoided between multiple database conections.
         cursor.execute(
             """
             DROP TABLE IF EXISTS comparison
@@ -546,7 +546,7 @@ class ThreeWayComparisonMapper(BasicMapper,
 
         # We create a temporary table for the comparison statements.
         # FIXME: The table must be named in such a way that collisions
-        # are avoid between multiple database conections.
+        # are avoided between multiple database conections.
         cursor.execute(
             """
             DROP TABLE IF EXISTS comparison

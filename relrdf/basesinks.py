@@ -24,7 +24,7 @@ class PrintSink(object):
         elif isinstance(object, literal.Literal):
             objStr = '"%s"' % object
         else:
-            assert False, "Unexpected object type '%d'" \
+            assert False, "Unexpected object type '%s'" \
                    % object.__class__.__name__
             
         print "<%s> <%s> %s" % (subject.encode('utf8'),

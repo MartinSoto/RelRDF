@@ -16,12 +16,12 @@ def error(msg):
 
 if len(sys.argv) < 3:
     print >> sys.stderr, \
-          _("usage: modelimport.py <file type> <uri or file> "
+          _("usage: modelimport.py <file type> <file name> "
             ":<model base type> [<model base params] :<model type> "
             "[<model params>]")
     sys.exit(1)
 
-fileType, uriOrFile = sys.argv[1:3]
+fileType, fileName = sys.argv[1:3]
 
 argv = list(sys.argv[3:])
 
@@ -36,9 +36,10 @@ except InstantiationError, e:
 
 fileType = fileType.lower() 
 if fileType == 'rdfxml':
-    rdfxmlparse.parseFromUri(uriOrFile, sink=sink)
+    parser = rdfxmlparse.RdfXmlParser()
+    parser.parse(fileName, sink)
 elif fileType in ('v-modell', 'vmodell'):
-    vmodellparse.VModellParser(open(uriOrFile), sink=sink)
+    vmodellparse.VModellParser(open(fileName), sink=sink)
 else:
     error("Invalid file type '%s'" % fileType)
 

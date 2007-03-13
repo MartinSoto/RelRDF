@@ -14,8 +14,14 @@ class Literal(unicode):
             lang = None
 
             # Try to determine an appropriate type URI.
-            if value is False or value is True:
+            if isinstance(value, bool):
                 typeUri = xsd.boolean
+
+                # Normalize the value to the canonical XSD representation.
+                if value:
+                    value = 'true'
+                else:
+                    value = 'false'
             elif isinstance(value, int) or isinstance(value, long):
                 typeUri = xsd.integer
             elif isinstance(value, float):
@@ -33,7 +39,7 @@ class Literal(unicode):
         """Return a Python value for the literal."""
         # Check if a value conversion is necessary, and perform it.
         if self.typeUri == xsd.boolean:
-            return bool(self)
+            return self == 'true'
         elif self.typeUri == xsd.integer:
             return int(self)
         elif self.typeUri == xsd.decimal or self.typeUri == xsd.double:

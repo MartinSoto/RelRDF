@@ -6,8 +6,6 @@ import relrdf
 from relrdf.error import InstantiationError
 from relrdf.factory import parseCmdLineArgs
 
-from relrdf.modelimport import rdfxmlparse, vmodellparse
-
 
 def error(msg):
     print >> sys.stderr, _("error: %s") % msg
@@ -36,10 +34,19 @@ except InstantiationError, e:
 
 fileType = fileType.lower() 
 if fileType == 'rdfxml':
+    from relrdf.modelimport import rdfxmlparse
+
     parser = rdfxmlparse.RdfXmlParser()
     parser.parse(fileName, sink)
 elif fileType in ('v-modell', 'vmodell'):
+    from relrdf.modelimport import vmodellparse
+
     vmodellparse.VModellParser(open(fileName), sink=sink)
+elif fileType == 'xmi':
+    from relrdf.modelimport import xmiparse
+
+    parser = xmiparse.XmiParser()
+    parser.parse(fileName, sink)
 else:
     error("Invalid file type '%s'" % fileType)
 

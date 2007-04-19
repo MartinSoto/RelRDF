@@ -128,6 +128,10 @@ class SingleVersionMapper(BasicSingleVersionMapper,
 
     __slots__ = ()
 
+    name = "Single Version Mapper"
+    parameterInfo = ({"name":"versionId"},
+                     {"name":"versionUri"})
+
     def __init__(self, versionId, versionUri=commonns.relrdf.version):
         super(SingleVersionMapper, self).__init__(versionId,
                                                   versionUri)
@@ -139,8 +143,11 @@ class AllVersionsMapper(BasicMapper,
     the versions of a model."""
     
     __slots__ = ('versionUri',
-
                  'stmtRepl')
+
+    name = "All Versions Mapper"
+    parameterInfo = ({"name":"versionUri"},
+                     {"name":"stmtUri"})
 
     def __init__(self, versionUri=commonns.relrdf.version,
                  stmtUri=commonns.relrdf.stmt, metaInfoVersion=1):
@@ -195,8 +202,11 @@ class MetaVersionMapper(BasicSingleVersionMapper,
     be used to determine which statements are in which version."""
 
     __slots__ = ('stmtUri',
-
                  'reifStmtRepl')
+
+    name = "Meta Version Mapper"
+    parameterInfo = ({"name":"versionUri"},
+                     {"name":"stmtUri"})
 
     def __init__(self, versionUri=commonns.relrdf.version,
                  stmtUri=commonns.relrdf.stmt):
@@ -347,6 +357,10 @@ class TwoWayComparisonMapper(BasicMapper,
     __slots__ = ('versionA',
                  'versionB')
 
+    name = "Two Way Comparision Mapper"
+    parameterInfo = ({"name":"versionA"},
+                     {"name":"versionB"})
+
     def __init__(self, versionA, versionB):
         super(TwoWayComparisonMapper, self).__init__()
 
@@ -480,6 +494,11 @@ class ThreeWayComparisonMapper(BasicMapper,
     __slots__ = ('versionA',
                  'versionB',
                  'versionC')
+
+    name = "Three Way Comparision Mapper"
+    parameterInfo = ({"name":"versionA"},
+                     {"name":"versionB"},
+                     {"name":"versionC"})
 
     def __init__(self, versionA, versionB, versionC):
         super(ThreeWayComparisonMapper, self).__init__()

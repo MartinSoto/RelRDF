@@ -765,13 +765,6 @@ class Model(object):
         parser = parserfactory.getQueryParser(queryLanguage,
                                               **self.modelArgs)
         expr = parser.parse(queryText, fileName)
-        expr.prettyPrint()
-
-        class R(list):
-            __slots__ = ('columnNames',)
-        results = R()
-        results.columnNames = ['a']
-        return results
 
         # Convert the parsed expression to SQL:
 

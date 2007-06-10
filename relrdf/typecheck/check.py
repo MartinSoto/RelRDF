@@ -4,7 +4,7 @@ from relrdf.expression import nodes, rewrite
 
 from typeexpr import nullType, rdfNodeType, LiteralType, \
      booleanLiteralType, genericLiteralType, ResourceType, \
-     resourceType, RelationType
+     resourceType, RelationType, StatementRelType
 
 from typeexpr import error
 
@@ -201,6 +201,41 @@ class TypeChecker(rewrite.ExpressionProcessor):
         typeExpr = RelationType()
         for colName, colExpr in zip(expr.columnNames, expr[1:]):
             typeExpr.addColumn(colName, colExpr.staticType)
+        expr.staticType = typeExpr
+
+    def preStatementResult(self, expr):
+        # Process the relation subexpression and create a scope from
+        # its type.
+        self.process(expr[0])
+        self.createScope(expr[0].staticType)
+
+        # Now process the expressions in the statement templates.
+        for stmtTmpl in expr[1:]:
+            for component in stmtTmpl:
+                self.process(component)
+
+        # Remove the scope.
+        self.closeScope()
+
+        return (None,) * len(expr)
+
+    def StatementResult(self, expr, rel, *stmtTmpls):
+        typeExpr = StatementRelType()
+        for i, stmtTmpl in enumerate(expr[1:]):
+            if not stmtTmpl[0].staticType.isSubtype(resourceType):
+                error(stmtTmpl[0], _("Subject type must be a resource"))
+            typeExpr.addColumn('subject%d' % (i + 1),
+                               stmtTmpl[0].staticType)
+
+            if not stmtTmpl[1].staticType.isSubtype(resourceType):
+                error(stmtTmpl[1], _("Predicate type must be a resource"))
+            typeExpr.addColumn('predicate%d' % (i + 1),
+                               stmtTmpl[1].staticType)
+
+            if not stmtTmpl[2].staticType.isSubtype(rdfNodeType):
+                error(stmtTmpl[2], _("Object type must be an RDF node"))
+            typeExpr.addColumn('object%d' % (i + 1),
+                               stmtTmpl[2].staticType)
         expr.staticType = typeExpr
 
     def Distinct(self, expr, subexpr):

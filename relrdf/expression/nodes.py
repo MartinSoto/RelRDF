@@ -783,6 +783,28 @@ class MapResult(ExpressionNode):
             stream.write(' _%d' % self.incarnation)
 
 
+class StatementResult(ExpressionNode):
+    """Specify the statement templates used to produce the result of a
+    transformation ('construct') query. The first child of this node
+    is a relational expression. The subsequent children are statement
+    patterns, potentially containing variables that are instantiated
+    by the expression."""
+
+    __slots__ = ()
+
+    def __init__(self, rel, *stmtPatterns):
+        super(StatementResult, self).__init__(rel, *stmtPatterns)
+
+
+class StatementTemplate(ExpressionNode):
+    """An expression node representing an result statement template."""
+
+    __slots__ = ()
+
+    def __init__(self, subj, pred, obj):
+        super(StatementTemplate, self).__init__(subj, pred, obj)
+
+
 #
 # Result Modifiers
 #

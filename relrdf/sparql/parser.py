@@ -116,3 +116,17 @@ class Parser(antlr.LLkParser):
     def checkDefinedPrefix(self, token):
         """Make sure the prefix does not start with `'_'`."""
         return token.getText()
+
+    def makeStmtTemplates(self, graphPattern):
+        """Make a list of statement templates from a graph pattern.
+
+        The graph pattern must be a flat list of statement
+        patterns. This method is used to build the statement templates
+        in a 'construct' statement.
+        """
+        result = []
+        for stmtPattern in graphPattern:
+            assert isinstance(stmtPattern, nodes.StatementPattern)
+            result.append(nodes.StatementTemplate(*stmtPattern[1:]))
+
+        return result

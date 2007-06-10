@@ -84,10 +84,11 @@ columnSpec[names, mappingExprs]
 
 constructQuery returns [expr]
     :   ct:CONSTRUCT
-        constructTemplate
+        graphPattern=constructTemplate
         ( datasetClause )*
         where=whereClause
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.StatementResult(where, \
+                                   *self.makeStmtTemplates(graphPattern)); \
           expr.setExtentsStartFromToken(ct, self); }
         solutionModifier
     ;
@@ -243,14 +244,14 @@ argList[funcCall]
         )
     ;
 
-constructTemplate
-    :   LBRACE constructTriples RBRACE
+constructTemplate returns [expr]
+    :   { expr = spqnodes.GraphPattern() }
+        LBRACE constructTriples[expr] RBRACE
     ;
 
-constructTriples
-    :   { expr = spqnodes.GraphPattern() }
-        (   triplesSameSubject[nodes.Joker(), expr]
-            ( DOT constructTriples )?
+constructTriples[expr]
+    :   (   triplesSameSubject[nodes.Joker(), expr]
+            ( DOT constructTriples[expr] )?
         )?
     ;
 

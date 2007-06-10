@@ -228,3 +228,16 @@ class RelationType(TypeNode):
         for item in self.dict.items():
             cols.append('%s: %s' % item)
         return '%s(%s)' % (self.__class__.__name__, ', '.join(cols))
+
+
+class StatementRelType(RelationType):
+    """A node type representing a set of RDF statements. This is
+    actually a relation type that contains columns corresponding to
+    subject, predicate and object of the statements. It is possible
+    for a single row of a statement relation type to contain more than
+    one statement. In this case, the number of columns is always a
+    multiple of three and the sequence of subject, predicate and
+    object repeats itself for each statement.
+    """
+
+    __slots__ = ()

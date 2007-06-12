@@ -748,7 +748,18 @@ class Select(ExpressionNode):
         super(Select, self).__init__(rel, predicate)
 
 
-class MapResult(ExpressionNode):
+#
+# Query Results
+#
+
+class QueryResult(ExpressionNode):
+    """A base class for all nodes representing query results.
+    """
+
+    __slots__ = ()
+
+
+class MapResult(QueryResult):
     """Specify the column names of a result table, together with the
     expressions they are bound to."""
 
@@ -783,7 +794,7 @@ class MapResult(ExpressionNode):
             stream.write(' _%d' % self.incarnation)
 
 
-class StatementResult(ExpressionNode):
+class StatementResult(QueryResult):
     """Specify the statement templates used to produce the result of a
     transformation ('construct') query. The first child of this node
     is a relational expression. The subsequent children are statement

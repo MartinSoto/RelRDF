@@ -1,5 +1,5 @@
 from relrdf.error import InstantiationError
-from relrdf import mapping, parserfactory, commonns
+from relrdf import results, mapping, parserfactory, commonns
 
 from relrdf.typecheck import dynamic
 from relrdf.expression import uri, blanknode, literal, nodes, build
@@ -668,14 +668,11 @@ class ThreeWayComparisonMapper(BasicMapper,
                 ('context', 'subject', 'predicate', 'object'))
 
 
-class Results(object):
+class BaseResults(object):
     __slots__ = ('cursor',
-                 'columnNames',
-                 'length')
+                 'length',)
 
-    def __init__(self, connection, columnNames, sqlText):
-        self.columnNames = columnNames
-
+    def __init__(self, connection, sqlText):
         self.cursor = connection.cursor()
 
         # Send the query to the database (iterating on this object
@@ -684,17 +681,8 @@ class Results(object):
 
         self.length = self.cursor.rowcount
 
-    def iterAll(self):
-        row = self.cursor.fetchone()
-        while row is not None:
-            result = []
-            for rawValue, typeId in zip(row[0::2], row[1::2]):
-                result.append(self._convertResult(rawValue, typeId))
-            yield tuple(result)
-
-            row = self.cursor.fetchone()
-
-    __iter__ = iterAll
+    def resultType(self):
+        return NotImplemented
 
     def __len__(self):
         return self.length
@@ -723,6 +711,55 @@ class Results(object):
 
     def __del__(self):
         self.cursor.close()
+
+
+class ColumnResults(BaseResults):
+    __slots__ = ('columnNames',)
+
+    def __init__(self, connection, columnNames, sqlText):
+        super(ColumnResults, self).__init__(connection, sqlText)
+        self.columnNames = columnNames
+
+    def resultType(self):
+        return results.RESULTS_COLUMNS
+
+    def iterAll(self):
+        row = self.cursor.fetchone()
+        while row is not None:
+            result = []
+            for rawValue, typeId in zip(row[0::2], row[1::2]):
+                result.append(self._convertResult(rawValue, typeId))
+            yield tuple(result)
+
+            row = self.cursor.fetchone()
+
+    __iter__ = iterAll
+
+
+class StmtResults(BaseResults):
+    __slots__ = ('stmtsPerRow',)
+
+    def __init__(self, connection, stmtsPerRow, sqlText):
+        super(StmtResults, self).__init__(connection, sqlText)
+        self.stmtsPerRow = stmtsPerRow
+        self.length *= stmtsPerRow
+
+    def resultType(self):
+        return results.RESULTS_STMTS
+
+    def iterAll(self):
+        row = self.cursor.fetchone()
+        while row is not None:
+            for i in range(self.stmtsPerRow):
+                result = []
+                for rawValue, typeId in zip(row[i*6 : (i+1)*6 : 2],
+                                            row[i*6 + 1: (i+1)*6 + 1: 2]):
+                    result.append(self._convertResult(rawValue, typeId))
+                yield tuple(result)
+
+            row = self.cursor.fetchone()
+
+    __iter__ = iterAll
 
 
 class Model(object):
@@ -760,14 +797,7 @@ class Model(object):
         # Prepare the connection for this mapping.
         self.mappingTransf.prepareConnection(self.connection)
 
-    def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
-        # Parse the query.
-        parser = parserfactory.getQueryParser(queryLanguage,
-                                              **self.modelArgs)
-        expr = parser.parse(queryText, fileName)
-
-        # Convert the parsed expression to SQL:
-
+    def _exprToSql(self, expr):
         # Add explicit type columns to results.
         transf = transform.ExplicitTypeTransformer()
         expr = transf.process(expr)
@@ -784,16 +814,31 @@ class Model(object):
         expr = transf.process(expr)
 
         # Generate SQL.
-        sqlText = emit.emit(expr)
+        return emit.emit(expr)
 
-        # Find out the column names.
-        namesExpr = expr
-        while not hasattr(namesExpr, 'columnNames'):
-            namesExpr = namesExpr[0]
+    def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
+        # Parse the query.
+        parser = parserfactory.getQueryParser(queryLanguage,
+                                              **self.modelArgs)
+        expr = parser.parse(queryText, fileName)
 
-        # Build a Results object with the obtained SQL query.
-        return Results(self.connection, list(namesExpr.columnNames[::2]),
-                       sqlText.encode('utf-8'))
+        # Find the main result mapping expression.
+        mappingExpr = expr
+        while not isinstance(mappingExpr, nodes.QueryResult):
+            mappingExpr = mappingExpr[0]
+
+        if mappingExpr.__class__ == nodes.MapResult:
+            # Get the column names before transforming to SQL.
+            columnNames = list(mappingExpr.columnNames)
+            return ColumnResults(self.connection, columnNames,
+                                 self._exprToSql(expr))
+        elif mappingExpr.__class__ == nodes.StatementResult:
+            # Get the statement count before transforming to SQL.
+            stmtsPerRow = len(mappingExpr) - 1
+            return StmtResults(self.connection, stmtsPerRow,
+                               self._exprToSql(expr))
+        else:
+            assert False, 'No mapping expression'
 
     def getPrefixes(self):
         return self._prefixes

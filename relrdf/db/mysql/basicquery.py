@@ -822,6 +822,10 @@ class Model(object):
                                               **self.modelArgs)
         expr = parser.parse(queryText, fileName)
 
+        if isinstance(expr, nodes.ModifOperation):
+            expr.prettyPrint()
+            return results.ModifResults(0)
+
         # Find the main result mapping expression.
         mappingExpr = expr
         while not isinstance(mappingExpr, nodes.QueryResult):

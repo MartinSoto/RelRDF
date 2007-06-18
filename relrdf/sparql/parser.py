@@ -130,3 +130,9 @@ class Parser(antlr.LLkParser):
             result.append(nodes.StatementTemplate(*stmtPattern[1:]))
 
         return result
+
+    def makeModifQuery(self, cls, where, *templates):
+        if where is None:
+            where = nodes.Empty()
+        cons = nodes.StatementResult(where, *templates)
+        return cls(cons)

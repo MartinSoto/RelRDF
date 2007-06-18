@@ -241,6 +241,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def Distinct(self, expr, subexpr):
         expr.staticType = expr[0].staticType
 
+    def Empty(self, expr):
+        # Empty relation type.
+        expr.staticType = RelationType()
+
     def _setOperationType(self, expr, *operands):
         typeExpr = expr[0].staticType
         for subexpr in expr[1:]:
@@ -257,6 +261,16 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
     def Intersection(self, expr, *operands):
         self._setOperationType(expr, *operands)
+
+    def Insert(self, expr, stmtRel):
+        if not isinstance(expr[0].staticType, StatementRelType):
+            error(expr, _("Insert subexpression must be a statement relation"))
+        expr.staticType = expr[0].staticType
+
+    def Delete(self, expr, stmtRel):
+       if not isinstance(expr[0].staticType, StatementRelType):
+            error(expr, _("Delete subexpression must be a statement relation"))
+       expr.staticType = expr[0].staticType
 
 
 def typeCheck(expr):

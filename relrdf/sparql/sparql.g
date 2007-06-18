@@ -25,6 +25,8 @@ query returns [expr]
         |   expr=constructQuery
         |   expr=describeQuery
         |   expr=askQuery
+        |   expr=insertQuery
+        |   expr=deleteQuery
         )
     ;
 
@@ -67,7 +69,6 @@ selectQuery returns [expr]
 selectColumnList[names, mappingExprs]
     :   ( columnSpec[names, mappingExprs] )+
     ;
-
 /* RelRDF extension. */
 columnSpec[names, mappingExprs]
     :   var=var
@@ -84,11 +85,10 @@ columnSpec[names, mappingExprs]
 
 constructQuery returns [expr]
     :   ct:CONSTRUCT
-        graphPattern=constructTemplate
+        tmplList=constructTemplate
         ( datasetClause )*
         where=whereClause
-        { expr = nodes.StatementResult(where, \
-                                   *self.makeStmtTemplates(graphPattern)); \
+        { expr = nodes.StatementResult(where, *tmplList); \
           expr.setExtentsStartFromToken(ct, self); }
         solutionModifier
     ;
@@ -128,6 +128,24 @@ namedGraphClause
 
 sourceSelector returns [expr]
     :   expr=iriRef
+    ;
+
+insertQuery returns [expr]
+    :   insert:INSERT
+        tmplList=constructTemplate
+        { where = None }
+        ( where=whereClause )?
+        { expr = self.makeModifQuery(nodes.Insert, where, *tmplList); \
+          expr.setExtentsStartFromToken(insert, self); }
+    ;
+
+deleteQuery returns [expr]
+    :   delete:DELETE
+        tmplList=constructTemplate
+        { where = None; }
+        ( where=whereClause )?
+        { expr = self.makeModifQuery(nodes.Delete, where, *tmplList); \
+          expr.setExtentsStartFromToken(delete, self); }
     ;
 
 whereClause returns [expr]
@@ -244,9 +262,10 @@ argList[funcCall]
         )
     ;
 
-constructTemplate returns [expr]
-    :   { expr = spqnodes.GraphPattern() }
+constructTemplate returns [tmplList]
+    :   { expr = spqnodes.GraphPattern(); }
         LBRACE constructTriples[expr] RBRACE
+        { tmplList = self.makeStmtTemplates(expr); }
     ;
 
 constructTriples[expr]
@@ -739,6 +758,11 @@ DATATYPE
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
+DELETE
+    :   ('D'|'d') ('E'|'e') ('L'|'l') ('E'|'e') ('T'|'t') ('E'|'e') 
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
 DESC
     :   ('D'|'d') ('E'|'e') ('S'|'s') ('C'|'c')
     ;
@@ -768,6 +792,11 @@ FROM
 protected  /* See QNAME_OR_KEYWORD. */
 GRAPH
     :   ('G'|'g') ('R'|'r') ('A'|'a') ('P'|'p') ('H'|'h')
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
+INSERT
+    :   ('I'|'i') ('N'|'n') ('S'|'s')  ('E'|'e') ('R'|'r') ('T'|'t')
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -890,6 +919,8 @@ QNAME_OR_KEYWORD
         { $setType(CONSTRUCT) }
     |   ( DATATYPE ) => DATATYPE
         { $setType(DATATYPE) }
+    |   ( DELETE ) => DELETE
+        { $setType(DELETE) }
     |   ( DESCRIBE ) => DESCRIBE
         { $setType(DESCRIBE) }
     |   ( DESC ) => DESC
@@ -902,6 +933,8 @@ QNAME_OR_KEYWORD
         { $setType(FROM) }
     |   ( GRAPH ) => GRAPH
         { $setType(GRAPH) }
+    |   ( INSERT ) => INSERT
+        { $setType(INSERT) }
     |   ( LANGMATCHES ) => LANGMATCHES
         { $setType(LANGMATCHES) }
     |   ( LANG ) => LANG

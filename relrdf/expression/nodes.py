@@ -710,6 +710,20 @@ class DividedBy(ArithmeticOperation, BinaryOperation):
     __slots__ = ()
 
 
+#
+# Relational Operations
+#
+
+class Empty(ExpressionNode):
+    """An expression node representing an empty relation, i.e., one
+    containing no tuples."""
+
+    __slots__ = ()
+
+    def __init__(self):
+        super(Empty, self).__init__()
+
+
 class Optional(ExpressionNode):
     """A node representing an optional relation."""
 
@@ -808,7 +822,7 @@ class StatementResult(QueryResult):
 
 
 class StatementTemplate(ExpressionNode):
-    """An expression node representing an result statement template."""
+    """An expression node representing a result statement template."""
 
     __slots__ = ()
 
@@ -823,6 +837,30 @@ class StatementTemplate(ExpressionNode):
 class Distinct(UnaryOperation):
     """Specify that the results produced by the subexpression must be
     filtered to eliminate repeated rows."""
+
+    __slots__ = ()
+
+
+#
+# Model Modification Operations
+#
+
+class ModifOperation(UnaryOperation):
+    """Base class for modification operations. The subexpression is a
+    construct query that produces the set of statements to be inserted
+    into or deleted from the model."""
+
+    __slots__ = ()
+
+
+class Insert(ModifOperation):
+    """An insert operation."""
+
+    __slots__ = ()
+
+
+class Delete(ModifOperation):
+    """A delete operation."""
 
     __slots__ = ()
 

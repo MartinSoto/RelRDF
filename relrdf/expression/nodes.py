@@ -850,7 +850,11 @@ class ModifOperation(UnaryOperation):
     construct query that produces the set of statements to be inserted
     into or deleted from the model."""
 
-    __slots__ = ()
+    __slots__ = ('graphUri',)
+
+    def __init__(self, graphUri, subexpr):
+        super(ModifOperation, self).__init__(subexpr)
+        self.graphUri = graphUri
 
 
 class Insert(ModifOperation):

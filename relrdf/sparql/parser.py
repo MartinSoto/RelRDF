@@ -131,8 +131,11 @@ class Parser(antlr.LLkParser):
 
         return result
 
-    def makeModifQuery(self, cls, where, *templates):
+    def makeModifQuery(self, cls, graphUri, where, *templates):
         if where is None:
             where = nodes.Empty()
         cons = nodes.StatementResult(where, *templates)
-        return cls(cons)
+        if graphUri is not None:
+            return cls(graphUri.uri, cons)
+        else:
+            return cls(None, cons)

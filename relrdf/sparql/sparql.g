@@ -131,20 +131,26 @@ sourceSelector returns [expr]
     ;
 
 insertQuery returns [expr]
-    :   insert:INSERT
+    :   { graphUri=None; \
+          where = None; }
+        insert:INSERT
+        ( ( INTO )? ( GRAPH )? graphUri=iriRef )?
         tmplList=constructTemplate
-        { where = None }
         ( where=whereClause )?
-        { expr = self.makeModifQuery(nodes.Insert, where, *tmplList); \
+        { expr = self.makeModifQuery(nodes.Insert, graphUri, where,
+                                     *tmplList); \
           expr.setExtentsStartFromToken(insert, self); }
     ;
 
 deleteQuery returns [expr]
-    :   delete:DELETE
+    :   { graphUri=None; \
+          where = None; }
+        delete:DELETE
+        ( ( FROM )? ( GRAPH )? graphUri=iriRef )?
         tmplList=constructTemplate
-        { where = None; }
         ( where=whereClause )?
-        { expr = self.makeModifQuery(nodes.Delete, where, *tmplList); \
+        { expr = self.makeModifQuery(nodes.Delete, graphUri, where,
+                                     *tmplList); \
           expr.setExtentsStartFromToken(delete, self); }
     ;
 
@@ -800,6 +806,11 @@ INSERT
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
+INTO
+    :   ('I'|'i') ('N'|'n') ('T'|'t')  ('O'|'o')
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
 LANG
     :   ('L'|'l') ('A'|'a') ('N'|'n') ('G'|'g')
     ;
@@ -935,6 +946,8 @@ QNAME_OR_KEYWORD
         { $setType(GRAPH) }
     |   ( INSERT ) => INSERT
         { $setType(INSERT) }
+    |   ( INTO ) => INTO
+        { $setType(INTO) }
     |   ( LANGMATCHES ) => LANGMATCHES
         { $setType(LANGMATCHES) }
     |   ( LANG ) => LANG

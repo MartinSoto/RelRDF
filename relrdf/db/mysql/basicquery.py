@@ -1,4 +1,5 @@
 import string
+import re
 
 from relrdf.error import InstantiationError, ModifyError
 from relrdf import results, mapping, parserfactory, commonns
@@ -942,6 +943,52 @@ class Model(object):
         # Generate SQL.
         return emit.emit(expr)
 
+    _versionIdPattern = re.compile('[0-9]')
+
+    def _processModifOp(self, expr):
+        if expr.graphUri is None:
+            mappingTransf = self.mappingTransf
+        else:
+            # FIXME: This should probably be done through the model
+            # factory.
+            
+            # Find a suitable version URI.
+            if hasattr(self.mappingTransf, 'versionUri'):
+                versionUri = self.mappingTransf.versionUri
+            else:
+                versionUri = commonns.relrdf.version
+
+            if not expr.graphUri.startswith(versionUri):
+                raise ModifyError(_("%s is not a valid model URI") %
+                                  expr.graphUri)
+
+            versionId = expr.graphUri[len(versionUri):]
+            if self._versionIdPattern.match(versionId) is None:
+                raise ModifyError(_("'%s' is not a valid version identifier") %
+                                  versionId)
+
+            mappingTransf = SingleVersionMapper(int(versionId), versionUri)
+
+        if not mappingTransf.canWrite:
+            raise ModifyError(_("Model is read-only"))
+
+        # Get the statement per row count before transforming to SQL.
+        stmtsPerRow = len(expr[0]) - 1
+
+        cursor = self.connection.cursor()
+        if isinstance(expr, nodes.Insert):
+            return results.ModifResults(
+                mappingTransf.insert(cursor,
+                                     self._exprToSql(expr[0]),
+                                     stmtsPerRow))
+        elif isinstance(expr, nodes.Delete):
+            return results.ModifResults(
+                mappingTransf.delete(cursor,
+                                     self._exprToSql(expr[0]),
+                                     stmtsPerRow))
+        else:
+            assert False, "Unexpected expression type"
+
     def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
         # Parse the query.
         parser = parserfactory.getQueryParser(queryLanguage,
@@ -949,26 +996,7 @@ class Model(object):
         expr = parser.parse(queryText, fileName)
 
         if isinstance(expr, nodes.ModifOperation):
-            if not self.mappingTransf.canWrite:
-                raise ModifyError(_("Model is read-only"))
-            
-            # Get the statement per row count before transforming to
-            # SQL.
-            stmtsPerRow = len(expr[0]) - 1
-
-            cursor = self.connection.cursor()
-            if isinstance(expr, nodes.Insert):
-                return results.ModifResults(
-                    self.mappingTransf.insert(cursor,
-                                              self._exprToSql(expr[0]),
-                                              stmtsPerRow))
-            elif isinstance(expr, nodes.Delete):
-                return results.ModifResults(
-                    self.mappingTransf.delete(cursor,
-                                              self._exprToSql(expr[0]),
-                                              stmtsPerRow))
-            else:
-                assert False, "Unexpected expression type"
+            return self._processModifOp(expr)
 
         # Find the main result mapping expression.
         mappingExpr = expr

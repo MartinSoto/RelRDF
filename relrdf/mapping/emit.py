@@ -132,7 +132,11 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             distinct = 'DISTINCT '
         else:
             distinct = ''
-        return 'SELECT %s%s\nFROM %s' % (distinct, columns, select)
+
+        if select == '':
+            return 'SELECT %s%s' % (distinct, columns)
+        else:
+            return 'SELECT %s%s\nFROM %s' % (distinct, columns, select)
 
     def preDistinct(self, expr):
         self.distinct = True
@@ -161,6 +165,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def SetDifference(self, *args):
         return self._setDiffOrIntersect('NOT IN', *args)
+
+    def Empty(self, expr):
+        return ''
 
     def SqlRelation(self, expr):
         # Single relation names cannot be parenthesized.

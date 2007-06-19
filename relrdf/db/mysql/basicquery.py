@@ -272,6 +272,7 @@ class SingleVersionMapper(BasicSingleVersionMapper,
     def insert(self, cursor, stmtQuery, stmtsPerRow):
         self._storeModifResults(cursor, stmtQuery, stmtsPerRow)
 
+        count = 0
         for i in range(stmtsPerRow):
             # Put the statements into the table, without repetitions.
             cursor.execute(self._insertCreateStmts.substitute(num=i+1))
@@ -280,8 +281,9 @@ class SingleVersionMapper(BasicSingleVersionMapper,
             cursor.execute(
                 self._insertAddToVersion.substitute(versionId=self.versionId,
                                                     num=i+1))
+            count += cursor.rowcount
 
-        return 0
+        return count
 
     _deleteRemoveFromVersion = string.Template(
         """
@@ -295,13 +297,15 @@ class SingleVersionMapper(BasicSingleVersionMapper,
     def delete(self, cursor, stmtQuery, stmtsPerRow):
         self._storeModifResults(cursor, stmtQuery, stmtsPerRow)
 
+        count = 0
         for i in range(stmtsPerRow):
             # Delete the statement numbers from the version.
             cursor.execute(
                 self._deleteRemoveFromVersion.substitute(
                     versionId=self.versionId, num=i+1))
+            count += cursor.rowcount
 
-        return 0
+        return count
 
 
 class AllVersionsMapper(BasicMapper,

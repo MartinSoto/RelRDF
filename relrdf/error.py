@@ -24,6 +24,12 @@ class MacroError(Error):
     pass
 
 
+class ModifyError(Error):
+    """Exceptiom class for errors related to modifying models.
+    """
+    pass
+
+
 class PositionError(Error):
     """Base class for exceptions containing an error position."""
 

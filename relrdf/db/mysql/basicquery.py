@@ -1,4 +1,6 @@
-from relrdf.error import InstantiationError
+import string
+
+from relrdf.error import InstantiationError, ModifyError
 from relrdf import results, mapping, parserfactory, commonns
 
 from relrdf.typecheck import dynamic
@@ -54,7 +56,6 @@ class ChecksumValueMapping(valueref.ValueMapping):
     robust checksum (i.e., MD5) of the corresponding text value, so
     that it is possible to compare checksums instead of values, and
     still have a very low probability of false possitives.
-
     The internal expression must be a field reference pointing to the
     checksum field. The corresponding text field must be named by
     appending '_text' to the name of the checksum field."""
@@ -100,6 +101,17 @@ class BasicMapper(transform.PureRelationalTransformer):
             return nodes.Literal(TYPE_ID_RESOURCE)
         else:
             assert False, "Cannot determine type"
+
+    canWrite = False
+    """True iff this sink is able to write."""
+
+    def insert(self, cursor, stmtQuery, stmtsPerRow):
+        """Insert the statements returned by `stmtQuery` into the model."""
+        raise NotImplementedError
+
+    def delete(self, cursor, stmtQuery, stmtsPerRow):
+        """Delete the statements returned by `stmtQuery` from the model."""
+        raise NotImplementedError
 
 
 class BasicSingleVersionMapper(BasicMapper):
@@ -175,6 +187,120 @@ class SingleVersionMapper(BasicSingleVersionMapper,
     def __init__(self, versionId, versionUri=commonns.relrdf.version):
         super(SingleVersionMapper, self).__init__(versionId,
                                                   versionUri)
+
+    canWrite = True
+
+    def _storeModifResults(self, cursor, stmtQuery, stmtsPerRow):
+        """Run `stmtQuery` and store its results in a temporary
+        table.
+        """
+        # Clean up just in case.
+        cursor.execute(
+            """
+            DROP TABLE IF EXISTS statements_temp;
+            """)
+
+        # Create a temporary table to hold the results.
+        stmtColsTmpl = string.Template(
+            """
+            hash$num binary(16),
+            subject_text$num longtext NOT NULL,
+            predicate_text$num longtext NOT NULL,
+            object_type$num mediumint NOT NULL,
+            object_text$num longtext NOT NULL
+            """)
+        cursor.execute(
+            """
+            CREATE TEMPORARY TABLE statements_temp (%s)
+              ENGINE=MyISAM DEFAULT CHARSET=utf8;
+            """ % 
+            ', '.join((stmtColsTmpl.substitute(num=i+1)
+                       for i in range(stmtsPerRow))))
+
+        # Write the statements into the table.
+        destColsTmpl = string.Template(
+            """
+            hash$num,
+            subject_text$num,
+            predicate_text$num,
+            object_type$num,
+            object_text$num
+            """)
+        srcColsTmpl = string.Template(
+            """
+            unhex(md5(concat(sq.subject$num,
+                             sq.predicate$num,
+                             sq.object$num))),
+            sq.subject$num,
+            sq.predicate$num,
+            sq.type__object$num,
+            sq.object$num
+            """)
+        cursor.execute(
+            """
+            INSERT INTO statements_temp (%s)
+              SELECT %s FROM (%s) AS sq""" %
+            (', '.join((destColsTmpl.substitute(num=i+1)
+                        for i in range(stmtsPerRow))),
+             ', '.join((srcColsTmpl.substitute(num=i+1)
+                        for i in range(stmtsPerRow))),
+             stmtQuery))
+
+    _insertCreateStmts = string.Template(
+        """
+        INSERT INTO statements (hash, subject, predicate, object,
+                                subject_text, predicate_text, object_type,
+                                object_text)
+          SELECT s.hash$num, unhex(md5(subject_text$num)),
+                 unhex(md5(predicate_text$num)), unhex(md5(object_text$num)),
+                 s.subject_text$num, s.predicate_text$num,
+                 s.object_type$num, s.object_text$num
+          FROM statements_temp s
+        ON DUPLICATE KEY UPDATE statements.subject = statements.subject;
+        """)
+
+    _insertAddToVersion = string.Template(
+        """
+        INSERT INTO version_statement (version_id, stmt_id)
+          SELECT $versionId AS v_id, s.id
+          FROM statements s, statements_temp st
+          WHERE s.hash = st.hash$num
+        ON DUPLICATE KEY UPDATE version_id = $versionId;
+        """)
+
+    def insert(self, cursor, stmtQuery, stmtsPerRow):
+        self._storeModifResults(cursor, stmtQuery, stmtsPerRow)
+
+        for i in range(stmtsPerRow):
+            # Put the statements into the table, without repetitions.
+            cursor.execute(self._insertCreateStmts.substitute(num=i+1))
+
+            # Add the statement numbers to the version.
+            cursor.execute(
+                self._insertAddToVersion.substitute(versionId=self.versionId,
+                                                    num=i+1))
+
+        return 0
+
+    _deleteRemoveFromVersion = string.Template(
+        """
+        DELETE FROM version_statement v
+        USING version_statement v, statements s, statements_temp st
+        WHERE
+          v.version_id = $versionId AND v.stmt_id = s.id AND
+          s.hash = st.hash$num;
+        """)
+
+    def delete(self, cursor, stmtQuery, stmtsPerRow):
+        self._storeModifResults(cursor, stmtQuery, stmtsPerRow)
+
+        for i in range(stmtsPerRow):
+            # Delete the statement numbers from the version.
+            cursor.execute(
+                self._deleteRemoveFromVersion.substitute(
+                    versionId=self.versionId, num=i+1))
+
+        return 0
 
 
 class AllVersionsMapper(BasicMapper,
@@ -773,7 +899,7 @@ class Model(object):
         self.mappingTransf = mappingTransf
         self.modelArgs = modelArgs
 
-        # Get the prefixes from the data base. We store them in the
+        # Get the prefixes from the database. We store them in the
         # object and add them to the model args.
         cursor = self.connection.cursor()
         cursor.execute("""
@@ -823,8 +949,26 @@ class Model(object):
         expr = parser.parse(queryText, fileName)
 
         if isinstance(expr, nodes.ModifOperation):
-            expr.prettyPrint()
-            return results.ModifResults(0)
+            if not self.mappingTransf.canWrite:
+                raise ModifyError(_("Model is read-only"))
+            
+            # Get the statement per row count before transforming to
+            # SQL.
+            stmtsPerRow = len(expr[0]) - 1
+
+            cursor = self.connection.cursor()
+            if isinstance(expr, nodes.Insert):
+                return results.ModifResults(
+                    self.mappingTransf.insert(cursor,
+                                              self._exprToSql(expr[0]),
+                                              stmtsPerRow))
+            elif isinstance(expr, nodes.Delete):
+                return results.ModifResults(
+                    self.mappingTransf.delete(cursor,
+                                              self._exprToSql(expr[0]),
+                                              stmtsPerRow))
+            else:
+                assert False, "Unexpected expression type"
 
         # Find the main result mapping expression.
         mappingExpr = expr

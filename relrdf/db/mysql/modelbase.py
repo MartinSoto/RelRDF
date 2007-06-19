@@ -12,7 +12,7 @@ class ModelBase(object):
     def __init__(self, host, db, **mysqlParams):
         self.connection = MySQLdb.connect(host=host, db=db, **mysqlParams)
 
-        # Set the connection´s character set to unicode.
+        # Set the connection's character set to unicode.
         self.connection.set_character_set('utf8')
 
         # This is necessary for complex queries to run at all. Due to

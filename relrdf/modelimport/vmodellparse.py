@@ -117,7 +117,7 @@ class VModellParser(object):
 
             if parent is not None:
                 self.sink.triple(parent.uri,
-                                 uri.Uri(vModellNs['enthält']),
+                                 uri.Uri(vModellNs[u'enthält']),
                                  elem.uri)
 
         if self.acumText is not None:
@@ -189,7 +189,7 @@ class VModellParser(object):
                          value)
 
     def warning(self, msg):
-        print >> sys.stderr, "Warning:", msg
+        print >> sys.stderr, "Warning:", msg.encode('utf-8')
 
 
 if __name__ == '__main__':

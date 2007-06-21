@@ -5,39 +5,49 @@ import basicsinks
 
 
 class ModelBase(object):
-    __slots__ = ('connection',
+    __slots__ = ('host',
+                 'db',
+                 'mysqlParams',
                  'querySchema',
                  'sinkSchema')
 
     def __init__(self, host, db, **mysqlParams):
-        self.connection = MySQLdb.connect(host=host, db=db, **mysqlParams)
-
-        # Set the connection's character set to unicode.
-        self.connection.set_character_set('utf8')
-
-        # This is necessary for complex queries to run at all. Due to
-        # the large number of joins, queries with more than about 10
-        # patterns take a very long time to optimize.
-        cursor = self.connection.cursor()
-        cursor.execute('SET optimizer_search_depth = 0')
-        cursor.close()
-
         # We have only one database schema at this time.
         self.sinkSchema = basicsinks
         self.querySchema = basicquery
 
+        self.host = host
+        self.db = db
+        self.mysqlParams = mysqlParams
+
+    def _createConnection(self):
+        connection = MySQLdb.connect(host=self.host, db=self.db,
+                                     **self.mysqlParams)
+
+        # Set the connection's character set to unicode.
+        connection.set_character_set('utf8')
+
+        # This is necessary for complex queries to run at all. Due to
+        # the large number of joins, queries with more than about 10
+        # patterns take a very long time to optimize.
+        cursor = connection.cursor()
+        cursor.execute('SET optimizer_search_depth = 0')
+        cursor.close()
+
+        return connection
+
     def getSink(self, sinkType, **sinkArgs):
-        return self.sinkSchema.getSink(self.connection,
+        return self.sinkSchema.getSink(self._createConnection(),
                                        sinkType,
                                        **sinkArgs)
 
     def getModel(self, modelType, **modelArgs):
-        return self.querySchema.getModel(self.connection,
+        return self.querySchema.getModel(self._createConnection(),
                                          modelType,
                                          **modelArgs)
 
     def close(self):
-        self.connection.close()
+        pass
 
 
 def getModelBase(**modelBaseArgs):

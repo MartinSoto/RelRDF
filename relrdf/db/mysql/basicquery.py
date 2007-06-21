@@ -191,59 +191,71 @@ class SingleVersionMapper(BasicSingleVersionMapper,
 
     canWrite = True
 
+    _stmtColsTmpl = string.Template(
+        """
+        hash$num binary(16),
+        subject_text$num longtext NOT NULL,
+        predicate_text$num longtext NOT NULL,
+        object_type$num mediumint NOT NULL,
+        object_text$num longtext NOT NULL
+        """)
+
+    _destColsTmpl = string.Template(
+        """
+        hash$num,
+        subject_text$num,
+        predicate_text$num,
+        object_type$num,
+        object_text$num
+        """)
+
+    _srcColsTmpl = string.Template(
+        """
+        unhex(md5(concat(sq.subject$num,
+                         sq.predicate$num,
+                         sq.object$num))),
+        sq.subject$num,
+        sq.predicate$num,
+        sq.type__object$num,
+        sq.object$num
+        """)
+
     def _storeModifResults(self, cursor, stmtQuery, stmtsPerRow):
         """Run `stmtQuery` and store its results in a temporary
         table.
         """
-        # Clean up just in case.
-        cursor.execute(
-            """
-            DROP TABLE IF EXISTS statements_temp;
-            """)
+        # FIXME: A bug/limitation in MySQL causes an automatic commit
+        # whenever a table is dropped. To work around it, we use a
+        # different table for each required width and reuse them as
+        # needed.
 
-        # Create a temporary table to hold the results.
-        stmtColsTmpl = string.Template(
-            """
-            hash$num binary(16),
-            subject_text$num longtext NOT NULL,
-            predicate_text$num longtext NOT NULL,
-            object_type$num mediumint NOT NULL,
-            object_text$num longtext NOT NULL
-            """)
+        # Create (if it doesn't exist already) a temporary table to
+        # hold the results.
         cursor.execute(
             """
-            CREATE TEMPORARY TABLE statements_temp (%s)
-              ENGINE=MyISAM DEFAULT CHARSET=utf8;
-            """ % 
-            ', '.join((stmtColsTmpl.substitute(num=i+1)
-                       for i in range(stmtsPerRow))))
+            CREATE TEMPORARY TABLE IF NOT EXISTS statements_temp%d (%s)
+              ENGINE=InnoDB DEFAULT CHARSET=utf8;
+            """ %
+            (stmtsPerRow,
+             ', '.join((self._stmtColsTmpl.substitute(num=i+1)
+                        for i in range(stmtsPerRow)))))
+
+        # Clean up the table contents in case the table was already
+        # there.
+        cursor.execute(
+            """
+            DELETE FROM statements_temp%d
+            """ % stmtsPerRow)
 
         # Write the statements into the table.
-        destColsTmpl = string.Template(
-            """
-            hash$num,
-            subject_text$num,
-            predicate_text$num,
-            object_type$num,
-            object_text$num
-            """)
-        srcColsTmpl = string.Template(
-            """
-            unhex(md5(concat(sq.subject$num,
-                             sq.predicate$num,
-                             sq.object$num))),
-            sq.subject$num,
-            sq.predicate$num,
-            sq.type__object$num,
-            sq.object$num
-            """)
         cursor.execute(
             """
-            INSERT INTO statements_temp (%s)
+            INSERT INTO statements_temp%d (%s)
               SELECT %s FROM (%s) AS sq""" %
-            (', '.join((destColsTmpl.substitute(num=i+1)
+            (stmtsPerRow,
+             ', '.join((self._destColsTmpl.substitute(num=i+1)
                         for i in range(stmtsPerRow))),
-             ', '.join((srcColsTmpl.substitute(num=i+1)
+             ', '.join((self._srcColsTmpl.substitute(num=i+1)
                         for i in range(stmtsPerRow))),
              stmtQuery))
 
@@ -256,7 +268,7 @@ class SingleVersionMapper(BasicSingleVersionMapper,
                  unhex(md5(predicate_text$num)), unhex(md5(object_text$num)),
                  s.subject_text$num, s.predicate_text$num,
                  s.object_type$num, s.object_text$num
-          FROM statements_temp s
+          FROM statements_temp$stmtsPerRow s
         ON DUPLICATE KEY UPDATE statements.subject = statements.subject;
         """)
 
@@ -264,7 +276,7 @@ class SingleVersionMapper(BasicSingleVersionMapper,
         """
         INSERT INTO version_statement (version_id, stmt_id)
           SELECT $versionId AS v_id, s.id
-          FROM statements s, statements_temp st
+          FROM statements s, statements_temp$stmtsPerRow st
           WHERE s.hash = st.hash$num
         ON DUPLICATE KEY UPDATE version_id = $versionId;
         """)
@@ -275,12 +287,15 @@ class SingleVersionMapper(BasicSingleVersionMapper,
         count = 0
         for i in range(stmtsPerRow):
             # Put the statements into the table, without repetitions.
-            cursor.execute(self._insertCreateStmts.substitute(num=i+1))
+            cursor.execute(
+                self._insertCreateStmts.substitute(num=i+1,
+                                                   stmtsPerRow=stmtsPerRow))
 
             # Add the statement numbers to the version.
             cursor.execute(
                 self._insertAddToVersion.substitute(versionId=self.versionId,
-                                                    num=i+1))
+                                                    num=i+1,
+                                                    stmtsPerRow=stmtsPerRow))
             count += cursor.rowcount
 
         return count
@@ -288,7 +303,8 @@ class SingleVersionMapper(BasicSingleVersionMapper,
     _deleteRemoveFromVersion = string.Template(
         """
         DELETE FROM version_statement v
-        USING version_statement v, statements s, statements_temp st
+        USING version_statement v, statements s,
+              statements_temp$stmtsPerRow st
         WHERE
           v.version_id = $versionId AND v.stmt_id = s.id AND
           s.hash = st.hash$num;
@@ -302,7 +318,9 @@ class SingleVersionMapper(BasicSingleVersionMapper,
             # Delete the statement numbers from the version.
             cursor.execute(
                 self._deleteRemoveFromVersion.substitute(
-                    versionId=self.versionId, num=i+1))
+                    versionId=self.versionId,
+                    num=i+1,
+                    stmtsPerRow=stmtsPerRow))
             count += cursor.rowcount
 
         return count
@@ -553,7 +571,7 @@ class TwoWayComparisonMapper(BasicMapper,
               context char(2) NOT NULL,
               PRIMARY KEY (stmt_id),
               KEY (context)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
             """)
 
         # This is a pretty sui generis way of performing the actual
@@ -689,7 +707,7 @@ class ThreeWayComparisonMapper(BasicMapper,
               context char(3) NOT NULL,
               PRIMARY KEY (stmt_id),
               KEY (context)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
             """)
 
         # This is a pretty sui generis way of performing the actual
@@ -840,8 +858,13 @@ class BaseResults(object):
 
         return value
 
+    def close(self):
+        if self.cursor is not None:
+            self.cursor.close()
+            self.cursor = None
+
     def __del__(self):
-        self.cursor.close()
+        self.close()
 
 
 class ColumnResults(BaseResults):
@@ -863,6 +886,8 @@ class ColumnResults(BaseResults):
             yield tuple(result)
 
             row = self.cursor.fetchone()
+
+        self.close()
 
     __iter__ = iterAll
 
@@ -890,6 +915,8 @@ class StmtResults(BaseResults):
 
             row = self.cursor.fetchone()
 
+        self.close()
+
     __iter__ = iterAll
 
 
@@ -897,7 +924,8 @@ class Model(object):
     __slots__ = ('connection',
                  'mappingTransf',
                  'modelArgs',
-                 '_prefixes')
+                 '_prefixes',
+                 '_changeCursor')
 
     def __init__(self, connection, mappingTransf, **modelArgs):
         self.connection = connection
@@ -927,6 +955,10 @@ class Model(object):
 
         # Prepare the connection for this mapping.
         self.mappingTransf.prepareConnection(self.connection)
+
+        # The change cursor is initialized when actual changes are in
+        # progress.
+        self._changeCursor = None
 
     def _exprToSql(self, expr):
         # Add explicit type columns to results.
@@ -974,24 +1006,30 @@ class Model(object):
             mappingTransf = SingleVersionMapper(int(versionId), versionUri)
 
         if not mappingTransf.canWrite:
-            raise ModifyError(_("Model is read-only"))
+            raise ModifyError(_("Destination model is read-only"))
 
         # Get the statement per row count before transforming to SQL.
         stmtsPerRow = len(expr[0]) - 1
 
-        cursor = self.connection.cursor()
-        if isinstance(expr, nodes.Insert):
-            return results.ModifResults(
-                mappingTransf.insert(cursor,
-                                     self._exprToSql(expr[0]),
-                                     stmtsPerRow))
-        elif isinstance(expr, nodes.Delete):
-            return results.ModifResults(
-                mappingTransf.delete(cursor,
-                                     self._exprToSql(expr[0]),
-                                     stmtsPerRow))
-        else:
-            assert False, "Unexpected expression type"
+        try:
+            if self._changeCursor is None:
+                self._changeCursor = self.connection.cursor()
+
+            if isinstance(expr, nodes.Insert):
+                return results.ModifResults(
+                    mappingTransf.insert(self._changeCursor,
+                                         self._exprToSql(expr[0]),
+                                         stmtsPerRow))
+            elif isinstance(expr, nodes.Delete):
+                return results.ModifResults(
+                    mappingTransf.delete(self._changeCursor,
+                                         self._exprToSql(expr[0]),
+                                         stmtsPerRow))
+            else:
+                assert False, "Unexpected expression type"
+        except:
+            self.rollback()
+            raise
 
     def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
         # Parse the query.
@@ -1020,14 +1058,27 @@ class Model(object):
         else:
             assert False, 'No mapping expression'
 
+    def commit(self):
+        self.connection.commit()
+        self._changeCursor = None
+
+    def rollback(self):
+        self.connection.rollback()
+        self._changeCursor = None
+
     def getPrefixes(self):
         return self._prefixes
 
-    def __del__(self):
+    def close(self):
         # Release mapping specific resources.
         self.mappingTransf.releaseConnection(self.connection)
 
         self.connection.close()
+        self.connection = None
+
+    def __del__(self):
+        if self.connection is not None:
+            self.close()
 
 
 _modelFactories = {

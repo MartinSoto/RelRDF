@@ -23,23 +23,32 @@ class SingleVersionRdfSink(object):
 
         self.cursor = self.connection.cursor()
 
-        self.cursor.execute(
-            """
-            DROP TABLE IF EXISTS statements_temp;
-            """)
+        # FIXME: A bug/limitation in MySQL causes an automatic commit
+        # whenever a table is dropped. To work around it, we use a
+        # different table for each required width and reuse them as
+        # needed. See basicquery.SingleVersionMapper.
 
-        # We create the hash column but don't fill it. Stored
-        # procedure insert_version does it at the server side.
+        # Create (if it doesn't exist already) a temporary table to
+        # hold the results.  We create the hash column but don't fill
+        # it. Stored procedure insert_version does it at the server
+        # side.
         self.cursor.execute(
             """
-            CREATE TEMPORARY TABLE statements_temp (
+            CREATE TEMPORARY TABLE statements_temp1 (
               hash binary(16),
               subject_text longtext NOT NULL,
               predicate_text longtext NOT NULL,
               object_type longtext NOT NULL,
               object_text longtext NOT NULL
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8
             COMMENT='Available statements';
+            """)
+
+        # Clean up the table contents in case the table was already
+        # there.
+        self.cursor.execute(
+            """
+            DELETE FROM statements_temp1;
             """)
 
     def triple(self, subject, pred, object):
@@ -69,7 +78,7 @@ class SingleVersionRdfSink(object):
 
         self.cursor.executemany(
             """
-            INSERT INTO statements_temp
+            INSERT INTO statements_temp1
               (subject_text, predicate_text, object_type, object_text)
             VALUES (_utf8%s, _utf8%s, _utf8%s, _utf8%s)""",
             self.pendingRows)
@@ -85,6 +94,9 @@ class SingleVersionRdfSink(object):
             """, self.versionId)
 
         self.cursor.close()
+
+        self.connection.commit()
+        self.connection.close()
 
 
 _sinkFactories = {

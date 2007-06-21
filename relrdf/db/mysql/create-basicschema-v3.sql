@@ -86,12 +86,12 @@ DELIMITER //
 
 CREATE PROCEDURE insert_version(version_id INT)
 BEGIN
-  UPDATE statements_temp
+  UPDATE statements_temp1
     SET hash = unhex(md5(concat(subject_text, predicate_text, object_text)));
 
   INSERT INTO data_types (uri)
     SELECT s.object_type
-    FROM statements_temp s
+    FROM statements_temp1 s
   ON DUPLICATE KEY UPDATE uri = uri;
 
   INSERT INTO statements (hash, subject, predicate, object,
@@ -100,17 +100,15 @@ BEGIN
     SELECT s.hash, unhex(md5(subject_text)), unhex(md5(predicate_text)),
            unhex(md5(object_text)), s.subject_text, s.predicate_text,
            dt.id, s.object_text
-    FROM statements_temp s, data_types dt
+    FROM statements_temp1 s, data_types dt
     WHERE s.object_type = dt.uri
   ON DUPLICATE KEY UPDATE statements.subject = statements.subject;
 
   INSERT INTO version_statement (version_id, stmt_id)
     SELECT version_id AS v_id, s.id
-    FROM statements s, statements_temp st
+    FROM statements s, statements_temp1 st
     WHERE s.hash = st.hash
   ON DUPLICATE KEY UPDATE version_id = version_id;
-
-  DROP TABLE statements_temp;
 END
 //
 

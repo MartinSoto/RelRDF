@@ -29,9 +29,9 @@ class SingleVersionRdfSink(object):
         # needed. See basicquery.SingleVersionMapper.
 
         # Create (if it doesn't exist already) a temporary table to
-        # hold the results.  We create the hash column but don't fill
-        # it. Stored procedure insert_version does it at the server
-        # side.
+        # hold the results. We create the hash column but don't fill
+        # it, since method 'close' issues an update to do this at
+        # server side.
         self.cursor.execute(
             """
             CREATE TEMPORARY TABLE statements_temp1 (
@@ -88,10 +88,47 @@ class SingleVersionRdfSink(object):
     def close(self):
         self._writePendingRows()
 
+        # Update the hash values.
         self.cursor.execute(
             """
-            CALL insert_version(%s)
-            """, self.versionId)
+            UPDATE statements_temp1
+              SET hash = unhex(md5(concat(subject_text, predicate_text,
+                                          object_text)));
+            """)
+
+        # Create any missing data types.
+        self.cursor.execute(
+            """
+            INSERT INTO data_types (uri)
+              SELECT s.object_type
+              FROM statements_temp1 s
+            ON DUPLICATE KEY UPDATE uri = uri;
+            """)
+
+        # Insert the statements into the statements table.
+        self.cursor.execute(
+            """
+            INSERT INTO statements (hash, subject, predicate, object,
+                                    subject_text, predicate_text, object_type,
+                                    object_text)
+              SELECT s.hash, unhex(md5(subject_text)),
+                     unhex(md5(predicate_text)),
+                     unhex(md5(object_text)), s.subject_text, s.predicate_text,
+                     dt.id, s.object_text
+              FROM statements_temp1 s, data_types dt
+              WHERE s.object_type = dt.uri
+            ON DUPLICATE KEY UPDATE statements.subject = statements.subject;
+            """)
+
+        # Add the statement numbers to the version.
+        self.cursor.execute(
+            """
+            INSERT INTO version_statement (version_id, stmt_id)
+              SELECT %d AS v_id, s.id
+              FROM statements s, statements_temp1 st
+              WHERE s.hash = st.hash
+            ON DUPLICATE KEY UPDATE version_id = version_id;
+            """ % int(self.versionId))
 
         self.cursor.close()
 

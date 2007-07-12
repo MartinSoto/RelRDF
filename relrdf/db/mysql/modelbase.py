@@ -1,4 +1,6 @@
+import sqlalchemy.pool as pool
 import MySQLdb
+MySQLdb = pool.manage(MySQLdb)
 
 import basicquery
 import basicsinks

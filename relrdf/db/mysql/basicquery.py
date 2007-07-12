@@ -864,7 +864,12 @@ class BaseResults(object):
             self.cursor = None
 
     def __del__(self):
-        self.close()
+        if self.cursor is not None:
+            try:
+                self.cursor.close()
+            except:
+                # Ignore exceptions if the cursor cannot be closed.
+                pass
 
 
 class ColumnResults(BaseResults):

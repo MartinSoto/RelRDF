@@ -20,7 +20,7 @@ class ModelBase(object):
         self.db = db
         self.mysqlParams = mysqlParams
 
-    def _createConnection(self):
+    def createConnection(self):
         connection = MySQLdb.connect(host=self.host, db=self.db,
                                      **self.mysqlParams)
 
@@ -37,14 +37,11 @@ class ModelBase(object):
         return connection
 
     def getSink(self, sinkType, **sinkArgs):
-        return self.sinkSchema.getSink(self._createConnection(),
-                                       sinkType,
-                                       **sinkArgs)
+        return self.sinkSchema.getSink(self.createConnection(),
+                                       sinkType, **sinkArgs)
 
     def getModel(self, modelType, **modelArgs):
-        return self.querySchema.getModel(self._createConnection(),
-                                         modelType,
-                                         **modelArgs)
+        return self.querySchema.getModel(self, modelType, **modelArgs)
 
     def close(self):
         pass

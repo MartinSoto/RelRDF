@@ -921,20 +921,23 @@ class StmtResults(BaseResults):
 
 
 class Model(object):
-    __slots__ = ('connection',
+    __slots__ = ('modelBase',
                  'mappingTransf',
                  'modelArgs',
+                 '_connection',
                  '_prefixes',
-                 '_changeCursor')
+                 '_changeCursor',)
 
-    def __init__(self, connection, mappingTransf, **modelArgs):
-        self.connection = connection
+    def __init__(self, modelBase, mappingTransf, **modelArgs):
+        self.modelBase = modelBase
         self.mappingTransf = mappingTransf
         self.modelArgs = modelArgs
 
+        # FIXME: Move this to the model base.
         # Get the prefixes from the database. We store them in the
         # object and add them to the model args.
-        cursor = self.connection.cursor()
+        conn = self.modelBase.createConnection()
+        cursor = conn.cursor()
         cursor.execute("""
         SELECT p.prefix, p.namespace
         FROM prefixes p""")
@@ -953,12 +956,20 @@ class Model(object):
         # receives them.
         modelArgs['prefixes'] = paramPrf
 
-        # Prepare the connection for this mapping.
-        self.mappingTransf.prepareConnection(self.connection)
+        # Connections are created when a transaction is started.
+        self._connection = None
 
         # The change cursor is initialized when actual changes are in
         # progress.
         self._changeCursor = None
+
+    def _startTransaction(self):
+        assert self._connection is None
+
+        self._connection = self.modelBase.createConnection()
+
+        # Prepare the connection for this mapping.
+        self.mappingTransf.prepareConnection(self._connection)        
 
     def _exprToSql(self, expr):
         # Add explicit type columns to results.
@@ -1013,7 +1024,7 @@ class Model(object):
 
         try:
             if self._changeCursor is None:
-                self._changeCursor = self.connection.cursor()
+                self._changeCursor = self._connection.cursor()
 
             if isinstance(expr, nodes.Insert):
                 return results.ModifResults(
@@ -1032,6 +1043,10 @@ class Model(object):
             raise
 
     def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
+        if self._connection is None:
+            # Start a transaction:
+            self._startTransaction()
+
         # Parse the query.
         parser = parserfactory.getQueryParser(queryLanguage,
                                               **self.modelArgs)
@@ -1048,36 +1063,48 @@ class Model(object):
         if mappingExpr.__class__ == nodes.MapResult:
             # Get the column names before transforming to SQL.
             columnNames = list(mappingExpr.columnNames)
-            return ColumnResults(self.connection, columnNames,
+            return ColumnResults(self._connection, columnNames,
                                  self._exprToSql(expr))
         elif mappingExpr.__class__ == nodes.StatementResult:
             # Get the statement count before transforming to SQL.
             stmtsPerRow = len(mappingExpr) - 1
-            return StmtResults(self.connection, stmtsPerRow,
+            return StmtResults(self._connection, stmtsPerRow,
                                self._exprToSql(expr))
         else:
             assert False, 'No mapping expression'
 
     def commit(self):
-        self.connection.commit()
+        if self._connection is None:
+            return
+
+        # Release mapping specific resources.
+        self.mappingTransf.releaseConnection(self._connection)
+
+        self._connection.commit()
         self._changeCursor = None
+        self._connection.close()
+        self._connection = None
 
     def rollback(self):
-        self.connection.rollback()
+        if self._connection is None:
+            return
+
+        # Release mapping specific resources.
+        self.mappingTransf.releaseConnection(self._connection)
+
+        self._connection.rollback()
         self._changeCursor = None
+        self._connection.close()
+        self._connection = None
 
     def getPrefixes(self):
         return self._prefixes
 
     def close(self):
-        # Release mapping specific resources.
-        self.mappingTransf.releaseConnection(self.connection)
-
-        self.connection.close()
-        self.connection = None
+        self.rollback()
 
     def __del__(self):
-        if self.connection is not None:
+        if self._connection is not None:
             self.close()
 
 
@@ -1089,7 +1116,7 @@ _modelFactories = {
     'threeway': ThreeWayComparisonMapper
     }
 
-def getModel(connection, modelType, schema=None, **modelArgs):
+def getModel(modelBase, modelType, schema=None, **modelArgs):
     modelTypeNorm = modelType.lower()
 
     if schema is not None:
@@ -1108,4 +1135,4 @@ def getModel(connection, modelType, schema=None, **modelArgs):
             raise InstantiationError(_("Missing or invalid model "
                                        "arguments: %s") % e)
 
-    return Model(connection, transf, **modelArgs)
+    return Model(modelBase, transf, **modelArgs)

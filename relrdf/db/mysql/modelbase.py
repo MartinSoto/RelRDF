@@ -1,6 +1,5 @@
-import sqlalchemy.pool as pool
 import MySQLdb
-MySQLdb = pool.manage(MySQLdb)
+from  sqlalchemy import pool
 
 from relrdf.expression import uri
 
@@ -14,9 +13,12 @@ class ModelBase(object):
                  'mysqlParams',
                  'querySchema',
                  'sinkSchema',
+                 '_connPool',
                  '_prefixes',)
 
     def __init__(self, host, db, **mysqlParams):
+        import sys
+
         # We have only one database schema at this time.
         self.sinkSchema = basicsinks
         self.querySchema = basicquery
@@ -24,6 +26,11 @@ class ModelBase(object):
         self.host = host
         self.db = db
         self.mysqlParams = mysqlParams
+
+        # Create the connection pool.
+        self._connPool = pool.QueuePool(self._setupConnection,
+                                        pool_size=5,
+                                        use_threadlocal=True)
 
         # Get the prefixes from the database:
 
@@ -45,7 +52,7 @@ class ModelBase(object):
         cursor.close()
         conn.close()
 
-    def createConnection(self):
+    def _setupConnection(self):
         connection = MySQLdb.connect(host=self.host, db=self.db,
                                      **self.mysqlParams)
 
@@ -60,6 +67,9 @@ class ModelBase(object):
         cursor.close()
 
         return connection
+
+    def createConnection(self):
+        return self._connPool.connect()
 
     def getSink(self, sinkType, **sinkArgs):
         return self.sinkSchema.getSink(self.createConnection(),

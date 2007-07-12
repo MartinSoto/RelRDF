@@ -930,7 +930,6 @@ class Model(object):
                  'mappingTransf',
                  'modelArgs',
                  '_connection',
-                 '_prefixes',
                  '_changeCursor',)
 
     def __init__(self, modelBase, mappingTransf, **modelArgs):
@@ -938,27 +937,11 @@ class Model(object):
         self.mappingTransf = mappingTransf
         self.modelArgs = modelArgs
 
-        # FIXME: Move this to the model base.
-        # Get the prefixes from the database. We store them in the
-        # object and add them to the model args.
-        conn = self.modelBase.createConnection()
-        cursor = conn.cursor()
-        cursor.execute("""
-        SELECT p.prefix, p.namespace
-        FROM prefixes p""")
-
-        self._prefixes = {}
+        # Add the prefixes from the model base to modelArgs, so that
+        # the parser receives them.
         paramPrf = modelArgs.get('prefixes', {})
-
-        row = cursor.fetchone()
-        while row is not None:
-            (prefix, namespace) = row
-            self._prefixes[prefix] = uri.Namespace(namespace)
+        for prefix, namespace in modelBase.getPrefixes().items():
             paramPrf[prefix] = uri.Namespace(namespace)
-            row = cursor.fetchone()
-
-        # Add the prefixes to the modelArgs, so that the parser
-        # receives them.
         modelArgs['prefixes'] = paramPrf
 
         # Connections are created when a transaction is started.
@@ -1103,7 +1086,7 @@ class Model(object):
         self._connection = None
 
     def getPrefixes(self):
-        return self._prefixes
+        return self.modelBase.getPrefixes()
 
     def close(self):
         self.rollback()

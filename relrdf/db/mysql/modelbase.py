@@ -2,6 +2,8 @@ import sqlalchemy.pool as pool
 import MySQLdb
 MySQLdb = pool.manage(MySQLdb)
 
+from relrdf.expression import uri
+
 import basicquery
 import basicsinks
 
@@ -11,7 +13,8 @@ class ModelBase(object):
                  'db',
                  'mysqlParams',
                  'querySchema',
-                 'sinkSchema')
+                 'sinkSchema',
+                 '_prefixes',)
 
     def __init__(self, host, db, **mysqlParams):
         # We have only one database schema at this time.
@@ -21,6 +24,26 @@ class ModelBase(object):
         self.host = host
         self.db = db
         self.mysqlParams = mysqlParams
+
+        # Get the prefixes from the database:
+
+        conn = self.createConnection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT p.prefix, p.namespace
+            FROM prefixes p
+            """)
+
+        self._prefixes = {}
+
+        row = cursor.fetchone()
+        while row is not None:
+            (prefix, namespace) = row
+            self._prefixes[prefix] = uri.Namespace(namespace)
+            row = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
 
     def createConnection(self):
         connection = MySQLdb.connect(host=self.host, db=self.db,
@@ -44,6 +67,9 @@ class ModelBase(object):
 
     def getModel(self, modelType, **modelArgs):
         return self.querySchema.getModel(self, modelType, **modelArgs)
+
+    def getPrefixes(self):
+        return self._prefixes
 
     def close(self):
         pass

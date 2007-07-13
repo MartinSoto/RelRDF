@@ -82,6 +82,8 @@ class BasicMapper(transform.PureRelationalTransformer):
     """A base mapper for the MySQL basic schema. It handles the
     mapping of type expressions."""
 
+    __slots__ = ()
+
     def prepareConnection(self, connection):
         """Prepares the database connection (i.e., by creating certain
         temporary tables) for use with this mapping."""
@@ -543,7 +545,9 @@ class TwoWayComparisonMapper(BasicMapper,
     one containing the statements common to both versions."""
     
     __slots__ = ('versionA',
-                 'versionB')
+                 'versionB',
+
+                 'stmtRepl',)
 
     def __init__(self, versionA, versionB):
         super(TwoWayComparisonMapper, self).__init__()
@@ -678,7 +682,9 @@ class ThreeWayComparisonMapper(BasicMapper,
     
     __slots__ = ('versionA',
                  'versionB',
-                 'versionC')
+                 'versionC',
+
+                 'stmtRepl',)
 
     def __init__(self, versionA, versionB, versionC):
         super(ThreeWayComparisonMapper, self).__init__()

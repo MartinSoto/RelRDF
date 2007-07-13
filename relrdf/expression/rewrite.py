@@ -116,6 +116,8 @@ class ExpressionTransformer(ExpressionProcessor):
     operation expects that the calculated values are transformed
     subexpressions."""
 
+    __slots__ = ()
+
     def Default(self, expr, *transfSubexprs):
         """Set `transfSubexprs`as the subexpressions of `expr` and
         return `expr`."""

@@ -931,7 +931,7 @@ class StmtResults(BaseResults):
     __iter__ = iterAll
 
 
-class Model(object):
+class BasicModel(object):
     __slots__ = ('modelBase',
                  'mappingTransf',
                  'modelArgs',
@@ -1103,11 +1103,11 @@ class Model(object):
 
 
 _modelFactories = {
-    'metaversion': MetaVersionMapper,
-    'singleversion': SingleVersionMapper,
-    'allversions': AllVersionsMapper,
-    'twoway': TwoWayComparisonMapper,
-    'threeway': ThreeWayComparisonMapper
+    'metaversion': (BasicModel, MetaVersionMapper),
+    'singleversion': (BasicModel, SingleVersionMapper),
+    'allversions': (BasicModel, AllVersionsMapper),
+    'twoway': (BasicModel, TwoWayComparisonMapper),
+    'threeway': (BasicModel, ThreeWayComparisonMapper),
     }
 
 def getModel(modelBase, modelType, schema=None, **modelArgs):
@@ -1122,11 +1122,11 @@ def getModel(modelBase, modelType, schema=None, **modelArgs):
         transf = schema.getMapper(modelType, **modelArgs)
     else:
         try:
-            transf = _modelFactories[modelTypeNorm](**modelArgs)
+            modelCls, transfCls = _modelFactories[modelTypeNorm]
         except KeyError:
             raise InstantiationError(_("Invalid model type '%s'") % modelType)
         except TypeError, e:
             raise InstantiationError(_("Missing or invalid model "
                                        "arguments: %s") % e)
 
-    return Model(modelBase, transf, **modelArgs)
+    return modelCls(modelBase, transfCls(**modelArgs), **modelArgs)

@@ -71,6 +71,22 @@ CREATE TABLE version_statement (
 ) ENGINE=InnoDB COMMENT='Version version_id contains statement stmt_id';
 
 
+DROP TABLE IF EXISTS twoway;
+
+CREATE TABLE twoway (
+  version_a integer unsigned NOT NULL
+	 COMMENT 'Version identifier of the first compared version',
+  version_b integer unsigned NOT NULL
+	 COMMENT 'Version identifier of the second compared version',
+  stmt_id integer unsigned NOT NULL
+	 COMMENT 'A statement identifier',
+  context char(2) NOT NULL
+	 COMMENT 'Comparison context',
+  UNIQUE KEY version_statement_unique (version_a, version_b, stmt_id),
+  KEY (context)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 CREATE TABLE IF NOT EXISTS prefixes (
   prefix varchar(31) NOT NULL
          COMMENT 'Namespace prefix',

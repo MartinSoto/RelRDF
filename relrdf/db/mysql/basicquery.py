@@ -546,63 +546,19 @@ class TwoWayComparisonMapper(BasicMapper,
     
     __slots__ = ('versionA',
                  'versionB',
+                 'refreshComp',
 
                  'stmtRepl',)
 
-    def __init__(self, versionA, versionB):
+    def __init__(self, versionA, versionB, refreshComp=0):
         super(TwoWayComparisonMapper, self).__init__()
 
         self.versionA = int(versionA)
         self.versionB = int(versionB)
+        self.refreshComp = int(refreshComp) != 0
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
-
-    def prepareConnection(self, connection):
-        cursor = connection.cursor()
-
-        # We create a temporary table for the comparison statements.
-        # FIXME: The table must be named in such a way that collisions
-        # are avoided between multiple database conections.
-        cursor.execute(
-            """
-            DROP TABLE IF EXISTS comparison
-            """)
-        cursor.execute(
-            """
-            CREATE TABLE comparison (
-              stmt_id integer unsigned NOT NULL,
-              context char(2) NOT NULL,
-              PRIMARY KEY (stmt_id),
-              KEY (context)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-            """)
-
-        # This is a pretty sui generis way of performing the actual
-        # comparison, but MySQL doesn't have a full outer join, and
-        # this solution not only works properly but seems to be very
-        # efficient. Notice that it relies on the fact that version
-        # numbers are never 0. The IF expressions inside the sum are
-        # necessary to guarantee correct results when versionA and
-        # versionB are equal.
-        cursor.execute(
-            """
-              INSERT INTO comparison
-                SELECT
-                  v.stmt_id AS stmt_id,
-                  CASE sum(IF(v.version_id = %d, 1, 0) +
-                           IF(v.version_id = %d, 2, 0))
-                    WHEN 1 THEN "A"
-                    WHEN 2 THEN "B"
-                    WHEN 3 THEN "AB"
-                  END AS context
-                FROM version_statement v
-                WHERE v.version_id = %d or v.version_id = %d
-                GROUP BY v.stmt_id
-            """ % (self.versionA,
-                   self.versionB,
-                   self.versionA,
-                   self.versionB))
 
     def replStatementPattern(self, expr):
         # Check for complete version matching.
@@ -648,11 +604,18 @@ class TwoWayComparisonMapper(BasicMapper,
             rel = build.buildExpression(
                 (nodes.Select,
                  (nodes.Product,
-                  (sqlnodes.SqlRelation, 1, 'comparison'),
+                  (sqlnodes.SqlRelation, 1, 'twoway'),
                   (sqlnodes.SqlRelation, 2, 'statements')),
-                 (nodes.Equal,
-                  (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-                  (sqlnodes.SqlFieldRef, 2, 'id')))
+                 (nodes.And,
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'version_a'),
+                   (nodes.Literal, self.versionA)),
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'version_b'),
+                   (nodes.Literal, self.versionB)),
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+                   (sqlnodes.SqlFieldRef, 2, 'id'))))
                 )
 
             replExpr = \
@@ -1098,15 +1061,39 @@ class BasicModel(object):
         self.rollback()
 
     def __del__(self):
-        if self._connection is not None:
-            self.close()
+        self.close()
+
+
+class TwoWayModel(BasicModel):
+    __slots__ = ('versionA',
+                 'versionB',
+                 'refreshComp',)
+
+    def __init__(self, modelBase, mappingTransf, versionA, versionB,
+                 refreshComp=0):
+        super(TwoWayModel, self).__init__(modelBase, mappingTransf,
+                                          versionA=versionA,
+                                          versionB=versionB,
+                                          refreshComp=refreshComp)
+
+        self.versionA = int(versionA)
+        self.versionB = int(versionB)
+        self.refreshComp = int(refreshComp) != 0
+
+        self.modelBase.prepareTwoWay(self.versionA, self.versionB,
+                                     self.refreshComp)
+
+    def close(self):
+        self.modelBase.releaseTwoWay(self.versionA, self.versionB)
+
+        super(TwoWayModel, self).close()
 
 
 _modelFactories = {
     'metaversion': (BasicModel, MetaVersionMapper),
     'singleversion': (BasicModel, SingleVersionMapper),
     'allversions': (BasicModel, AllVersionsMapper),
-    'twoway': (BasicModel, TwoWayComparisonMapper),
+    'twoway': (TwoWayModel, TwoWayComparisonMapper),
     'threeway': (BasicModel, ThreeWayComparisonMapper),
     }
 

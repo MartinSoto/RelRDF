@@ -86,14 +86,14 @@ class ModelBase(object):
     def getPrefixes(self):
         return self._prefixes
 
-    _countComp = string.Template(
+    _countTwoWay = string.Template(
         """
         SELECT count(*)
         FROM twoway t
         WHERE t.version_a = $versionA AND t.version_b = $versionB
         """)
 
-    _deleteComp = string.Template(
+    _deleteTwoWay = string.Template(
         """
         DELETE FROM twoway
         WHERE version_a = $versionA AND version_b = $versionB
@@ -106,7 +106,7 @@ class ModelBase(object):
     # relies on the fact that version numbers are never 0. The IF
     # expressions inside the sum are necessary to guarantee correct
     # results when versionA and versionB are equal.
-    _createComp = string.Template(
+    _createTwoWay = string.Template(
         """
         INSERT INTO twoway (version_a, version_b, stmt_id, context)
           SELECT
@@ -129,25 +129,99 @@ class ModelBase(object):
 
         # Check if a comparison model for these versions is already
         # there.
-        cursor.execute(self._countComp.substitute(versionA=versionA,
-                                                  versionB=versionB))
+        cursor.execute(self._countTwoWay.substitute(versionA=versionA,
+                                                    versionB=versionB))
 
         if cursor.fetchone()[0] == 0 or refreshComp:
             if refreshComp:
                 # Clean up any existing comparison data.
-                cursor.execute(self._deleteComp \
+                cursor.execute(self._deleteTwoWay \
                                .substitute(versionA=versionA,
                                            versionB=versionB))
 
             # Calculate the comparison model.
-            cursor.execute(self._createComp.substitute(versionA=versionA,
-                                                       versionB=versionB))
+            cursor.execute(self._createTwoWay.substitute(versionA=versionA,
+                                                         versionB=versionB))
 
             self._connection.commit()
             
         cursor.close()
 
     def releaseTwoWay(self, versionA, versionB):
+        pass
+
+    _countThreeWay = string.Template(
+        """
+        SELECT count(*)
+        FROM threeway t
+        WHERE t.version_a = $versionA AND t.version_b = $versionB AND
+              t.version_c = $versionC
+        """)
+
+    _deleteThreeWay = string.Template(
+        """
+        DELETE FROM threeway
+        WHERE version_a = $versionA AND version_b = $versionB AND
+              version_c = $versionC
+        """)
+
+    # Query for calculating the three-way comparison model. See the
+    # comment for _createTwoWay
+    _createThreeWay = string.Template(
+        """
+        INSERT INTO threeway (version_a, version_b, version_c,
+                              stmt_id, context)
+          SELECT
+            $versionA AS version_a,
+            $versionB AS version_b,
+            $versionC AS version_c,
+            v.stmt_id AS stmt_id,
+            CASE
+                sum(IF(v.version_id = $versionA, 1, 0) +
+                    IF(v.version_id = $versionB, 2, 0) +
+                    IF(v.version_id = $versionC, 4, 0))
+              WHEN 1 THEN "A"
+              WHEN 2 THEN "B"
+              WHEN 3 THEN "AB"
+              WHEN 4 THEN "C"
+              WHEN 5 THEN "AC"
+              WHEN 6 THEN "BC"
+              WHEN 7 THEN "ABC"
+            END AS context
+          FROM version_statement v
+          WHERE v.version_id = $versionA or v.version_id = $versionB
+                or v.version_id = $versionC
+          GROUP BY v.stmt_id
+        """)
+
+    def prepareThreeWay(self, versionA, versionB, versionC,
+                        refreshComp=False):
+        cursor = self._connection.cursor()
+
+        # Check if a comparison model for these versions is already
+        # there.
+        cursor.execute(self._countThreeWay.substitute(versionA=versionA,
+                                                      versionB=versionB,
+                                                      versionC=versionC))
+
+        if cursor.fetchone()[0] == 0 or refreshComp:
+            if refreshComp:
+                # Clean up any existing comparison data.
+                cursor.execute(self._deleteThreeWay \
+                               .substitute(versionA=versionA,
+                                           versionB=versionB,
+                                           versionC=versionC))
+
+            # Calculate the comparison model.
+            cursor.execute(self._createThreeWay.substitute(versionA=versionA,
+                                                           versionB=versionB,
+                                                           versionC=versionC))
+
+            self._connection.commit()
+            
+        cursor.close()
+
+    def releaseThreeWay(self, versionA, versionB, versionC):
         pass
 
     def close(self):

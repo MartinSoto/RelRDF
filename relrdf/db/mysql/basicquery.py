@@ -646,73 +646,20 @@ class ThreeWayComparisonMapper(BasicMapper,
     __slots__ = ('versionA',
                  'versionB',
                  'versionC',
+                 'refreshComp',
 
                  'stmtRepl',)
 
-    def __init__(self, versionA, versionB, versionC):
+    def __init__(self, versionA, versionB, versionC, refreshComp=0):
         super(ThreeWayComparisonMapper, self).__init__()
 
         self.versionA = int(versionA)
         self.versionB = int(versionB)
         self.versionC = int(versionC)
+        self.refreshComp = int(refreshComp) != 0
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
-
-    def prepareConnection(self, connection):
-        cursor = connection.cursor()
-
-        # We create a temporary table for the comparison statements.
-        # FIXME: The table must be named in such a way that collisions
-        # are avoided between multiple database conections.
-        cursor.execute(
-            """
-            DROP TABLE IF EXISTS comparison
-            """)
-        cursor.execute(
-            """
-            CREATE TABLE comparison (
-              stmt_id integer unsigned NOT NULL,
-              context char(3) NOT NULL,
-              PRIMARY KEY (stmt_id),
-              KEY (context)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-            """)
-
-        # This is a pretty sui generis way of performing the actual
-        # comparison, but MySQL doesn't have a full outer join, and
-        # this solution not only works properly but seems to be very
-        # efficient. Notice that it relies on the fact that version
-        # numbers are never 0. The IF expressions inside the sum are
-        # necessary to guarantee correct results when versionA,
-        # versionB and versionC are not all different from each other.
-        cursor.execute(
-            """
-              INSERT INTO comparison
-                SELECT
-                  v.stmt_id AS stmt_id,
-                  CASE
-                      sum(IF(v.version_id = %d, 1, 0) +
-                          IF(v.version_id = %d, 2, 0) +
-                          IF(v.version_id = %d, 4, 0))
-                    WHEN 1 THEN "A"
-                    WHEN 2 THEN "B"
-                    WHEN 3 THEN "AB"
-                    WHEN 4 THEN "C"
-                    WHEN 5 THEN "AC"
-                    WHEN 6 THEN "BC"
-                    WHEN 7 THEN "ABC"
-                  END AS context
-                FROM version_statement v
-                WHERE v.version_id = %d or v.version_id = %d
-                      or v.version_id = %d
-                GROUP BY v.stmt_id
-            """ % (self.versionA,
-                   self.versionB,
-                   self.versionC,
-                   self.versionA,
-                   self.versionB,
-                   self.versionC))
 
     def replStatementPattern(self, expr):
         # Check for complete version matching.
@@ -760,11 +707,21 @@ class ThreeWayComparisonMapper(BasicMapper,
             rel = build.buildExpression(
                 (nodes.Select,
                  (nodes.Product,
-                  (sqlnodes.SqlRelation, 1, 'comparison'),
+                  (sqlnodes.SqlRelation, 1, 'threeway'),
                   (sqlnodes.SqlRelation, 2, 'statements')),
-                 (nodes.Equal,
-                  (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-                  (sqlnodes.SqlFieldRef, 2, 'id')))
+                 (nodes.And,
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'version_a'),
+                   (nodes.Literal, self.versionA)),
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'version_b'),
+                   (nodes.Literal, self.versionB)),
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'version_c'),
+                   (nodes.Literal, self.versionC)),
+                  (nodes.Equal,
+                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+                   (sqlnodes.SqlFieldRef, 2, 'id'))))
                 )
 
             replExpr = \
@@ -1089,12 +1046,41 @@ class TwoWayModel(BasicModel):
         super(TwoWayModel, self).close()
 
 
+class ThreeWayModel(BasicModel):
+    __slots__ = ('versionA',
+                 'versionB',
+                 'versionC',
+                 'refreshComp',)
+
+    def __init__(self, modelBase, mappingTransf, versionA, versionB,
+                 versionC, refreshComp=0):
+        super(ThreeWayModel, self).__init__(modelBase, mappingTransf,
+                                            versionA=versionA,
+                                            versionB=versionB,
+                                            versionC=versionC,
+                                            refreshComp=refreshComp)
+
+        self.versionA = int(versionA)
+        self.versionB = int(versionB)
+        self.versionC = int(versionC)
+        self.refreshComp = int(refreshComp) != 0
+
+        self.modelBase.prepareThreeWay(self.versionA, self.versionB,
+                                       self.versionC, self.refreshComp)
+
+    def close(self):
+        self.modelBase.releaseThreeWay(self.versionA, self.versionB,
+                                       self.versionC)
+
+        super(ThreeWayModel, self).close()
+
+
 _modelFactories = {
     'metaversion': (BasicModel, MetaVersionMapper),
     'singleversion': (BasicModel, SingleVersionMapper),
     'allversions': (BasicModel, AllVersionsMapper),
     'twoway': (TwoWayModel, TwoWayComparisonMapper),
-    'threeway': (BasicModel, ThreeWayComparisonMapper),
+    'threeway': (ThreeWayModel, ThreeWayComparisonMapper),
     }
 
 def getModel(modelBase, modelType, schema=None, **modelArgs):

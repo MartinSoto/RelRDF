@@ -83,6 +83,27 @@ CREATE TABLE twoway (
   context char(2) NOT NULL
 	 COMMENT 'Comparison context',
   UNIQUE KEY version_statement_unique (version_a, version_b, stmt_id),
+  KEY (stmt_id),
+  KEY (context)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS threeway;
+
+CREATE TABLE threeway (
+  version_a integer unsigned NOT NULL
+	 COMMENT 'Version identifier of the first compared version',
+  version_b integer unsigned NOT NULL
+	 COMMENT 'Version identifier of the second compared version',
+  version_c integer unsigned NOT NULL
+	 COMMENT 'Version identifier of the third compared version',
+  stmt_id integer unsigned NOT NULL
+	 COMMENT 'A statement identifier',
+  context char(3) NOT NULL
+	 COMMENT 'Comparison context',
+  UNIQUE KEY version_statement_unique (version_a, version_b, version_c,
+                                       stmt_id),
+  KEY (stmt_id),
   KEY (context)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

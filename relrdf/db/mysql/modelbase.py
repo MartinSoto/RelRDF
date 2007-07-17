@@ -18,7 +18,9 @@ class ModelBase(object):
 
                  '_connPool',
                  '_connection',
-                 '_prefixes',)
+                 '_prefixes',
+                 '_twoWayUsers',
+                 '_threeWayUsers',)
 
     def __init__(self, host, db, **mysqlParams):
         import sys
@@ -56,6 +58,30 @@ class ModelBase(object):
             row = cursor.fetchone()
 
         cursor.close()
+        self._connection.commit()
+
+        # Number of models using two and three-way comparisons.
+        self._twoWayUsers = {}
+        self._threeWayUsers = {}
+
+        # Any uses present in the database that are associated to this
+        # connection's id must come from an older connection that
+        # didn't clean-up properly. Clean up them now.
+        self._cleanUpUses()
+
+    def _cleanUpUses(self):
+        """Clean up all uses associated to this connection."""
+        cursor = self._connection.cursor()
+        cursor.execute("""
+            DELETE FROM twoway_conns
+            WHERE connection = connection_id()
+            """)
+        cursor.execute("""
+            DELETE FROM threeway_conns
+            WHERE connection = connection_id()
+            """)
+        cursor.close()
+        self._connection.commit()
 
     def _setupConnection(self):
         connection = MySQLdb.connect(host=self.host, db=self.db,
@@ -86,11 +112,11 @@ class ModelBase(object):
     def getPrefixes(self):
         return self._prefixes
 
-    _countTwoWay = string.Template(
+    _updateTimeTwoWay = string.Template(
         """
-        SELECT count(*)
-        FROM twoway t
-        WHERE t.version_a = $versionA AND t.version_b = $versionB
+        INSERT INTO twoway_use_time (version_a, version_b, time)
+        VALUES ($versionA, $versionB, now())
+        ON DUPLICATE KEY UPDATE time = now()
         """)
 
     _deleteTwoWay = string.Template(
@@ -124,15 +150,33 @@ class ModelBase(object):
           GROUP BY v.stmt_id
         """)
 
+    _connTwoWay = string.Template(
+        """
+        INSERT INTO twoway_conns (version_a, version_b, connection)
+        VALUES ($versionA, $versionB, connection_id())
+        """)
+
     def prepareTwoWay(self, versionA, versionB, refreshComp=False):
+        count = self._twoWayUsers.get((versionA, versionB))
+        if count is not None:
+            # This comparison model was already used by the model base
+            # and should still be in the cache.
+            count += 1
+            self._twoWayUsers[(versionA, versionB)] = count
+            return
+        else:
+            self._twoWayUsers[(versionA, versionB)] = 1
+
         cursor = self._connection.cursor()
 
-        # Check if a comparison model for these versions is already
-        # there.
-        cursor.execute(self._countTwoWay.substitute(versionA=versionA,
-                                                    versionB=versionB))
+        # Update the use time.
+        cursor.execute(self._updateTimeTwoWay.substitute(versionA=versionA,
+                                                         versionB=versionB))
 
-        if cursor.fetchone()[0] == 0 or refreshComp:
+        # Check if a comparison model for these versions is already
+        # there. According to the MySQL rules, the rowcount is 1 if a
+        # new row was inserted, but 2 if it was updated.
+        if cursor.rowcount == 1 or refreshComp:
             if refreshComp:
                 # Clean up any existing comparison data.
                 cursor.execute(self._deleteTwoWay \
@@ -143,19 +187,25 @@ class ModelBase(object):
             cursor.execute(self._createTwoWay.substitute(versionA=versionA,
                                                          versionB=versionB))
 
-            self._connection.commit()
-            
+        # Register the control connection as a user for this
+        # comparison.
+        cursor.execute(self._connTwoWay.substitute(versionA=versionA,
+                                                   versionB=versionB))
+
+        self._connection.commit()
         cursor.close()
 
     def releaseTwoWay(self, versionA, versionB):
-        pass
+        count = self._twoWayUsers[(versionA, versionB)]
+        assert count > 0
+        count -= 1
+        self._twoWayUsers[(versionA, versionB)] = count
 
-    _countThreeWay = string.Template(
+    _updateTimeThreeWay = string.Template(
         """
-        SELECT count(*)
-        FROM threeway t
-        WHERE t.version_a = $versionA AND t.version_b = $versionB AND
-              t.version_c = $versionC
+        INSERT INTO threeway_use_time (version_a, version_b, version_c, time)
+        VALUES ($versionA, $versionB, $versionC, now())
+        ON DUPLICATE KEY UPDATE time = now()
         """)
 
     _deleteThreeWay = string.Template(
@@ -194,17 +244,36 @@ class ModelBase(object):
           GROUP BY v.stmt_id
         """)
 
+    _connThreeWay = string.Template(
+        """
+        INSERT INTO threeway_conns (version_a, version_b, version_c,
+                                    connection)
+        VALUES ($versionA, $versionB, $versionC, connection_id())
+        """)
+
     def prepareThreeWay(self, versionA, versionB, versionC,
                         refreshComp=False):
+        count = self._threeWayUsers.get((versionA, versionB, versionC))
+        if count is not None:
+            # This comparison model was already used by the model base
+            # and should still be in the cache.
+            count += 1
+            self._threeWayUsers[(versionA, versionB, versionC)] = count
+            return
+        else:
+            self._threeWayUsers[(versionA, versionB, versionC)] = 1
+
         cursor = self._connection.cursor()
 
-        # Check if a comparison model for these versions is already
-        # there.
-        cursor.execute(self._countThreeWay.substitute(versionA=versionA,
-                                                      versionB=versionB,
-                                                      versionC=versionC))
+        # Update the use time.
+        cursor.execute(self._updateTimeThreeWay.substitute(versionA=versionA,
+                                                           versionB=versionB,
+                                                           versionC=versionC))
 
-        if cursor.fetchone()[0] == 0 or refreshComp:
+        # Check if a comparison model for these versions is already
+        # there. According to the MySQL rules, the rowcount is 1 if a
+        # new row was inserted, but 2 if it was updated.
+        if cursor.rowcount == 1 or refreshComp:
             if refreshComp:
                 # Clean up any existing comparison data.
                 cursor.execute(self._deleteThreeWay \
@@ -219,13 +288,25 @@ class ModelBase(object):
 
             self._connection.commit()
             
+        # Register the control connection as a user for this
+        # comparison.
+        cursor.execute(self._connThreeWay.substitute(versionA=versionA,
+                                                     versionB=versionB,
+                                                     versionC=versionC))
+
+        self._connection.commit()
         cursor.close()
 
     def releaseThreeWay(self, versionA, versionB, versionC):
-        pass
+        count = self._threeWayUsers[(versionA, versionB, versionC)]
+        assert count > 0
+        count -= 1
+        self._threeWayUsers[(versionA, versionB, versionC)] = count
 
     def close(self):
-        # Close de control connection.
+        self._cleanUpUses()
+
+        # Close the control connection.
         self._connection.close()
 
 

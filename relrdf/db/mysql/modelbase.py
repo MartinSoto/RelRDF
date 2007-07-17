@@ -4,12 +4,13 @@ import MySQLdb
 from  sqlalchemy import pool
 
 from relrdf.expression import uri
+from relrdf.util.methodsync import SyncMethodsMixin, synchronized
 
 import basicquery
 import basicsinks
 
 
-class ModelBase(object):
+class ModelBase(SyncMethodsMixin):
     __slots__ = ('host',
                  'db',
                  'mysqlParams',
@@ -23,6 +24,8 @@ class ModelBase(object):
                  '_threeWayUsers',)
 
     def __init__(self, host, db, **mysqlParams):
+        super(ModelBase, self).__init__()
+
         import sys
 
         # We have only one database schema at this time.
@@ -38,7 +41,8 @@ class ModelBase(object):
                                         pool_size=5,
                                         use_threadlocal=False)
 
-        # Create the control connection.
+        # The control connection. Public methods using it must be
+        # synchronized.
         self._connection = self.createConnection()
 
         # Get the prefixes from the database:
@@ -156,6 +160,7 @@ class ModelBase(object):
         VALUES ($versionA, $versionB, connection_id())
         """)
 
+    @synchronized
     def prepareTwoWay(self, versionA, versionB, refreshComp=False):
         count = self._twoWayUsers.get((versionA, versionB))
         if count is not None:
@@ -195,6 +200,7 @@ class ModelBase(object):
         self._connection.commit()
         cursor.close()
 
+    @synchronized
     def releaseTwoWay(self, versionA, versionB):
         count = self._twoWayUsers[(versionA, versionB)]
         assert count > 0
@@ -251,6 +257,7 @@ class ModelBase(object):
         VALUES ($versionA, $versionB, $versionC, connection_id())
         """)
 
+    @synchronized
     def prepareThreeWay(self, versionA, versionB, versionC,
                         refreshComp=False):
         count = self._threeWayUsers.get((versionA, versionB, versionC))
@@ -297,12 +304,14 @@ class ModelBase(object):
         self._connection.commit()
         cursor.close()
 
+    @synchronized
     def releaseThreeWay(self, versionA, versionB, versionC):
         count = self._threeWayUsers[(versionA, versionB, versionC)]
         assert count > 0
         count -= 1
         self._threeWayUsers[(versionA, versionB, versionC)] = count
 
+    @synchronized
     def close(self):
         self._cleanUpUses()
 

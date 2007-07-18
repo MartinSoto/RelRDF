@@ -84,16 +84,6 @@ class BasicMapper(transform.PureRelationalTransformer):
 
     __slots__ = ()
 
-    def prepareConnection(self, connection):
-        """Prepares the database connection (i.e., by creating certain
-        temporary tables) for use with this mapping."""
-        pass
-
-    def releaseConnection(self, connection):
-        """Releases from the connection any resources created by
-        `prepareConnection` method."""
-        pass
-
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
             # FIXME:Search for the actual type id.
@@ -882,9 +872,6 @@ class BasicModel(object):
 
         self._connection = self.modelBase.createConnection()
 
-        # Prepare the connection for this mapping.
-        self.mappingTransf.prepareConnection(self._connection)        
-
     def _exprToSql(self, expr):
         # Add explicit type columns to results.
         transf = transform.ExplicitTypeTransformer()
@@ -991,9 +978,6 @@ class BasicModel(object):
         if self._connection is None:
             return
 
-        # Release mapping specific resources.
-        self.mappingTransf.releaseConnection(self._connection)
-
         self._connection.commit()
         self._changeCursor = None
         self._connection.close()
@@ -1002,9 +986,6 @@ class BasicModel(object):
     def rollback(self):
         if self._connection is None:
             return
-
-        # Release mapping specific resources.
-        self.mappingTransf.releaseConnection(self._connection)
 
         self._connection.rollback()
         self._changeCursor = None

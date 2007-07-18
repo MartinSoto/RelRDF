@@ -312,6 +312,65 @@ class ModelBase(SyncMethodsMixin):
         self._threeWayUsers[(versionA, versionB, versionC)] = count
 
     @synchronized
+    def cleanUpCaches(self):
+        # FIXME: This doesn't take the timestamps into account yet.
+
+        cursor = self._connection.cursor()
+
+        # Create a (SQL formatted) list of current connections.
+        cursor.execute("SHOW PROCESSLIST")
+        conns = []
+        row = cursor.fetchone()
+        while row is not None:
+            conns.append(str(row[0]))
+            row = cursor.fetchone()
+        assert len(conns) > 0
+        conns = ', '.join(conns)
+
+        # Delete uses from inexisting connections (most probably
+        # corresponding to killed or failed processes.)
+        cursor.execute("""
+            DELETE FROM twoway_conns
+            WHERE connection NOT IN (%s)
+            """ % conns)
+        cursor.execute("""
+            DELETE FROM threeway_conns
+            WHERE connection NOT IN (%s)
+            """ % conns)
+
+        # Delete those use times not in use by a current connection.
+        cursor.execute("""
+            DELETE FROM twoway_use_time ut
+            USING twoway_use_time ut LEFT JOIN twoway_conns c
+            ON ut.version_a = c.version_a AND ut.version_b = c.version_b
+            WHERE c.version_a is null
+            """)
+        cursor.execute("""
+            DELETE FROM threeway_use_time ut
+            USING threeway_use_time ut LEFT JOIN threeway_conns c
+            ON ut.version_a = c.version_a AND ut.version_b = c.version_b
+               AND ut.version_c = c.version_c
+            WHERE c.version_a is null
+            """)
+
+        # Delete the comparison models not in use currently.
+        cursor.execute("""
+            DELETE FROM twoway t
+            USING twoway t LEFT JOIN twoway_use_time ut
+            ON t.version_a = ut.version_a AND t.version_b = ut.version_b
+            WHERE ut.version_a is null
+            """)
+        cursor.execute("""
+            DELETE FROM threeway t
+            USING threeway t LEFT JOIN threeway_use_time ut
+            ON t.version_a = ut.version_a AND t.version_b = ut.version_b
+               AND t.version_c = ut.version_c
+            WHERE ut.version_a is null
+            """)
+
+        self._connection.commit()
+
+    @synchronized
     def close(self):
         self._cleanUpUses()
 

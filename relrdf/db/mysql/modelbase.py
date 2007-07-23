@@ -23,6 +23,16 @@ class ModelBase(SyncMethodsMixin):
                  '_twoWayUsers',
                  '_threeWayUsers',)
 
+    name = "MySQL"
+    parameterInfo = ({"name":"host",   "label":"Database Host", "tip":"Enter the name or the IP-Address of the database host", "default":"localhost", "assert":"host!=''", "asserterror":"host must not be empty"},
+                     {"name":"user",   "label":"Username",      "tip":"Enter the username required to log into your database", "assert":"user!=''", "asserterror":"username must not be empty"},
+                     {"name":"passwd", "label":"Password",      "tip":"Enter the password required to log into your database", "hidden":True},
+                     {"name":"db",     "label":"Database",      "tip":"Enter the name of the database to open or leave blank for default", "omit":"db==''"})
+
+    @classmethod
+    def getModelInfo(self, **parameters):
+        return basicquery.getModelMappers()
+
     def __init__(self, host, db, **mysqlParams):
         super(ModelBase, self).__init__()
 

@@ -177,6 +177,9 @@ class SingleVersionMapper(BasicSingleVersionMapper,
 
     __slots__ = ()
 
+    name = "Single Version"
+    parameterInfo = ({"name":"versionId", "label":"Version ID", "tip":"Enter the ID of the version to be used", "assert":"versionId != ''", "asserterror":"Version ID must not be empty"},)
+
     def __init__(self, versionId, versionUri=commonns.relrdf.version):
         super(SingleVersionMapper, self).__init__(versionId,
                                                   versionUri)
@@ -326,6 +329,8 @@ class AllVersionsMapper(BasicMapper,
     __slots__ = ('versionMapping',
 
                  'stmtRepl')
+    name = "All Versions"
+    parameterInfo = ()
 
     def __init__(self, versionUri=commonns.relrdf.version,
                  stmtUri=commonns.relrdf.stmt, metaInfoVersion=1):
@@ -383,6 +388,9 @@ class MetaVersionMapper(BasicSingleVersionMapper,
 
                  'stmtMapping',
                  'reifStmtRepl')
+                 
+    name = "Meta Version"
+    parameterInfo = ()
 
     def __init__(self, versionUri=commonns.relrdf.version,
                  stmtUri=commonns.relrdf.stmt):
@@ -540,7 +548,12 @@ class TwoWayComparisonMapper(BasicMapper,
 
                  'stmtRepl',)
 
+    name = "Two Way Comparision"
+    parameterInfo = ({"name":"versionA", "label":"Version A", "tip":"Enter version 1 to compare", "assert":"versionA!=''", "asserterror":"Version must not be empty"},
+                     {"name":"versionB", "label":"Version B", "tip":"Enter version 2 to compare", "assert":"versionB!=''", "asserterror":"Version must not be empty"})
+
     def __init__(self, versionA, versionB, refreshComp=0):
+
         super(TwoWayComparisonMapper, self).__init__()
 
         self.versionA = int(versionA)
@@ -639,6 +652,11 @@ class ThreeWayComparisonMapper(BasicMapper,
                  'refreshComp',
 
                  'stmtRepl',)
+
+    name = "Three Way Comparision"
+    parameterInfo = ({"name":"versionA", "label":"Version A", "tip":"Enter version 1 to compare", "assert":"versionA!=''", "asserterror":"Version must not be empty"},
+                     {"name":"versionB", "label":"Version B", "tip":"Enter version 2 to compare", "assert":"versionB!=''", "asserterror":"Version must not be empty"},
+                     {"name":"versionC", "label":"Version C", "tip":"Enter version 3 to compare", "assert":"versionC!=''", "asserterror":"Version must not be empty"})
 
     def __init__(self, versionA, versionB, versionC, refreshComp=0):
         super(ThreeWayComparisonMapper, self).__init__()
@@ -1084,3 +1102,10 @@ def getModel(modelBase, modelType, schema=None, **modelArgs):
                                        "arguments: %s") % e)
 
     return modelCls(modelBase, transfCls(**modelArgs), **modelArgs)
+
+def getModelMappers():
+    mappers = {}
+    for name, (factory, mapper) in _modelFactories.items():
+        mappers[name] = mapper
+
+    return mappers

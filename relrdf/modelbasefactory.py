@@ -20,3 +20,6 @@ def getModelBase(modelBaseType, **modelBaseArgs):
         raise InstantiationError(
             _("Missing or invalid model base arguments: %s") % e)
 
+def getModelBases():
+    import db.mysql
+    return {"mysql": db.mysql.modelbase.ModelBase}

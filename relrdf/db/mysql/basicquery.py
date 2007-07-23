@@ -173,7 +173,7 @@ class SingleVersionMapper(BasicSingleVersionMapper,
     __slots__ = ()
 
     name = "Single Version"
-    parameterInfo = ({"name":"versionId", "label":"Version ID", "tip":"Enter the ID of the version to be used", "assert":"versionID != ''", "asserterror":"Version ID must not be empty"})
+    parameterInfo = ({"name":"versionId", "label":"Version ID", "tip":"Enter the ID of the version to be used", "assert":"versionId != ''", "asserterror":"Version ID must not be empty"},)
 
     def __init__(self, versionId, versionUri=commonns.relrdf.version):
         super(SingleVersionMapper, self).__init__(versionId,

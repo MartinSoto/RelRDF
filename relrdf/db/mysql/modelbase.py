@@ -3,6 +3,7 @@ import string
 import MySQLdb
 from  sqlalchemy import pool
 
+from relrdf import error
 from relrdf.expression import uri
 from relrdf.util.methodsync import SyncMethodsMixin, synchronized
 
@@ -98,8 +99,20 @@ class ModelBase(SyncMethodsMixin):
         self._connection.commit()
 
     def _setupConnection(self):
-        connection = MySQLdb.connect(host=self.host, db=self.db,
-                                     **self.mysqlParams)
+        try:
+            connection = MySQLdb.connect(host=self.host, db=self.db,
+                                         **self.mysqlParams)
+        except MySQLdb.OperationalError, e:
+            code, msg = e.args
+
+            # See MySQL documentation for error codes.
+            if code == 1045:
+                raise error.AuthenticationError(_("Access denied"))
+            elif code == 1049:
+                raise error.InstantiationError(_("Unknown model base '%s'" %
+                                                 self.db))
+            else:
+                raise
 
         # Set the connection's character set to unicode.
         connection.set_character_set('utf8')

@@ -18,6 +18,16 @@ class InstantiationError(Error):
     pass
 
 
+class AuthenticationError(Error):
+    """Exception class for errors related to user authentication."""
+    pass
+
+
+class DatabaseError(Error):
+    """Exception class for database related errors."""
+    pass
+
+
 class MacroError(Error):
     """Exception class for errors related to macro expressions
     processing."""

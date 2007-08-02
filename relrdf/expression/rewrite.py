@@ -66,13 +66,13 @@ class ExpressionProcessor(object):
         processed. For each expression node in the tree, the method of
         `self` will be fetched whose name is identical to the node's
         class name with the value of `self.postPrefix` prepended to it
-        (if no such method exists, a method with name `self.postPrefix
-        + 'Default'` will be used.) The method will be called with the
-        expression node and the values already calculated for the
-        subexpressions as parameters. The returned value will be
-        passed, in the same fashion, to the method invoked for the
-        parent node of the expression, or returned by this method for
-        the root node.
+        (if no such method exists, a method with name
+        ``self.postPrefix + 'Default'`` will be used.) The method will
+        be called with the expression node and the values already
+        calculated for the subexpressions as parameters. The returned
+        value will be passed, in the same fashion, to the method
+        invoked for the parent node of the expression, or returned by
+        this method for the root node.
 
         In some cases, it is necessary to prevent certain
         subexpressions from being processed, to force a certain order
@@ -119,7 +119,7 @@ class ExpressionTransformer(ExpressionProcessor):
     __slots__ = ()
 
     def Default(self, expr, *transfSubexprs):
-        """Set `transfSubexprs`as the subexpressions of `expr` and
+        """Set `transfSubexprs` as the subexpressions of `expr` and
         return `expr`."""
         expr[:] = transfSubexprs
         return expr

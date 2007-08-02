@@ -1,3 +1,4 @@
+from relrdf.localization import _
 from relrdf.commonns import xsd
 
 from relrdf.expression import nodes, rewrite
@@ -11,8 +12,8 @@ from typeexpr import error
 
 class TypeChecker(rewrite.ExpressionProcessor):
     """Perform type checking on an expression. Methods don't actually
-    build any values but set them in the `staticType` and
-    `dynamicType` fields of the expression."""
+    build any values but set them in the ``staticType`` and
+    ``dynamicType`` fields of the expression."""
 
     __slots__ = ('scopeStack',)
 
@@ -274,8 +275,8 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
 
 def typeCheck(expr):
-    """Type check `expr`. This function sets the `staticType` and
-    `dynamicType` fields in all nodes in `expr`. `expr` will be
+    """Type check `expr`. This function sets the ``staticType`` and
+    ``dynamicType`` fields in all nodes in `expr`. `expr` will be
     modified in place, but the return value must be used since the
     root node may change."""
     checker = TypeChecker()

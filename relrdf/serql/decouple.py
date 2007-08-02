@@ -14,8 +14,8 @@ class Scope(dict):
         that will be created and returned by this method. The created
         variable will get its static type set to
         `typeexpr.rdfNodeType` if `nodeType` is `True` and to
-        `resourceType` otherwise. Many bindings can be done for a
-        single variable name."""
+        `typeexpr.resourceType` otherwise. Many bindings can be done
+        for a single variable name."""
         try:
             varBindings = self[varName]
         except KeyError:

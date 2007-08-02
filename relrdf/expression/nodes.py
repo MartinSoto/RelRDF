@@ -166,7 +166,7 @@ class BasicExpressionNode(list):
         self.startSubexpr = subexpr
 
     def setEndSubexpr(self, subexpr):
-        """Set `subexpr`as the end subexpression for extent
+        """Set `subexpr` as the end subexpression for extent
         calculation. This means that this node's extents will end
         where `subexpr` extents ends."""
         self.endSubexpr = subexpr

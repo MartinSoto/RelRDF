@@ -2,9 +2,6 @@
 RDF resources.
 """
 
-import re
-import itertools
-
 from relrdf.expression import uri, literal
 
 
@@ -27,8 +24,11 @@ class RdfResourceSide(object):
     def rels(self):
         """Iterate over this side's relations.
 
-        :Returns: An iterable over this resource side's relation URIs,
-        in no particular order."""
+        :Returns:
+
+          An iterable over this resource side's relation URIs, in no
+          particular order.
+        """
         return NotImplemented
 
     def hasRel(self, rel):
@@ -36,7 +36,10 @@ class RdfResourceSide(object):
 
         :Parameters:
 
-        - `rel`: A relation URI.
+          - `rel`: A relation URI.
+        """
+
+        """
 
         :Returns: True if `rel` is in the side, false otherwise.
         """
@@ -47,12 +50,14 @@ class RdfResourceSide(object):
 
         :Parameters:
 
-        - `rel`: A relation URI.
+          - `rel`: A relation URI.
 
-        :Returns: An iterable over the resources/literals associated
-        to relation `rel` in this resource side, in no particular
-        order. Literals are returned as Python values. Resources are
-        returned as `RdfResource` objects.
+        :Returns:
+
+          An iterable over the resources/literals associated to
+          relation `rel` in this resource side, in no particular
+          order. Literals are returned as Python values. Resources are
+          returned as `RdfResource` objects.
         """
         return NotImplemented
 
@@ -61,15 +66,16 @@ class RdfResourceSide(object):
 
         :Parameters:
 
-        - `rel`: A relation URI.
-        
-        - `default`: A default value to return if the relation is not
-          found.
+          - `rel`: A relation URI.
 
-        :Returns: One of the values for relation `rel` in this
-        resource side (if more than one value is available, the choice
-        is arbitrary) or the value of `default` if no value is
-        present.
+          - `default`: A default value to return if the relation is not
+            found.
+
+        :Returns:
+
+          One of the values for relation `rel` in this resource side
+          (if more than one value is available, the choice is
+          arbitrary) or the value of `default` if no value is present.
         """
         try:
             return iter(self.values(rel)).next()
@@ -85,14 +91,16 @@ class RdfResourceSide(object):
 
         :Parameters:
 
-        - `rels`: An iterable of relations.
-        
-        - `default`: A default value to return if the none of the
-          relations has values..
+          - `rels`: An iterable of relations.
 
-        :Returns: One of the values (the choice is arbitrary) for the
-        first relation in `rels` having values, or `None` if none of
-        the relations in `rels` has values for this resource.
+          - `default`: A default value to return if the none of the
+            relations has values..
+
+        :Returns:
+
+          One of the values (the choice is arbitrary) for the first
+          relation in `rels` having values, or `None` if none of the
+          relations in `rels` has values for this resource.
         """
         for rel in rels:
             value = self.value(rel)
@@ -106,15 +114,17 @@ class RdfResourceSide(object):
 
         :Parameters:
 
-        - `rel`: A relation URI.
+          - `rel`: A relation URI.
 
-        :Returns: An iterable over a sequence of pairs of the form
-        ``(value, subgraph)``, where ``value`` is the relation value
-        like in the `values` method, and ``subgraph`` is the subgraph
-        URI of the subgraph containing the corresponding RDF
-        triple. Observe that since many subgraphs may contain the
-        same triple, this method may return more results than the
-        `values` method for the same relation.
+        :Returns:
+        
+          An iterable over a sequence of pairs of the form ``(value,
+          subgraph)``, where ``value`` is the relation value like in
+          the `values` method, and ``subgraph`` is the subgraph URI of
+          the subgraph containing the corresponding RDF
+          triple. Observe that since many subgraphs may contain the
+          same triple, this method may return more results than the
+          `values` method for the same relation.
         """
         return NotImplemented
 
@@ -173,13 +183,13 @@ class SimpleResourceSide(RdfResourceSide, dict):
 
         :Parameters:
 
-        - `rel`: A relation URI.
+          - `rel`: A relation URI.
 
-        - `value`: The simple Python value or `RdfResource` instance.
+          - `value`: The simple Python value or `RdfResource` instance.
 
-        - `subgraph`: The RDF subgraph where the
-          resource-relation-value association was made. May be `None`
-          if this information is not available or irrelevant.
+          - `subgraph`: The RDF subgraph where the
+            resource-relation-value association was made. May be `None`
+            if this information is not available or irrelevant.
         """
         try:
             valSub = self[rel]

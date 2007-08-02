@@ -1,6 +1,7 @@
 import string
 import re
 
+from relrdf.localization import _
 from relrdf.error import InstantiationError, ModifyError
 from relrdf import results, mapping, parserfactory, commonns
 

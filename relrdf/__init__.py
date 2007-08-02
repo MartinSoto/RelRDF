@@ -1,6 +1,3 @@
-import gettext
-gettext.install('relrdf')
-
 # Put public API elements in this module:
 
 # Error classes.

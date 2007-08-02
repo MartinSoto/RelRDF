@@ -1,3 +1,5 @@
+from relrdf.localization import _
+
 from relrdf import parserfactory, commonns
 
 from relrdf.typecheck import dynamic

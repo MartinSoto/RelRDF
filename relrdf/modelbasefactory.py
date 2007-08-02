@@ -1,3 +1,4 @@
+from relrdf.localization import _
 from error import InstantiationError
 
 

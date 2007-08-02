@@ -1,3 +1,4 @@
+from relrdf.localization import _
 from relrdf import error
 from relrdf.expression import nodes, rewrite, simplify, util
 from relrdf.typecheck import typeexpr
@@ -60,7 +61,7 @@ class Scope(dict):
         Closing a scope comprises three main operations. The first one
         is checking that none of the excluded variables in this scope
         is bound in the containing scope. If it is, an
-        `error.SemanticException` is raised. Excluded variables are
+        `error.SemanticError` is raised. Excluded variables are
         also added to the containing's scope excluded set.
 
         The second operation consists of merging the scope into its

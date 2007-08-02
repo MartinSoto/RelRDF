@@ -3,6 +3,7 @@ import string
 import MySQLdb
 from  sqlalchemy import pool
 
+from relrdf.localization import _
 from relrdf import error
 from relrdf.expression import uri
 from relrdf.util.methodsync import SyncMethodsMixin, synchronized

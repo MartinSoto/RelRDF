@@ -2,6 +2,7 @@
 
 import re
 
+from relrdf.localization import _
 from relrdf.error import InstantiationError
 
 

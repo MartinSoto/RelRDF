@@ -1,5 +1,6 @@
 import antlr
 
+from relrdf.localization import _
 from relrdf.expression import nodes
 
 

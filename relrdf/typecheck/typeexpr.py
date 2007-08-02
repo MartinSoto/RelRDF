@@ -1,3 +1,5 @@
+from relrdf.localization import _
+
 from relrdf.commonns import xsd
 from relrdf.error import TypeCheckError
 

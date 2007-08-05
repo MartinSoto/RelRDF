@@ -1,6 +1,8 @@
 import string
 import re
 
+import relrdf
+
 from relrdf.localization import _
 from relrdf.error import InstantiationError, ModifyError
 from relrdf import results, mapping, parserfactory, commonns
@@ -962,7 +964,26 @@ class BasicModel(object):
             self.rollback()
             raise
 
-    def query(self, queryLanguage, queryText, fileName=_("<unknown>")):
+    def query(self, queryLanguageOrTemplate, queryText=None,
+              fileName=_("<unknown>"), **keywords):
+        # FIXME: This code should be in a generic superclass.
+        if queryText is None:
+            # We should have been called with a template.
+            template = queryLanguageOrTemplate
+            assert hasattr(template, 'substitute')
+            assert callable(template.substitute)
+
+            # Expand the template:
+            queryLanguage = template.queryLanguage
+            queryText = template.substitute(keywords)
+        else:
+            queryLanguage = queryLanguageOrTemplate
+
+            if len(keywords) > 0:
+                # Treat the queryText as a template.
+                template = relrdf.makeTemplate(queryLanguage, queryText)
+                queryText = template.substitute(keywords)
+
         if self._connection is None:
             # Start a transaction:
             self._startTransaction()

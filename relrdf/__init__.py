@@ -16,3 +16,6 @@ import commonns as ns
 # Factory function to create model bases. Indirectly, this gives access
 # to queryable model objects.
 from modelbasefactory import getModelBase
+
+# Factory function for creating query templates.
+from templatefactory import makeTemplate

@@ -41,6 +41,12 @@ class ModifyError(Error):
     pass
 
 
+class TemplateError(Error):
+    """Exception class for errors related to query templates.
+    """
+    pass
+
+
 class PositionError(Error):
     """Base class for exceptions containing an error position."""
 

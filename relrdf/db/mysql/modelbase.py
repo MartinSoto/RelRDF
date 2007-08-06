@@ -7,6 +7,7 @@ from relrdf.localization import _
 from relrdf import error
 from relrdf.expression import uri
 from relrdf.util.methodsync import SyncMethodsMixin, synchronized
+from relrdf.util.nsshortener import NamespaceUriShortener
 
 import basicquery
 import basicsinks
@@ -65,7 +66,7 @@ class ModelBase(SyncMethodsMixin):
             FROM prefixes p
             """)
 
-        self._prefixes = {}
+        self._prefixes = NamespaceUriShortener()
 
         row = cursor.fetchone()
         while row is not None:

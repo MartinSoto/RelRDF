@@ -19,3 +19,6 @@ from modelbasefactory import getModelBase
 
 # Factory function for creating query templates.
 from templatefactory import makeTemplate
+
+# Graph API.
+import graph

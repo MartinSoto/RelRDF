@@ -127,7 +127,12 @@ class Template(string.Template):
     def _checkToken(self, value, *tokenTypes):
         stream = StringIO.StringIO(value)
         self._lexer.setInput(stream)
-        tokens = tuple(self._lexer)
+
+        try:
+            tokens = tuple(self._lexer)
+        except antlr.TokenStreamRecognitionException:
+            raise TemplateError(_("Invalid value '%s'") % value)
+
         if len(tokens) != 1 or tokens[0].type not in tokenTypes:
             raise TemplateError(_("Invalid value '%s'") % value)
 

@@ -108,6 +108,9 @@ class ExpressionProcessor(object):
 
         # Invoke the postorder method.
         return method(expr, *procSubexprs)
+    
+    def Default(self, expr, *pars):
+        assert False, "Processor " + self.__class__.__name__ + " defines no action for " + expr.__class__.__name__ + "!"
 
 
 class ExpressionTransformer(ExpressionProcessor):

@@ -747,13 +747,13 @@ class Select(ExpressionNode):
     def __init__(self, rel, predicate):
         super(Select, self).__init__(rel, predicate)
 
-
 class MapResult(ExpressionNode):
     """Specify the column names of a result table, together with the
     expressions they are bound to."""
 
     __slots__ = ('columnNames',
-                 'incarnation')
+                 'incarnation'
+                 )
 
     def __init__(self, columnNames, rel, *mappingExprs):
         super(MapResult, self).__init__(rel, *mappingExprs)
@@ -763,7 +763,7 @@ class MapResult(ExpressionNode):
         # The incarnation can be used to give the resulting table a
         # name while generating SQL expressions.
         self.incarnation = None
-
+        
     def subexprByName(self, columnName):
         """Return the subexpression bound a to a particular column name."""
         return self[self.columnNames.index(columnName) + 1]
@@ -782,7 +782,6 @@ class MapResult(ExpressionNode):
         if self.incarnation is not None:
             stream.write(' _%d' % self.incarnation)
 
-
 #
 # Result Modifiers
 #
@@ -793,6 +792,36 @@ class Distinct(UnaryOperation):
 
     __slots__ = ()
 
+class OffsetLimit(ExpressionNode):
+    """Selects some rows from the results based on their position in
+    the result list"""
+    
+    __slots__ = ('limit',
+                 'offset'
+                 )
+    
+    def __init__(self, subexpr):
+        
+        # Position (from top) of the first row to be returned
+        self.offset = None
+        
+        # Maximum count of rows to return
+        self.limit = None
+        
+        super(ExpressionNode, self).__init__(subexpr)
+        
+class Sort(ExpressionNode):
+    """Sorts the result rows according to the second subexpression"""
+    
+    __slots__ = ('ascending',
+                )
+       
+    def __init__(self, subexpr, orderBy):
+        
+        # Ascending sort order is the default
+        self.ascending = 1
+        
+        super(Sort, self).__init__(subexpr, orderBy)        
 
 #
 # Set Operations
@@ -865,5 +894,3 @@ class Type(ExpressionNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.typeExpr)
-
-

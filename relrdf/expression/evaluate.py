@@ -114,7 +114,7 @@ class Evaluator(rewrite.ExpressionTransformer):
         if val is not None:
             return nodes.Literal(not val)
         else:
-            expr[0] = [op]
+            expr[0] = op
             return expr
 
 
@@ -147,7 +147,7 @@ class Evaluator(rewrite.ExpressionTransformer):
         if val is not None:
             return nodes.Literal(-val)
         else:
-            expr[0] = [op]
+            expr[0] = op
             return expr
 
     def Times(self, expr, *args):

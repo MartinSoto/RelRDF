@@ -151,6 +151,26 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, 'NOT')
         expr.staticType = booleanLiteralType
 
+    def Plus(self, expr, *operands):
+        self._checkScalarOperands(expr, '+')
+        expr.staticType = genericLiteralType
+
+    def Minus(self, expr, *operands):
+        self._checkScalarOperands(expr, '-')
+        expr.staticType = genericLiteralType
+
+    def UMinus(self, expr, *operands):
+        self._checkScalarOperands(expr, '-')
+        expr.staticType = genericLiteralType
+
+    def Times(self, expr, *operands):
+        self._checkScalarOperands(expr, '*')
+        expr.staticType = genericLiteralType
+
+    def DividedBy(self, expr, *operands):
+        self._checkScalarOperands(expr, '/')
+        expr.staticType = genericLiteralType
+
     def _checkJoin(self, expr, *operands):
         typeExpr = RelationType()
 
@@ -205,6 +225,12 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
     def Distinct(self, expr, subexpr):
         expr.staticType = expr[0].staticType
+        
+    def OffsetLimit(self, expr, subexpr):
+        expr.staticType = expr[0].staticType
+        
+    def Sort(self, expr, subexpr, orderBy):
+        expr.staticType = expr[0].staticType
 
     def _setOperationType(self, expr, *operands):
         typeExpr = expr[0].staticType
@@ -232,4 +258,3 @@ def typeCheck(expr):
     checker = TypeChecker()
     checker.process(expr)
     return expr
-

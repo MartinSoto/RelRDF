@@ -166,7 +166,7 @@ class BasicExpressionNode(list):
         self.startSubexpr = subexpr
 
     def setEndSubexpr(self, subexpr):
-        """Set `subexpr`as the end subexpression for extent
+        """Set `subexpr` as the end subexpression for extent
         calculation. This means that this node's extents will end
         where `subexpr` extents ends."""
         self.endSubexpr = subexpr
@@ -710,6 +710,20 @@ class DividedBy(ArithmeticOperation, BinaryOperation):
     __slots__ = ()
 
 
+#
+# Relational Operations
+#
+
+class Empty(ExpressionNode):
+    """An expression node representing an empty relation, i.e., one
+    containing no tuples."""
+
+    __slots__ = ()
+
+    def __init__(self):
+        super(Empty, self).__init__()
+
+
 class Optional(ExpressionNode):
     """A node representing an optional relation."""
 
@@ -763,7 +777,7 @@ class MapResult(ExpressionNode):
         # The incarnation can be used to give the resulting table a
         # name while generating SQL expressions.
         self.incarnation = None
-        
+
     def subexprByName(self, columnName):
         """Return the subexpression bound a to a particular column name."""
         return self[self.columnNames.index(columnName) + 1]
@@ -782,6 +796,29 @@ class MapResult(ExpressionNode):
         if self.incarnation is not None:
             stream.write(' _%d' % self.incarnation)
 
+
+class StatementResult(QueryResult):
+    """Specify the statement templates used to produce the result of a
+    transformation ('construct') query. The first child of this node
+    is a relational expression. The subsequent children are statement
+    patterns, potentially containing variables that are instantiated
+    by the expression."""
+
+    __slots__ = ()
+
+    def __init__(self, rel, *stmtPatterns):
+        super(StatementResult, self).__init__(rel, *stmtPatterns)
+
+
+class StatementTemplate(ExpressionNode):
+    """An expression node representing a result statement template."""
+
+    __slots__ = ()
+
+    def __init__(self, subj, pred, obj):
+        super(StatementTemplate, self).__init__(subj, pred, obj)
+
+
 #
 # Result Modifiers
 #
@@ -791,6 +828,7 @@ class Distinct(UnaryOperation):
     filtered to eliminate repeated rows."""
 
     __slots__ = ()
+
 
 class OffsetLimit(ExpressionNode):
     """Selects some rows from the results based on their position in
@@ -822,6 +860,35 @@ class Sort(ExpressionNode):
         self.ascending = 1
         
         super(Sort, self).__init__(subexpr, orderBy)        
+
+
+#
+# Model Modification Operations
+#
+
+class ModifOperation(UnaryOperation):
+    """Base class for modification operations. The subexpression is a
+    construct query that produces the set of statements to be inserted
+    into or deleted from the model."""
+
+    __slots__ = ('graphUri',)
+
+    def __init__(self, graphUri, subexpr):
+        super(ModifOperation, self).__init__(subexpr)
+        self.graphUri = graphUri
+
+
+class Insert(ModifOperation):
+    """An insert operation."""
+
+    __slots__ = ()
+
+
+class Delete(ModifOperation):
+    """A delete operation."""
+
+    __slots__ = ()
+
 
 #
 # Set Operations

@@ -1,3 +1,4 @@
+from relrdf.localization import _
 from relrdf import error
 from relrdf.expression import nodes
 
@@ -271,7 +272,7 @@ class Schema(object):
         """Return the mapper object defined by mapping `name`
         and the keyword parameters.
 
-        `mappingName` is a string."""
+        `name` is a string."""
         try:
             mappingDef = self.defs[name]
         except KeyError:

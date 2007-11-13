@@ -1,5 +1,6 @@
 import antlr
 
+from relrdf.localization import _
 from relrdf import commonns, error
 from relrdf.expression import literal, uri, nodes
 
@@ -62,8 +63,8 @@ class Parser(antlr.LLkParser):
 
 
     def defineLocalPrefix(self, qnameToken, uriToken):
-        """Create a new local prefix `prefix` with associated URI
-        `uri`."""
+        """Create a new local prefix from the token `qnameToken` with
+        associated URI obtained from `uriToken`."""
         # Make sure that the prefix is really a prefix. This is hard
         # to check directly with the Antlr parser, at least when the
         # rules are kept close to the SPARQL standard.
@@ -97,7 +98,7 @@ class Parser(antlr.LLkParser):
 
     def resolveQName(self, qnameToken):
         """Create an URI expression node corresponding to the
-        qualified name `qname`."""
+        qualified name `qnameToken`."""
         qname = qnameToken.getText()
         try:
             pos = qname.index(':')
@@ -114,5 +115,28 @@ class Parser(antlr.LLkParser):
                 extents=extents)
 
     def checkDefinedPrefix(self, token):
-        """Make sure the prefix does not start with `'_'`."""
+        """Make sure the prefix does not start with ``'_'``."""
         return token.getText()
+
+    def makeStmtTemplates(self, graphPattern):
+        """Make a list of statement templates from a graph pattern.
+
+        The graph pattern must be a flat list of statement
+        patterns. This method is used to build the statement templates
+        in a 'construct' statement.
+        """
+        result = []
+        for stmtPattern in graphPattern:
+            assert isinstance(stmtPattern, nodes.StatementPattern)
+            result.append(nodes.StatementTemplate(*stmtPattern[1:]))
+
+        return result
+
+    def makeModifQuery(self, cls, graphUri, where, *templates):
+        if where is None:
+            where = nodes.Empty()
+        cons = nodes.StatementResult(where, *templates)
+        if graphUri is not None:
+            return cls(graphUri.uri, cons)
+        else:
+            return cls(None, cons)

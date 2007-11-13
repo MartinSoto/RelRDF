@@ -25,6 +25,8 @@ query returns [expr]
         |   expr=constructQuery
         |   expr=describeQuery
         |   expr=askQuery
+        |   expr=insertQuery
+        |   expr=deleteQuery
         )
     ;
 
@@ -67,7 +69,6 @@ selectQuery returns [expr]
 selectColumnList[names, mappingExprs]
     :   ( columnSpec[names, mappingExprs] )+
     ;
-
 /* RelRDF extension. */
 columnSpec[names, mappingExprs]
     :   var=var
@@ -84,10 +85,10 @@ columnSpec[names, mappingExprs]
 
 constructQuery returns [expr]
     :   ct:CONSTRUCT
-        constructTemplate
+        tmplList=constructTemplate
         ( datasetClause )*
         where=whereClause
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.StatementResult(where, *tmplList); \
           expr.setExtentsStartFromToken(ct, self); }
         expr=solutionModifier[expr]
     ;
@@ -127,6 +128,30 @@ namedGraphClause
 
 sourceSelector returns [expr]
     :   expr=iriRef
+    ;
+
+insertQuery returns [expr]
+    :   { graphUri=None; \
+          where = None; }
+        insert:INSERT
+        ( ( INTO )? ( GRAPH )? graphUri=iriRef )?
+        tmplList=constructTemplate
+        ( where=whereClause )?
+        { expr = self.makeModifQuery(nodes.Insert, graphUri, where,
+                                     *tmplList); \
+          expr.setExtentsStartFromToken(insert, self); }
+    ;
+
+deleteQuery returns [expr]
+    :   { graphUri=None; \
+          where = None; }
+        delete:DELETE
+        ( ( FROM )? ( GRAPH )? graphUri=iriRef )?
+        tmplList=constructTemplate
+        ( where=whereClause )?
+        { expr = self.makeModifQuery(nodes.Delete, graphUri, where,
+                                     *tmplList); \
+          expr.setExtentsStartFromToken(delete, self); }
     ;
 
 whereClause returns [expr]
@@ -259,14 +284,15 @@ argList[funcCall]
         )
     ;
 
-constructTemplate
-    :   LBRACE constructTriples RBRACE
+constructTemplate returns [tmplList]
+    :   { expr = spqnodes.GraphPattern(); }
+        LBRACE constructTriples[expr] RBRACE
+        { tmplList = self.makeStmtTemplates(expr); }
     ;
 
-constructTriples
-    :   { expr = spqnodes.GraphPattern() }
-        (   triplesSameSubject[nodes.Joker(), expr]
-            ( DOT constructTriples )?
+constructTriples[expr]
+    :   (   triplesSameSubject[nodes.Joker(), expr]
+            ( DOT constructTriples[expr] )?
         )?
     ;
 
@@ -754,6 +780,11 @@ DATATYPE
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
+DELETE
+    :   ('D'|'d') ('E'|'e') ('L'|'l') ('E'|'e') ('T'|'t') ('E'|'e') 
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
 DESC
     :   ('D'|'d') ('E'|'e') ('S'|'s') ('C'|'c')
     ;
@@ -783,6 +814,16 @@ FROM
 protected  /* See QNAME_OR_KEYWORD. */
 GRAPH
     :   ('G'|'g') ('R'|'r') ('A'|'a') ('P'|'p') ('H'|'h')
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
+INSERT
+    :   ('I'|'i') ('N'|'n') ('S'|'s')  ('E'|'e') ('R'|'r') ('T'|'t')
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
+INTO
+    :   ('I'|'i') ('N'|'n') ('T'|'t')  ('O'|'o')
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -905,6 +946,8 @@ QNAME_OR_KEYWORD
         { $setType(CONSTRUCT) }
     |   ( DATATYPE ) => DATATYPE
         { $setType(DATATYPE) }
+    |   ( DELETE ) => DELETE
+        { $setType(DELETE) }
     |   ( DESCRIBE ) => DESCRIBE
         { $setType(DESCRIBE) }
     |   ( DESC ) => DESC
@@ -917,6 +960,10 @@ QNAME_OR_KEYWORD
         { $setType(FROM) }
     |   ( GRAPH ) => GRAPH
         { $setType(GRAPH) }
+    |   ( INSERT ) => INSERT
+        { $setType(INSERT) }
+    |   ( INTO ) => INTO
+        { $setType(INTO) }
     |   ( LANGMATCHES ) => LANGMATCHES
         { $setType(LANGMATCHES) }
     |   ( LANG ) => LANG

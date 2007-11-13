@@ -3,6 +3,7 @@ import pprint
 
 import antlr
 
+from relrdf.localization import _
 from relrdf import error
 from relrdf import commonns
 from relrdf.expression import nodes

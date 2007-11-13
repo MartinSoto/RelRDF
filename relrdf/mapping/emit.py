@@ -114,7 +114,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             # same incarnation as name.
             return '(SELECT * FROM %s WHERE %s) AS rel_%s' % \
                    (rel, cond, expr[0].incarnation)
-                   
+
     def preMapResult(self, expr):
         if isinstance(expr[0], nodes.Select):
             # We treat this common case specially, in order to avoid
@@ -191,6 +191,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def SetDifference(self, *args):
         return self._setDiffOrIntersect('NOT IN', *args)
+
+    def Empty(self, expr):
+        return ''
 
     def SqlRelation(self, expr):
         # Single relation names cannot be parenthesized.

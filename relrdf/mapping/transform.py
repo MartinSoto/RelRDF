@@ -13,7 +13,7 @@ import sqlnodes
 
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions
-    corresponding to tzhe dynamic data type of each one of the
+    corresponding to the dynamic data type of each one of the
     original columns."""
 
     __slots__ = ()
@@ -24,6 +24,18 @@ class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
             expr.columnNames[i*2+1:i*2+1] = 'type__' + expr.columnNames[i*2],
             expr[i*2+2:i*2+2] = nodes.DynType(expr[i*2+1].copy()),
             expr[i*2+1] = mappingExpr
+        return expr
+
+    def StatementResult(self, expr, relExpr, *stmtTmpls):
+        expr = nodes.MapResult([], relExpr)
+        for i, stmtTmpl in enumerate(stmtTmpls):
+            for colName, mappingExpr in zip(('subject', 'predicate', 'object'),
+                                            stmtTmpl):
+                expr.columnNames.append('%s%d' % (colName, i + 1))
+                expr.append(mappingExpr)
+                
+                expr.columnNames.append('type__%s%d' % (colName, i + 1))
+                expr.append(nodes.DynType(mappingExpr.copy()))
         return expr
 
     def _setOperation(self, expr, *operands):

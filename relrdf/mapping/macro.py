@@ -1,3 +1,4 @@
+from relrdf.localization import _
 from relrdf import error
 from relrdf.expression import nodes
 

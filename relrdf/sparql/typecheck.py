@@ -53,7 +53,7 @@ class SparqlTypeChecker(check.TypeChecker):
 
 
 def sparqlTypeCheck(expr):
-    """Type check `expr`. This function sets the `staticType` fields
+    """Type check `expr`. This function sets the ``staticType`` fields
     in all nodes in `expr`. `expr` will be modified in place, but the
     return value must be used since the root node may change."""
     checker = SparqlTypeChecker()

@@ -1,18 +1,19 @@
+from relrdf.localization import _
 from relrdf.commonns import xsd
 
 from relrdf.expression import nodes, rewrite
 
 from typeexpr import nullType, rdfNodeType, LiteralType, \
      booleanLiteralType, genericLiteralType, ResourceType, \
-     resourceType, RelationType
+     resourceType, RelationType, StatementRelType
 
 from typeexpr import error
 
 
 class TypeChecker(rewrite.ExpressionProcessor):
     """Perform type checking on an expression. Methods don't actually
-    build any values but set them in the `staticType` and
-    `dynamicType` fields of the expression."""
+    build any values but set them in the ``staticType`` and
+    ``dynamicType`` fields of the expression."""
 
     __slots__ = ('scopeStack',)
 
@@ -223,6 +224,41 @@ class TypeChecker(rewrite.ExpressionProcessor):
             typeExpr.addColumn(colName, colExpr.staticType)
         expr.staticType = typeExpr
 
+    def preStatementResult(self, expr):
+        # Process the relation subexpression and create a scope from
+        # its type.
+        self.process(expr[0])
+        self.createScope(expr[0].staticType)
+
+        # Now process the expressions in the statement templates.
+        for stmtTmpl in expr[1:]:
+            for component in stmtTmpl:
+                self.process(component)
+
+        # Remove the scope.
+        self.closeScope()
+
+        return (None,) * len(expr)
+
+    def StatementResult(self, expr, rel, *stmtTmpls):
+        typeExpr = StatementRelType()
+        for i, stmtTmpl in enumerate(expr[1:]):
+            if not stmtTmpl[0].staticType.isSubtype(resourceType):
+                error(stmtTmpl[0], _("Subject type must be a resource"))
+            typeExpr.addColumn('subject%d' % (i + 1),
+                               stmtTmpl[0].staticType)
+
+            if not stmtTmpl[1].staticType.isSubtype(resourceType):
+                error(stmtTmpl[1], _("Predicate type must be a resource"))
+            typeExpr.addColumn('predicate%d' % (i + 1),
+                               stmtTmpl[1].staticType)
+
+            if not stmtTmpl[2].staticType.isSubtype(rdfNodeType):
+                error(stmtTmpl[2], _("Object type must be an RDF node"))
+            typeExpr.addColumn('object%d' % (i + 1),
+                               stmtTmpl[2].staticType)
+        expr.staticType = typeExpr
+
     def Distinct(self, expr, subexpr):
         expr.staticType = expr[0].staticType
         
@@ -231,6 +267,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
         
     def Sort(self, expr, subexpr, orderBy):
         expr.staticType = expr[0].staticType
+
+    def Empty(self, expr):
+        # Empty relation type.
+        expr.staticType = RelationType()
 
     def _setOperationType(self, expr, *operands):
         typeExpr = expr[0].staticType
@@ -249,10 +289,20 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def Intersection(self, expr, *operands):
         self._setOperationType(expr, *operands)
 
+    def Insert(self, expr, stmtRel):
+        if not isinstance(expr[0].staticType, StatementRelType):
+            error(expr, _("Insert subexpression must be a statement relation"))
+        expr.staticType = expr[0].staticType
+
+    def Delete(self, expr, stmtRel):
+       if not isinstance(expr[0].staticType, StatementRelType):
+            error(expr, _("Delete subexpression must be a statement relation"))
+       expr.staticType = expr[0].staticType
+
 
 def typeCheck(expr):
-    """Type check `expr`. This function sets the `staticType` and
-    `dynamicType` fields in all nodes in `expr`. `expr` will be
+    """Type check `expr`. This function sets the ``staticType`` and
+    ``dynamicType`` fields in all nodes in `expr`. `expr` will be
     modified in place, but the return value must be used since the
     root node may change."""
     checker = TypeChecker()

@@ -1,3 +1,4 @@
+from relrdf.localization import _
 from relrdf import error
 from relrdf.expression import nodes, rewrite, simplify, util
 from relrdf.typecheck import typeexpr
@@ -60,7 +61,7 @@ class Scope(dict):
         Closing a scope comprises three main operations. The first one
         is checking that none of the excluded variables in this scope
         is bound in the containing scope. If it is, an
-        `error.SemanticException` is raised. Excluded variables are
+        `error.SemanticError` is raised. Excluded variables are
         also added to the containing's scope excluded set.
 
         The second operation consists of merging the scope into its
@@ -149,14 +150,14 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     def __init__(self):
         super(PatternDecoupler, self).__init__(prePrefix='pre')
 
-    def preMapResult(self, expr):
+    def _processResult(self, expr):
         # Create a separate scope for the expression.
         self.currentScope = Scope()
 
         # Process the relation subexpression first.
         expr[0] = self.process(expr[0])
 
-        # Now process the mapping expressions.
+        # Now process the mapping expressions/statement templates.
         expr[1:] = [self.process(mappingExpr)
                     for mappingExpr in expr[1:]]
 
@@ -166,6 +167,9 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
             expr[0] = nodes.Select(expr[0], cond)
 
         return expr
+
+    preMapResult = _processResult
+    preStatementResult = _processResult
 
     _patternOrder = {
         nodes.StatementPattern: 1,

@@ -1,5 +1,6 @@
 import antlr
 
+from relrdf.localization import _
 from relrdf.expression import nodes
 
 
@@ -18,9 +19,31 @@ class InstantiationError(Error):
     pass
 
 
+class AuthenticationError(Error):
+    """Exception class for errors related to user authentication."""
+    pass
+
+
+class DatabaseError(Error):
+    """Exception class for database related errors."""
+    pass
+
+
 class MacroError(Error):
     """Exception class for errors related to macro expressions
     processing."""
+    pass
+
+
+class ModifyError(Error):
+    """Exceptiom class for errors related to modifying models.
+    """
+    pass
+
+
+class TemplateError(Error):
+    """Exception class for errors related to query templates.
+    """
     pass
 
 

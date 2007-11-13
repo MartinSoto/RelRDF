@@ -11,7 +11,7 @@ options {
 
 /*----------------------------------------------------------------------
  * Parser
- *--------------------------------------------------------------------*/
+ *----------Product----------------------------------------------------------*/
 
 class SparqlParser extends Parser("parser.Parser");
 
@@ -379,7 +379,7 @@ graphTerm returns [expr]
     :   expr=iriRef
     |   expr=rdfLiteral
     |   (   MINUS expr=numericLiteral
-            { expr = nodes.NotSupported(expr) }
+            { expr = nodes.UMinus(expr) }
         |   ( PLUS )? expr=numericLiteral
         )
     |   expr=booleanLiteral
@@ -479,10 +479,26 @@ brackettedExpression returns [expr]
     ;
 
 builtInCall returns [expr]
-    :   str:STR LPAREN param=expression rp1:RPAREN
-        { expr = nodes.NotSupported(); \
-          expr.setExtentsStartFromToken(str, self); \
+    :   bool:BOOL LPAREN param=expression rp1:RPAREN
+        { expr = nodes.CastBool(param); \
+          expr.setExtentsStartFromToken(bool, self); \
           expr.setExtentsEndFromToken(rp1); }
+    |   dec:DEC LPAREN param=expression rp12:RPAREN
+        { expr = nodes.CastDecimal(param); \
+          expr.setExtentsStartFromToken(dec, self); \
+          expr.setExtentsEndFromToken(rp12); }
+    |   int:INT LPAREN param=expression rp13:RPAREN
+        { expr = nodes.CastInt(param); \
+          expr.setExtentsStartFromToken(int, self); \
+          expr.setExtentsEndFromToken(rp13); }
+    |   dT:DT LPAREN param=expression rp14:RPAREN
+        { expr = nodes.CastDateTime(param); \
+          expr.setExtentsStartFromToken(dT, self); \
+          expr.setExtentsEndFromToken(rp14); }
+    |   str:STR LPAREN param=expression rp15:RPAREN
+        { expr = nodes.CastString(param); \
+          expr.setExtentsStartFromToken(str, self); \
+          expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN
         { expr = nodes.NotSupported(); \
           expr.setExtentsStartFromToken(lang, self); \
@@ -497,7 +513,7 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(dt, self); \
           expr.setExtentsEndFromToken(rp4); }
     |   bd:BOUND LPAREN param=var rp5:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.IsBound(param); \
           expr.setExtentsStartFromToken(bd, self); \
           expr.setExtentsEndFromToken(rp5); }
     |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
@@ -879,6 +895,26 @@ SELECT
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
+BOOL
+    :   ('B'|'b') ('O'|'o') ('O'|'o') ('L'|'l')
+    ;
+    
+protected  /* See QNAME_OR_KEYWORD. */
+DEC
+    :   ('D'|'d') ('E'|'e') ('C'|'c')
+    ;
+    
+protected  /* See QNAME_OR_KEYWORD. */
+INT
+    :   ('I'|'i') ('N'|'n') ('T'|'t')
+    ;
+    
+protected  /* See QNAME_OR_KEYWORD. */
+DT
+    :   ('D'|'d') ('T'|'t')
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
 STR
     :   ('S'|'s') ('T'|'t') ('R'|'r')
     ;
@@ -984,6 +1020,14 @@ QNAME_OR_KEYWORD
         { $setType(REGEX) }
     |   ( SELECT ) => SELECT
         { $setType(SELECT) }
+    |   ( BOOL ) => BOOL
+        { $setType(BOOL) }
+    |   ( DEC ) => DEC
+        { $setType(DEC) }
+    |   ( INT ) => INT
+        { $setType(INT) }
+    |   ( DT ) => DT
+        { $setType(DT) }
     |   ( STR ) => STR
         { $setType(STR) }
     |   ( UNION ) => UNION

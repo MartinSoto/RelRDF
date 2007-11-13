@@ -709,6 +709,36 @@ class DividedBy(ArithmeticOperation, BinaryOperation):
 
     __slots__ = ()
 
+class IsBound(UnaryOperation):
+    """Determines wether a variable is bound to a value"""
+    
+    __slots__ = ()
+
+class CastBool(UnaryOperation):
+     """Converts the given value to the boolean datatype"""
+    
+     __slots__ = ()
+  
+class CastDecimal(UnaryOperation):
+     """Converts the given value to the decimal datatype"""
+    
+     __slots__ = ()
+  
+class CastInt(UnaryOperation):
+     """Converts the given value to the integer datatype"""
+    
+     __slots__ = ()
+  
+class CastDateTime(UnaryOperation):
+     """Converts the given value to the date/time datatype"""
+    
+     __slots__ = ()
+  
+class CastString(UnaryOperation):
+     """Converts the given value to the string datatype"""
+    
+     __slots__ = ()
+  
 
 #
 # Relational Operations
@@ -761,7 +791,18 @@ class Select(ExpressionNode):
     def __init__(self, rel, predicate):
         super(Select, self).__init__(rel, predicate)
 
-class MapResult(ExpressionNode):
+#
+# Query Results
+#
+
+class QueryResult(ExpressionNode):
+    """A base class for all nodes representing query results.
+    """
+
+    __slots__ = ()
+
+
+class MapResult(QueryResult):
     """Specify the column names of a result table, together with the
     expressions they are bound to."""
 
@@ -777,7 +818,7 @@ class MapResult(ExpressionNode):
         # The incarnation can be used to give the resulting table a
         # name while generating SQL expressions.
         self.incarnation = None
-
+        
     def subexprByName(self, columnName):
         """Return the subexpression bound a to a particular column name."""
         return self[self.columnNames.index(columnName) + 1]
@@ -795,7 +836,6 @@ class MapResult(ExpressionNode):
         stream.write(' [%s]' % ', '.join(self.columnNames))
         if self.incarnation is not None:
             stream.write(' _%d' % self.incarnation)
-
 
 class StatementResult(QueryResult):
     """Specify the statement templates used to produce the result of a
@@ -829,7 +869,6 @@ class Distinct(UnaryOperation):
 
     __slots__ = ()
 
-
 class OffsetLimit(ExpressionNode):
     """Selects some rows from the results based on their position in
     the result list"""
@@ -860,7 +899,6 @@ class Sort(ExpressionNode):
         self.ascending = 1
         
         super(Sort, self).__init__(subexpr, orderBy)        
-
 
 #
 # Model Modification Operations

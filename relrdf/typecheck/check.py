@@ -171,6 +171,30 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def DividedBy(self, expr, *operands):
         self._checkScalarOperands(expr, '/')
         expr.staticType = genericLiteralType
+        
+    def IsBound(self, expr, var):
+        self._checkScalarOperands(expr, 'BOUND')
+        expr.staticType = booleanLiteralType
+
+    def CastBool(self, expr, var):
+        self._checkScalarOperands(expr, 'BOOL')
+        expr.staticType = booleanLiteralType
+
+    def CastDecimal(self, expr, var):
+        self._checkScalarOperands(expr, 'DEC')
+        expr.staticType = LiteralType(xsd.decimal)
+
+    def CastInt(self, expr, var):
+        self._checkScalarOperands(expr, 'INT')
+        expr.staticType = LiteralType(xsd.integer)
+
+    def CastDateTime(self, expr, var):
+        self._checkScalarOperands(expr, 'DT')
+        expr.staticType = LiteralType(xsd.dateTime)
+
+    def CastString(self, expr, var):
+        self._checkScalarOperands(expr, 'STR')
+        expr.staticType = LiteralType(xsd.string)
 
     def _checkJoin(self, expr, *operands):
         typeExpr = RelationType()

@@ -11,7 +11,7 @@ options {
 
 /*----------------------------------------------------------------------
  * Parser
- *--------------------------------------------------------------------*/
+ *----------Product----------------------------------------------------------*/
 
 class SparqlParser extends Parser("parser.Parser");
 
@@ -62,7 +62,7 @@ selectQuery returns [expr]
                expr = nodes.Distinct(expr); \
             expr.setExtentsStartFromToken(sl, self);
         }
-        solutionModifier
+        expr=solutionModifier[expr]
     ;
 
 /* RelRDF extension. */
@@ -90,7 +90,7 @@ constructQuery returns [expr]
         where=whereClause
         { expr = nodes.StatementResult(where, *tmplList); \
           expr.setExtentsStartFromToken(ct, self); }
-        solutionModifier
+        expr=solutionModifier[expr]
     ;
 
 describeQuery returns [expr]
@@ -100,7 +100,7 @@ describeQuery returns [expr]
         ( where=whereClause )?
         { expr = nodes.NotSupported(); \
           expr.setExtentsStartFromToken(dc, self); }
-        solutionModifier
+        expr=solutionModifier[expr]
     ;
 
 askQuery returns [expr]
@@ -159,27 +159,43 @@ whereClause returns [expr]
         expr=groupGraphPattern[nodes.Joker()]
     ;
 
-solutionModifier
-    :   ( orderClause )?
-        ( limitClause )?
-        ( offsetClause )?
+solutionModifier[expr] returns [expr=expr]
+    :   ( expr=orderClause[expr] )?
+        ( expr=offsetLimitClause[expr] )?
     ;
 
-orderClause
-    :   ORDER BY ( orderCondition )+
+orderClause[expr] returns [expr=expr]
+    :   ORDER BY ( expr=orderCondition[expr] )+
     ;
 
-orderCondition
-    :   ( ( ASC | DESC ) bexpr1=brackettedExpression )
-    |   ( func=functionCall | var=var | bexpr2=brackettedExpression )
+orderCondition[expr] returns [expr=expr]
+    :   { ascending = True }
+    	(	(	( ASC { ascending = True }
+	    		| DESC { ascending = False }
+	    		)
+	    		orderBy=brackettedExpression
+	    	)
+	    |	( orderBy=functionCall | orderBy=var | orderBy=brackettedExpression )
+	    )
+		{
+            expr = nodes.Sort(expr, orderBy)
+            expr.ascending = ascending
+		}
     ;
 
-limitClause
-    :   LIMIT INTEGER
+offsetLimitClause[expr] returns [expr=expr]
+	:	{ expr = nodes.OffsetLimit(expr) }
+		( limitClause[expr] (offsetClause[expr])?
+		| offsetClause[expr] (limitClause[expr])?
+		)
+	;
+
+limitClause[expr]
+    :   LIMIT i:INTEGER { expr.limit = int(i.getText()) }
     ;
 
-offsetClause
-    :   OFFSET INTEGER
+offsetClause[expr]
+    :   OFFSET i:INTEGER { expr.offset = int(i.getText()) }
     ;
 
 groupGraphPattern[graph] returns [expr]
@@ -363,7 +379,7 @@ graphTerm returns [expr]
     :   expr=iriRef
     |   expr=rdfLiteral
     |   (   MINUS expr=numericLiteral
-            { expr = nodes.NotSupported(expr) }
+            { expr = nodes.UMinus(expr) }
         |   ( PLUS )? expr=numericLiteral
         )
     |   expr=booleanLiteral
@@ -419,30 +435,30 @@ numericExpression returns [expr]
 additiveExpression returns [expr]
     :   expr=multiplicativeExpression
         (   PLUS mult=multiplicativeExpression
-            { expr = nodes.NotSupported(expr, mult); }
+            { expr = nodes.Plus(expr, mult); }
         |   MINUS mult=multiplicativeExpression
-            { expr = nodes.NotSupported(expr, mult); }
+            { expr = nodes.Minus(expr, mult); }
         )*
     ;
 
 multiplicativeExpression returns [expr]
     :   expr=unaryExpression
         (   TIMES unary=unaryExpression
-            { expr = nodes.NotSupported(expr, unary); }
+            { expr = nodes.Times(expr, unary); }
         |   DIV unary=unaryExpression
-            { expr = nodes.NotSupported(expr, unary); }
+            { expr = nodes.DividedBy(expr, unary); }
         )*
     ;
 
 unaryExpression returns [expr]
     :   on:OP_NOT prim=primaryExpression
-        { expr = nodes.NotSupported(prim); \
+        { expr = nodes.Not(prim); \
           expr.setExtentsStartFromToken(on, self); }
     |   plus:PLUS prim=primaryExpression
         { expr = nodes.NotSupported(prim); \
           expr.setExtentsStartFromToken(plus, self); }
     |   minus:MINUS prim=primaryExpression
-        { expr = nodes.NotSupported(prim); \
+        { expr = nodes.UMinus(prim); \
           expr.setExtentsStartFromToken(minus, self); }
     |   expr=primaryExpression
     ;
@@ -463,10 +479,26 @@ brackettedExpression returns [expr]
     ;
 
 builtInCall returns [expr]
-    :   str:STR LPAREN param=expression rp1:RPAREN
-        { expr = nodes.NotSupported(); \
-          expr.setExtentsStartFromToken(str, self); \
+    :   bool:BOOL LPAREN param=expression rp1:RPAREN
+        { expr = nodes.CastBool(param); \
+          expr.setExtentsStartFromToken(bool, self); \
           expr.setExtentsEndFromToken(rp1); }
+    |   dec:DEC LPAREN param=expression rp12:RPAREN
+        { expr = nodes.CastDecimal(param); \
+          expr.setExtentsStartFromToken(dec, self); \
+          expr.setExtentsEndFromToken(rp12); }
+    |   int:INT LPAREN param=expression rp13:RPAREN
+        { expr = nodes.CastInt(param); \
+          expr.setExtentsStartFromToken(int, self); \
+          expr.setExtentsEndFromToken(rp13); }
+    |   dT:DT LPAREN param=expression rp14:RPAREN
+        { expr = nodes.CastDateTime(param); \
+          expr.setExtentsStartFromToken(dT, self); \
+          expr.setExtentsEndFromToken(rp14); }
+    |   str:STR LPAREN param=expression rp15:RPAREN
+        { expr = nodes.CastString(param); \
+          expr.setExtentsStartFromToken(str, self); \
+          expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN
         { expr = nodes.NotSupported(); \
           expr.setExtentsStartFromToken(lang, self); \
@@ -481,7 +513,7 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(dt, self); \
           expr.setExtentsEndFromToken(rp4); }
     |   bd:BOUND LPAREN param=var rp5:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.IsBound(param); \
           expr.setExtentsStartFromToken(bd, self); \
           expr.setExtentsEndFromToken(rp5); }
     |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
@@ -863,6 +895,26 @@ SELECT
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
+BOOL
+    :   ('B'|'b') ('O'|'o') ('O'|'o') ('L'|'l')
+    ;
+    
+protected  /* See QNAME_OR_KEYWORD. */
+DEC
+    :   ('D'|'d') ('E'|'e') ('C'|'c')
+    ;
+    
+protected  /* See QNAME_OR_KEYWORD. */
+INT
+    :   ('I'|'i') ('N'|'n') ('T'|'t')
+    ;
+    
+protected  /* See QNAME_OR_KEYWORD. */
+DT
+    :   ('D'|'d') ('T'|'t')
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
 STR
     :   ('S'|'s') ('T'|'t') ('R'|'r')
     ;
@@ -968,6 +1020,14 @@ QNAME_OR_KEYWORD
         { $setType(REGEX) }
     |   ( SELECT ) => SELECT
         { $setType(SELECT) }
+    |   ( BOOL ) => BOOL
+        { $setType(BOOL) }
+    |   ( DEC ) => DEC
+        { $setType(DEC) }
+    |   ( INT ) => INT
+        { $setType(INT) }
+    |   ( DT ) => DT
+        { $setType(DT) }
     |   ( STR ) => STR
         { $setType(STR) }
     |   ( UNION ) => UNION

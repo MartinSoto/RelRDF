@@ -12,7 +12,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def __init__(self):
         super(SqlEmitter, self).__init__(prePrefix='pre')
 
-        self.distinct = False
+        self.distinct = 0
 
     def Null(self, expr):
         return 'NULL'
@@ -77,11 +77,29 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def UMinus(self, expr, op):
         return '-(%s)' % op
 
-    def Times(self, expr, *args):
+    def Times(self, expr, *operands):
         return '(' + ') * ('.join(operands) + ')'
 
     def DividedBy(self, expr, op1, op2):
         return '(%s) / (%s)' % (op1, op2)
+    
+    def IsBound(self, expr, var):
+        return '%s IS NOT NULL' % var
+
+    def CastBool(self, expr, var):
+        return '(%s) != 0' % var
+
+    def CastDecimal(self, expr, var):
+        return 'CAST(%s AS DECIMAL)' % var
+
+    def CastInt(self, expr, var):
+        return 'CAST(%s AS SIGNED INTEGER)' % var
+
+    def CastDateTime(self, expr, var):
+        return 'CAST(%s AS DATETIME)' % var
+
+    def CastString(self, expr, var):
+        return 'CAST(%s AS CHAR)' % var
 
     def Product(self, expr, *operands):
         return '(' + ') CROSS JOIN ('.join(operands) + ')'
@@ -114,7 +132,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             # same incarnation as name.
             return '(SELECT * FROM %s WHERE %s) AS rel_%s' % \
                    (rel, cond, expr[0].incarnation)
-
+                   
     def preMapResult(self, expr):
         if isinstance(expr[0], nodes.Select):
             # We treat this common case specially, in order to avoid
@@ -128,6 +146,8 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def MapResult(self, expr, select, *columnExprs):
         columns = ', '.join(["%s AS '%s'" % (e, n)
                              for e, n in zip(columnExprs, expr.columnNames)])
+
+        # Distinct?
         if self.distinct:
             distinct = 'DISTINCT '
         else:
@@ -139,12 +159,49 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             return 'SELECT %s%s\nFROM %s' % (distinct, columns, select)
 
     def preDistinct(self, expr):
-        self.distinct = True
-
+        self.distinct += 1
         return (self.process(expr[0]),)
 
     def Distinct(self, expr, subexpr):
+        self.distinct -= 1
         return subexpr
+
+    def OffsetLimit(self, expr, subexpr):
+        
+        # Check that we have some kind of SELECT expression in subexpr
+        allowed = [nodes.MapResult, nodes.Select, nodes.Sort]
+        assert expr[0].__class__ in allowed,  \
+            'OffsetLimit can only be used with the result of MapResult, Select ' \
+            'or Sort!'
+        
+        # Add LIMIT clause
+        if expr.limit != None:
+            if expr.offset != None:                
+                query = subexpr + '\nLIMIT %d,%d' % (expr.offset, expr.limit)
+            else:
+                query = subexpr + '\nLIMIT %d' % expr.limit
+        else:
+            if expr.offset != None:
+                # Note: The MySQL manual actually suggests this number.
+                #       Let's hope it's future-proof.
+                query = subepxr + '\nLIMIT %d,18446744073709551615' % expr.offset
+            
+        return query
+    
+    def Sort(self, expr, subexpr, orderBy):
+        
+        # Check that we have some kind of SELECT expression in subexpr
+        allowed = [nodes.MapResult, nodes.Select]
+        assert expr[0].__class__ in allowed,  \
+            'Sort can only be used directly with the result of MapResult or Select!'
+                    
+        # Add ORDER BY clause
+        if expr.ascending:
+            query = subexpr + "\nORDER BY " + orderBy + " ASC"
+        else:
+            query = subexpr + "\nORDER BY " + orderBy + " DESC"
+        
+        return query
 
     def Union(self, expr, *operands):
         return '(' + ')\nUNION\n('.join(operands) + ')'
@@ -205,4 +262,10 @@ def emit(expr):
     # Reduce constant expressions.
     expr = evaluate.reduceConst(expr)
 
-    return emitter.process(expr)
+    # Debugging...
+    # print emitter.process(expr)
+    
+    bla = emitter.process(expr)
+    print bla
+    return bla
+

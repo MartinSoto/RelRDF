@@ -152,6 +152,50 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, 'NOT')
         expr.staticType = booleanLiteralType
 
+    def Plus(self, expr, *operands):
+        self._checkScalarOperands(expr, '+')
+        expr.staticType = genericLiteralType
+
+    def Minus(self, expr, *operands):
+        self._checkScalarOperands(expr, '-')
+        expr.staticType = genericLiteralType
+
+    def UMinus(self, expr, *operands):
+        self._checkScalarOperands(expr, '-')
+        expr.staticType = genericLiteralType
+
+    def Times(self, expr, *operands):
+        self._checkScalarOperands(expr, '*')
+        expr.staticType = genericLiteralType
+
+    def DividedBy(self, expr, *operands):
+        self._checkScalarOperands(expr, '/')
+        expr.staticType = genericLiteralType
+        
+    def IsBound(self, expr, var):
+        self._checkScalarOperands(expr, 'BOUND')
+        expr.staticType = booleanLiteralType
+
+    def CastBool(self, expr, var):
+        self._checkScalarOperands(expr, 'BOOL')
+        expr.staticType = booleanLiteralType
+
+    def CastDecimal(self, expr, var):
+        self._checkScalarOperands(expr, 'DEC')
+        expr.staticType = LiteralType(xsd.decimal)
+
+    def CastInt(self, expr, var):
+        self._checkScalarOperands(expr, 'INT')
+        expr.staticType = LiteralType(xsd.integer)
+
+    def CastDateTime(self, expr, var):
+        self._checkScalarOperands(expr, 'DT')
+        expr.staticType = LiteralType(xsd.dateTime)
+
+    def CastString(self, expr, var):
+        self._checkScalarOperands(expr, 'STR')
+        expr.staticType = LiteralType(xsd.string)
+
     def _checkJoin(self, expr, *operands):
         typeExpr = RelationType()
 
@@ -241,6 +285,12 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
     def Distinct(self, expr, subexpr):
         expr.staticType = expr[0].staticType
+        
+    def OffsetLimit(self, expr, subexpr):
+        expr.staticType = expr[0].staticType
+        
+    def Sort(self, expr, subexpr, orderBy):
+        expr.staticType = expr[0].staticType
 
     def Empty(self, expr):
         # Empty relation type.
@@ -282,4 +332,3 @@ def typeCheck(expr):
     checker = TypeChecker()
     checker.process(expr)
     return expr
-

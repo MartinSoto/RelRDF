@@ -535,10 +535,11 @@ class Var(ExpressionNode):
 class FunctionCall(ExpressionNode):
     """A function call."""
 
-    __slots__ = ()
+    __slots__ = ('functionName')
 
     def __init__(self, functionName, *params):
-        super(FunctionCall, self).__init__(functionName, *params)
+        self.functionName = functionName
+        super(FunctionCall, self).__init__(*params)
 
 
 class If(ExpressionNode):

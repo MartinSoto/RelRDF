@@ -1,6 +1,6 @@
 import re
 
-from relrdf.commonns import xsd
+from relrdf.commonns import xsd, fn, sql
 from relrdf.expression import rewrite, nodes, simplify, evaluate
 
 
@@ -31,8 +31,28 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         else:
             return '"%s"' % unicode(expr.literal)
 
+    _functionMap = {
+        fn.abs:                'ABS',
+        fn.ceiling:            'CEILING',
+        fn.concat:             'CONCAT',
+        fn['current-dateTime']:'NOW',
+        fn.floor:              'FLOOR',
+        fn['lower-case']:      'LOWER',
+        fn.max:                'GREATEST',
+        fn.min:                'LEAST',
+        fn['not']:             'NOT',
+        fn.round:              'ROUND',
+        fn['upper-case']:      'UPPER'
+    }
+    
     def FunctionCall(self, expr, *params):
-        return '%s(%s)' % (expr.functionName, ', '.join(params))
+        # Find SQL function name. TODO: type checking, argument count
+        fnName = self._functionMap.get(expr.functionName)
+        if fnName == None:
+            fnName = sql.getLocal(expr.functionName)
+        if fnName == None:
+            return '' # TODO: Throw something? Check in advance?
+        return '%s(%s)' % (fnName, ', '.join(params))
 
     def If(self, expr, cond, thenExpr, elseExpr):
         return 'IF(%s, %s, %s)' % (cond, thenExpr, elseExpr)

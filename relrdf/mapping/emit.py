@@ -265,7 +265,5 @@ def emit(expr):
     # Debugging...
     # print emitter.process(expr)
     
-    bla = emitter.process(expr)
-    print bla
-    return bla
+    return emitter.process(expr)
 

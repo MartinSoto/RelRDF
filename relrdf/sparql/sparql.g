@@ -28,6 +28,7 @@ query returns [expr]
         |   expr=insertQuery
         |   expr=deleteQuery
         )
+        EOF
     ;
 
 prolog

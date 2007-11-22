@@ -108,7 +108,7 @@ CREATE TABLE twoway_conns (
 	 COMMENT 'Version identifier of the first compared version',
   version_b integer unsigned NOT NULL
 	 COMMENT 'Version identifier of the second compared version',
-  connection integer unsigned NOT NULL
+  `connection` integer unsigned NOT NULL
 	 COMMENT 'Identifier of the connection using this comparison'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -156,7 +156,7 @@ CREATE TABLE threeway_conns (
 	 COMMENT 'Version identifier of the second compared version',
   version_c integer unsigned NOT NULL
 	 COMMENT 'Version identifier of the third compared version',
-  connection integer unsigned NOT NULL
+  `connection` integer unsigned NOT NULL
 	 COMMENT 'Identifier of the connection using this comparison'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 

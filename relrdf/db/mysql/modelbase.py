@@ -91,11 +91,11 @@ class ModelBase(SyncMethodsMixin):
         cursor = self._connection.cursor()
         cursor.execute("""
             DELETE FROM twoway_conns
-            WHERE connection = connection_id()
+            WHERE `connection` = connection_id()
             """)
         cursor.execute("""
             DELETE FROM threeway_conns
-            WHERE connection = connection_id()
+            WHERE `connection` = connection_id()
             """)
         cursor.close()
         self._connection.commit()
@@ -278,7 +278,7 @@ class ModelBase(SyncMethodsMixin):
     _connThreeWay = string.Template(
         """
         INSERT INTO threeway_conns (version_a, version_b, version_c,
-                                    connection)
+                                    `connection`)
         VALUES ($versionA, $versionB, $versionC, connection_id())
         """)
 
@@ -356,11 +356,11 @@ class ModelBase(SyncMethodsMixin):
         # corresponding to killed or failed processes.)
         cursor.execute("""
             DELETE FROM twoway_conns
-            WHERE connection NOT IN (%s)
+            WHERE `connection` NOT IN (%s)
             """ % conns)
         cursor.execute("""
             DELETE FROM threeway_conns
-            WHERE connection NOT IN (%s)
+            WHERE `connection` NOT IN (%s)
             """ % conns)
 
         # Delete those use times not in use by a current connection.

@@ -120,7 +120,7 @@ class ValueRefDereferencer(rewrite.ExpressionProcessor):
 
         for i, subexpr in enumerate(subexprs):
             if isinstance(subexpr, ValueRef):
-                if subexpr[0] is mapping:
+                if isinstance(subexpr[0], type(mapping)):
                     expr[i] = subexpr[1]
                 else:
                     expr[i] = mapping.extToInt(subexpr[0].intToExt(subexpr[1]))

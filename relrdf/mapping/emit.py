@@ -169,7 +169,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def OffsetLimit(self, expr, subexpr):
         
         # Check that we have some kind of SELECT expression in subexpr
-        allowed = [nodes.MapResult, nodes.Select, nodes.Sort]
+        allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
         assert expr[0].__class__ in allowed,  \
             'OffsetLimit can only be used with the result of MapResult, Select ' \
             'or Sort!'

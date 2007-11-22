@@ -29,6 +29,9 @@ class UriValueMapping(valueref.ValueMapping):
                  'intToExtExpr',
                  'extToIntExpr')
 
+    # Give this type of mapping priority in comparisons.
+    weight = 80
+
     def __init__(self, baseUri):
         super(UriValueMapping, self).__init__()
 

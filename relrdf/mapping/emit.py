@@ -211,15 +211,21 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def Sort(self, expr, subexpr, orderBy):
         
         # Check that we have some kind of SELECT expression in subexpr
-        allowed = [nodes.MapResult, nodes.Select]
+        allowed = [nodes.MapResult, nodes.Select, nodes.Sort]
         assert expr[0].__class__ in allowed,  \
             'Sort can only be used directly with the result of MapResult or Select!'
                     
-        # Add ORDER BY clause
+        # Compose with order direction
         if expr.ascending:
-            query = subexpr + "\nORDER BY " + orderBy + " ASC"
+            orderCrit = orderBy + " ASC"
         else:
-            query = subexpr + "\nORDER BY " + orderBy + " DESC"
+            orderCrit = orderBy + " DESC"
+        
+        # Add (to) ORDER BY clause
+        if isinstance(expr[0], nodes.Sort):
+            query = subexpr + ", " + orderCrit
+        else:
+            query = subexpr + "\nORDER BY " + orderCrit
         
         return query
 
@@ -283,7 +289,7 @@ def emit(expr):
     expr = evaluate.reduceConst(expr)
 
     # Debugging...
-    # print emitter.process(expr)
+    print emitter.process(expr)
     
     return emitter.process(expr)
 

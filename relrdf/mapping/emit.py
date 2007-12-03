@@ -189,10 +189,10 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def OffsetLimit(self, expr, subexpr):
         
         # Check that we have some kind of SELECT expression in subexpr
-        allowed = [nodes.MapResult, nodes.Select, nodes.Sort]
+        allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
         assert expr[0].__class__ in allowed,  \
-            'OffsetLimit can only be used with the result of MapResult, Select ' \
-            'or Sort!'
+            'OffsetLimit can only be used with the result of MapResult, Select, ' \
+            'Distinct or Sort!'
         
         # Add LIMIT clause
         if expr.limit != None:
@@ -211,9 +211,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def Sort(self, expr, subexpr, orderBy):
         
         # Check that we have some kind of SELECT expression in subexpr
-        allowed = [nodes.MapResult, nodes.Select, nodes.Sort]
+        allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
         assert expr[0].__class__ in allowed,  \
-            'Sort can only be used directly with the result of MapResult or Select!'
+            'Sort can only be used directly with the result of MapResult, Distinct or Select!'
                     
         # Compose with order direction
         if expr.ascending:

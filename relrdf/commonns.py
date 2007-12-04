@@ -25,3 +25,15 @@ serql = uri.Namespace('http://www.openrdf.org/schema/serql#')
 #
 
 relrdf = uri.Namespace('http://www.iese.fraunhofer.de/namespace/RelRDF#')
+
+#
+# XPath: Function namespace
+#
+
+fn = uri.Namespace('http://www.w3.org/2005/xpath-functions#')
+
+#
+# SQL (bogus URI)
+#
+
+sql = uri.Namespace('http://dev.mysql.com/doc/#')

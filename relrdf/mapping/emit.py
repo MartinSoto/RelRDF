@@ -1,6 +1,6 @@
 import re
 
-from relrdf.commonns import xsd
+from relrdf.commonns import xsd, fn, sql
 from relrdf.expression import rewrite, nodes, simplify, evaluate
 
 
@@ -31,8 +31,28 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         else:
             return '"%s"' % unicode(expr.literal)
 
+    _functionMap = {
+        fn.abs:                'ABS',
+        fn.ceiling:            'CEILING',
+        fn.concat:             'CONCAT',
+        fn['current-dateTime']:'NOW',
+        fn.floor:              'FLOOR',
+        fn['lower-case']:      'LOWER',
+        fn.max:                'GREATEST',
+        fn.min:                'LEAST',
+        fn['not']:             'NOT',
+        fn.round:              'ROUND',
+        fn['upper-case']:      'UPPER'
+    }
+    
     def FunctionCall(self, expr, *params):
-        return '%s(%s)' % (expr.functionName, ', '.join(params))
+        # Find SQL function name. TODO: type checking, argument count
+        fnName = self._functionMap.get(expr.functionName)
+        if fnName == None:
+            fnName = sql.getLocal(expr.functionName)
+        if fnName == None:
+            return '' # TODO: Throw something? Check in advance?
+        return '%s(%s)' % (fnName, ', '.join(params))
 
     def If(self, expr, cond, thenExpr, elseExpr):
         return 'IF(%s, %s, %s)' % (cond, thenExpr, elseExpr)
@@ -191,15 +211,21 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def Sort(self, expr, subexpr, orderBy):
         
         # Check that we have some kind of SELECT expression in subexpr
-        allowed = [nodes.MapResult, nodes.Select]
+        allowed = [nodes.MapResult, nodes.Select, nodes.Sort]
         assert expr[0].__class__ in allowed,  \
             'Sort can only be used directly with the result of MapResult or Select!'
                     
-        # Add ORDER BY clause
+        # Compose with order direction
         if expr.ascending:
-            query = subexpr + "\nORDER BY " + orderBy + " ASC"
+            orderCrit = orderBy + " ASC"
         else:
-            query = subexpr + "\nORDER BY " + orderBy + " DESC"
+            orderCrit = orderBy + " DESC"
+        
+        # Add (to) ORDER BY clause
+        if isinstance(expr[0], nodes.Sort):
+            query = subexpr + ", " + orderCrit
+        else:
+            query = subexpr + "\nORDER BY " + orderCrit
         
         return query
 
@@ -263,9 +289,7 @@ def emit(expr):
     expr = evaluate.reduceConst(expr)
 
     # Debugging...
-    # print emitter.process(expr)
+    print emitter.process(expr)
     
-    bla = emitter.process(expr)
-    print bla
-    return bla
+    return emitter.process(expr)
 

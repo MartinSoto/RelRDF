@@ -63,6 +63,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
             expr.staticType = LiteralType(expr.literal.typeUri)
         else:
             expr.staticType = genericLiteralType
+            
+    def FunctionCall(self, expr, *params):
+        self._checkScalarOperands(expr, expr.functionName)
+        expr.staticType = genericLiteralType
 
     def Var(self, expr):
         expr.staticType = self.lookUpVar(expr.name)

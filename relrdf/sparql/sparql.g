@@ -28,6 +28,7 @@ query returns [expr]
         |   expr=insertQuery
         |   expr=deleteQuery
         )
+        EOF
     ;
 
 prolog
@@ -266,9 +267,8 @@ constraint returns [expr]
 
 functionCall returns [expr]
     :   name=iriRef
-        { expr = nodes.FunctionCall(name) }
+        { expr = nodes.FunctionCall(name.uri) }
         argList[expr]
-        { expr = nodes.NotSupported(expr) }
     ;
 
 argList[funcCall]
@@ -546,9 +546,8 @@ regexExpression returns [expr]
 
 iriRefOrFunction returns [expr]
     :   expr=iriRef
-        (   { expr = nodes.FunctionCall(expr) }
+        (   { expr = nodes.FunctionCall(expr.uri) }
             argList[expr]
-            { expr = nodes.NotSupported(expr) }
         )?
     ;
 

@@ -521,7 +521,7 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(ii, self); \
           expr.setExtentsEndFromToken(rp6); }
     |   iu:IS_URI LPAREN param=expression rp7:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.Equal(nodes.TypeToURI(nodes.DynType(param)), nodes.Literal("xsd:anyURI")); \
           expr.setExtentsStartFromToken(iu, self); \
           expr.setExtentsEndFromToken(rp7); }
     |   ib:IS_BLANK LPAREN param=expression rp8:RPAREN

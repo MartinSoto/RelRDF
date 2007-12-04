@@ -1000,3 +1000,9 @@ class Type(ExpressionNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.typeExpr)
+
+class TypeToURI(UnaryOperation):
+    """Returns the URI of the type given in the subexpression"""
+
+    __slots__ = ()
+    

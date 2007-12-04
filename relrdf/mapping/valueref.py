@@ -24,6 +24,10 @@ class ValueMapping(nodes.ExpressionNode):
 
     __slots__ = ()
 
+    # An integer value used to decide which one of two or more
+    # mappings to use when comparing.
+    weight = 50
+
     def intToExt(self, internal):
         """Given an expression corresponding to the internal
         representation of a value, construct an expression
@@ -93,37 +97,35 @@ class ValueRefDereferencer(rewrite.ExpressionProcessor):
         node.
 
         This function tries to optimize comparisons by comparing
-        internal values whenever possible. This is necessary in order
-        for the underlying database to be able to optimize certain
-        select and join operations."""
+        internal values whenever possible, and when not possible, by
+        picking a mapping based on its defined weight. This is
+        necessary in order for the underlying database to be able to
+        optimize certain select and join operations.
 
-        # We only optimize the case where value references using the
-        # same mapping are compared, possibly mixed with constants.
+        Notice that giving priority to a certain type of mapping is
+        not ideal, because the optimal solution depends on the join
+        order. This is, however, the best we can do as long as we
+        don't have our own optimizer."""
+
+        # First, find the heaviest mapping.
         mapping = None
         for subexpr in subexprs:
-            if isinstance(subexpr, ValueRef):
-                if mapping is None:
-                    mapping = subexpr[0]
-                elif mapping != subexpr[0]:
-                    # Different types of ValueRef's are mixed.
-                    return self.Default(expr, *subexprs)
-            elif not isinstance(subexpr, nodes.Literal) and \
-                 not isinstance(subexpr, nodes.Uri):
-                # A different type of expression is present.
-                return self.Default(expr, *subexprs)
+            if isinstance(subexpr, ValueRef) and \
+                  (mapping is None or subexpr[0].weight > mapping.weight):
+                mapping = subexpr[0]
 
         if mapping is None:
-            # Only comparing constants here.
+            # No value references in the comparison.
             return expr
 
         for i, subexpr in enumerate(subexprs):
             if isinstance(subexpr, ValueRef):
-                expr[i] = subexpr[1]
-            elif isinstance(subexpr, nodes.Literal) or \
-                 isinstance(subexpr, nodes.Uri):
-                expr[i] = mapping.extToInt(subexpr)
+                if isinstance(subexpr[0], type(mapping)):
+                    expr[i] = subexpr[1]
+                else:
+                    expr[i] = mapping.extToInt(subexpr[0].intToExt(subexpr[1]))
             else:
-                expr[i] = subexpr
+                expr[i] = mapping.extToInt(subexpr)
 
         return expr
 

@@ -29,6 +29,9 @@ class UriValueMapping(valueref.ValueMapping):
                  'intToExtExpr',
                  'extToIntExpr')
 
+    # Give this type of mapping priority in comparisons.
+    weight = 80
+
     def __init__(self, baseUri):
         super(UriValueMapping, self).__init__()
 
@@ -372,6 +375,49 @@ class AllVersionsMapper(BasicMapper,
                           nodes.Literal(TYPE_ID_RESOURCE),
                           checksumValueRef(2, 'object'),
                           sqlnodes.SqlFieldRef(2, 'object_type'))
+
+        self.stmtRepl = (replExpr,
+                         ('context', 'subject', 'predicate', 'object'))
+
+        return self.stmtRepl
+
+
+class AllStmtsMapper(BasicMapper,
+                        transform.StandardReifTransformer):
+    """Targets an abstract query to a context set with only one element
+    containing the statements present in all versions of a model."""
+
+    __slots__ = ('stmtRepl')
+
+    name = "All statements"
+    parameterInfo = ()
+
+    def __init__(self):
+        super(AllStmtsMapper, self).__init__()
+
+        # Cache for the statement pattern replacement expression.
+        self.stmtRepl = None
+
+    def replStatementPattern(self, expr):
+        if self.stmtRepl is not None:
+            return self.stmtRepl
+
+        rel = build.buildExpression((sqlnodes.SqlRelation, 1, 'statements'))
+
+        replExpr = \
+          nodes.MapResult(['context', 'type__context',
+                           'subject', 'type__subject',
+                           'predicate', 'type__predicate',
+                           'object', 'type__object'],
+                          rel,
+                          nodes.Uri(commonns.relrdf.stmts),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          checksumValueRef(1, 'subject'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          checksumValueRef(1, 'predicate'),
+                          nodes.Literal(TYPE_ID_RESOURCE),
+                          checksumValueRef(1, 'object'),
+                          sqlnodes.SqlFieldRef(1, 'object_type'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -1100,6 +1146,7 @@ _modelFactories = {
     'metaversion': (BasicModel, MetaVersionMapper),
     'singleversion': (BasicModel, SingleVersionMapper),
     'allversions': (BasicModel, AllVersionsMapper),
+    'allstatements': (BasicModel, AllStmtsMapper),
     'twoway': (TwoWayModel, TwoWayComparisonMapper),
     'threeway': (ThreeWayModel, ThreeWayComparisonMapper),
     }

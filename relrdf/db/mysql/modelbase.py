@@ -181,7 +181,7 @@ class ModelBase(SyncMethodsMixin):
 
     _connTwoWay = string.Template(
         """
-        INSERT INTO twoway_conns (version_a, version_b, connection)
+        INSERT INTO twoway_conns (version_a, version_b, `connection`)
         VALUES ($versionA, $versionB, connection_id())
         """)
 

@@ -2,41 +2,11 @@ import operator
 
 from relrdf import error
 from relrdf.expression import nodes, evaluate
-from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
-     ResourceType
 
 import valueref
 import transform
 
-
-class BasicMapper(transform.PureRelationalTransformer):
-    """A base mapper for the MySQL basic schema. It handles the
-    mapping of type expressions."""
-
-    def prepareConnection(self, connection):
-        """Prepares the database connection (e.g., by creating certain
-        temporary tables) for use with this mapping."""
-        pass
-
-    def releaseConnection(self, connection):
-        """Releases any resources created by the `prepareConnection`
-        method."""
-        pass
-
-    def mapTypeExpr(self, typeExpr):
-        if isinstance(typeExpr, LiteralType):
-            # FIXME:Search for the actual type id.
-            return nodes.Literal(3)
-        elif isinstance(typeExpr, BlankNodeType):
-            return nodes.Literal(2)
-        elif isinstance(typeExpr, ResourceType):
-            return nodes.Literal(1)
-        else:
-            assert False, "Cannot determine type"
-
-
-class MacroMapper(BasicMapper,
-                  transform.StandardReifTransformer):
+class MacroMapper(transform.StandardReifTransformer):
     """A mapper based on macro expressions."""
 
     __slots__ = ('matchClauses',

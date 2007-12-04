@@ -48,19 +48,21 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
         return nodes.Or(diffTypesExpr, expr)
 
     def _dynTypeExpr(self, expr):
-        typeExpr = expr.staticType
-
+        typeExpr = expr.staticType        
         if isinstance(typeExpr, LiteralType):
             # FIXME:Search for the actual type id.
-            return nodes.Type(genericLiteralType)
+            result = nodes.Type(genericLiteralType)
         elif isinstance(typeExpr, BlankNodeType):
-            return nodes.Type(blankNodeType)
+            result = nodes.Type(blankNodeType)
         elif isinstance(typeExpr, ResourceType):
-            return nodes.Type(resourceType)
+            result = nodes.Type(resourceType)
         else:
             # This expression has a generic type whose dynamic form
             # must be resolved later by the mapper.
             #
             # FIXME: Consider using another node type here instead of
             # DynType (MapperDynType?)
-            return nodes.DynType(expr)
+            result = nodes.DynType(expr)
+        result.staticType = genericLiteralType # FIXME!
+        return result
+

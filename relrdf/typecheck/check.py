@@ -326,6 +326,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
        if not isinstance(expr[0].staticType, StatementRelType):
             error(expr, _("Delete subexpression must be a statement relation"))
        expr.staticType = expr[0].staticType
+       
+    def DynType(self, expr, *subexprs):
+        expr.staticType = genericLiteralType
 
 
 def typeCheck(expr):

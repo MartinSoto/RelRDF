@@ -3,7 +3,7 @@ from relrdf.commonns import xsd
 
 from relrdf.expression import nodes, rewrite
 
-from typeexpr import nullType, rdfNodeType, LiteralType, \
+from typeexpr import typeType, nullType, rdfNodeType, LiteralType, \
      booleanLiteralType, genericLiteralType, ResourceType, \
      resourceType, RelationType, StatementRelType
 
@@ -199,7 +199,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def CastString(self, expr, var):
         self._checkScalarOperands(expr, 'STR')
         expr.staticType = LiteralType(xsd.string)
-
+        
+    def MapValue(self, expr, rel, sexpr):
+        expr.staticType = expr[1].staticType
+  
     def _checkJoin(self, expr, *operands):
         typeExpr = RelationType()
 
@@ -328,7 +331,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
        expr.staticType = expr[0].staticType
        
     def DynType(self, expr, *subexprs):
-        expr.staticType = genericLiteralType
+        expr.staticType = typeType
+        
+    def TypeToURI(self, expr, subexpr):
+        expr.staticType = resourceType
 
 
 def typeCheck(expr):

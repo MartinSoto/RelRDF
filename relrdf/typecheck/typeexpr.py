@@ -73,6 +73,13 @@ class NullType(TypeNode):
 nullType = NullType()
 
 
+class TypeType(TypeNode):
+    """A type node representing the type of interal type identifiers"""
+    
+    __slots__ = ()
+    
+typeType = TypeType()
+
 class RdfNodeType(TypeNode):
     """A type node representing the generic type of RDF nodes. This is
     considered a supertype encompassing literals, blank nodes and
@@ -122,7 +129,6 @@ class LiteralType(TypeNode):
 
 genericLiteralType = LiteralType()
 booleanLiteralType = LiteralType(xsd.boolean)
-
 
 class BlankNodeType(TypeNode):
     """A type node representing the type of an RDF blank node."""

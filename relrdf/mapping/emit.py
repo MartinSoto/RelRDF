@@ -120,6 +120,19 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def CastString(self, expr, var):
         return 'CAST(%s AS CHAR)' % var
+    
+    def preMapValue(self, expr):
+        if isinstance(expr[0], nodes.Select):
+            # We treat this common case specially, in order to avoid
+            # unnecessary nested queries.
+            return ['%s WHERE %s' % (self.process(expr[0][0]),
+                                      self.process(expr[0][1]))] + \
+                   [self.process(subexpr) for subexpr in expr[1:]]
+        else:
+            return [self.process(subexpr) for subexpr in expr]
+    
+    def MapValue(self, expr, rel, sexpr):
+        return '(SELECT %s FROM %s)' % (sexpr, rel);
 
     def Product(self, expr, *operands):
         return '(' + ') CROSS JOIN ('.join(operands) + ')'

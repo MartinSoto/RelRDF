@@ -740,6 +740,11 @@ class CastString(UnaryOperation):
     
      __slots__ = ()
   
+class MapValue(BinaryOperation):
+    """Computes the value of a single expression concerning a relation"""
+    
+    __slots__ = ()
+
 
 #
 # Relational Operations

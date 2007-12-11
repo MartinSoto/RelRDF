@@ -54,6 +54,35 @@ def flattenSelect(expr):
                              nodes.And(rel[1], predicate)),
                 True)
 
+def promoteMapValue(expr, id):
+
+    # Get the MapValue
+    map = expr[id]
+    assert isinstance(expr[id], nodes.MapValue)
+
+    # Fuse with Select, MapResult or MapValue
+    #  Select(r1, MapValue(r2, v))
+    #  -> Select(Product(r1, r2), v)
+    #  MapResult(r1, ..., MapValue(r2, v), ...)
+    #  -> Select(Product(r1, r2), ..., v, ...)
+    #  MapValue(r1, MapValue(r2, v))
+    #  -> MapValue(Product(r1, r2), v)
+    if isinstance(expr, nodes.Select) or isinstance(expr, nodes.MapResult) or isinstance(expr, nodes.MapValue):
+        expr[id] = map[1]
+        expr[0] = nodes.Product(expr[0], map[0])
+        return (expr, True)
+    
+    # Promote out of all other expression nodes
+    #  Op(..., MapValue(r, v), ...)
+    #  -> MapValue(r, Op(..., v, ...))
+    if isinstance(expr, nodes.ExpressionNode):        
+        expr[id] = map[1]
+        map[1] = expr
+        return (map, True)
+    
+    return (expr, False)
+    
+
 def simplifyNode(expr, subexprsModif):
     modif = True
     while modif:
@@ -79,6 +108,13 @@ def simplifyNode(expr, subexprsModif):
         elif isinstance(expr, nodes.Select):
             expr, m = flattenSelect(expr)
             modif = modif or m
+        
+        for i, subexpr in enumerate(expr):
+            if isinstance(subexpr, nodes.MapValue):
+                expr, m = promoteMapValue(expr, i)
+                if m:
+                    modif = True;
+                    break
 
         subexprsModif = subexprsModif or modif
     

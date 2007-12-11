@@ -14,7 +14,6 @@ from relrdf.mapping import transform, valueref, sqlnodes, emit
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
      ResourceType, RdfNodeType, resourceType, rdfNodeType
 
-
 TYPE_ID_RESOURCE = literal.Literal(1)
 TYPE_ID_BLANKNODE = literal.Literal(2)
 TYPE_ID_LITERAL = literal.Literal(3)
@@ -90,16 +89,50 @@ class BasicMapper(transform.PureRelationalTransformer):
 
     __slots__ = ()
 
+    def _uriToType(self, uri):
+        (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
+                nodes.Select(
+                     sqlnodes.SqlRelation(1, 'data_types'),
+                     nodes.Equal(
+                          sqlnodes.SqlFieldRef(1, 'uri'),
+                          nodes.Null()
+                     )
+                ),
+                sqlnodes.SqlFieldRef(1, 'id')
+            ))
+        # Replace null by actual URI (done late so it won't reincarnate)
+        assert isinstance(expr[0][1][1], nodes.Null)
+        expr[0][1][1] = uri
+        return expr
+    
+    def _typeToUri(self, id):
+        (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
+                nodes.Select(
+                     sqlnodes.SqlRelation(1, 'data_types'),
+                     nodes.Equal(
+                          sqlnodes.SqlFieldRef(1, 'id'),
+                          nodes.Null()
+                     )
+                ),
+                sqlnodes.SqlFieldRef(1, 'uri')
+            ))    
+        # Replace null by actual ID (done late so it won't reincarnate)
+        assert isinstance(expr[0][1][1], nodes.Null)
+        expr[0][1][1] = id
+        return expr
+                
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
-            # FIXME:Search for the actual type id.
-            return nodes.Literal(TYPE_ID_LITERAL)
+            return self._uriToType(nodes.Uri(commonns.rdfs.Literal))
         elif isinstance(typeExpr, BlankNodeType):
             return nodes.Literal(TYPE_ID_BLANKNODE)
         elif isinstance(typeExpr, ResourceType):
-            return nodes.Literal(TYPE_ID_RESOURCE)
+            return self._uriToType(nodes.Uri(commonns.rdfs.Resource))
         else:
             assert False, "Cannot determine type"
+    
+    def TypeToURI(self, expr, sexpr):        
+        return self._typeToUri(sexpr)
 
     canWrite = False
     """True iff this sink is able to write."""

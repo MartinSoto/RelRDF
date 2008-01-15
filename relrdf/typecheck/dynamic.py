@@ -14,7 +14,7 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
         super(DynTypeCheckTransl, self).__init__(prePrefix='pre')
 
     def preDynType(self, expr):
-        return (self._dynTypeExpr(expr[0]),)
+        return (self._dynTypeExpr(expr[0].copy()),)
 
     def DynType(self, expr, subexpr):
         return subexpr
@@ -63,6 +63,6 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             # FIXME: Consider using another node type here instead of
             # DynType (MapperDynType?)
             result = nodes.DynType(expr)
-        result.staticType = genericLiteralType # FIXME!
+        result.staticType = resourceType
         return result
 

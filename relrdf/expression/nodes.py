@@ -432,15 +432,23 @@ class Pruned(ExpressionNode):
         super(Pruned, self).prettyPrint(stream, indentLevel)
         self.prunedExpr.prettyPrint(stream, indentLevel + 1)
 
-
 class NotSupported(ExpressionNode):
     """An expression node representing a subexpression that is not
     currently supported by the parser."""
 
     __slots__ = ()
 
+#
+# Value Nodes
+#
 
-class Null(ExpressionNode):
+class ValueNode(ExpressionNode):
+    """A node that can be evaluated to a single value"""
+    
+    __slots__ = ()
+
+
+class Null(ValueNode):
     """An expression node representing a null value."""
 
     __slots__ = ('uri',)
@@ -449,7 +457,7 @@ class Null(ExpressionNode):
         super(Null, self).__init__()
 
 
-class Uri(ExpressionNode):
+class Uri(ValueNode):
     """An expression node representing a URI reference."""
 
     __slots__ = ('uri',)
@@ -469,7 +477,7 @@ class Uri(ExpressionNode):
         stream.write(' %s' % self.uri)
 
 
-class QName(ExpressionNode):
+class QName(ValueNode):
     """An expression node representing a qualified name."""
 
     __slots__ = ('qname',)
@@ -486,7 +494,7 @@ class QName(ExpressionNode):
         stream.write(' %s' % self.qname)
         
 
-class Literal(ExpressionNode):
+class Literal(ValueNode):
     """An expression node representing a RDF literal."""
 
     __slots__ = ('literal',)
@@ -506,7 +514,7 @@ class Literal(ExpressionNode):
         stream.write(' %s' % self.literal.getCanonical())
 
 
-class Var(ExpressionNode):
+class Var(ValueNode):
     """An expression node representing a SerQL variable by name."""
 
     __slots = ('name')
@@ -532,7 +540,7 @@ class Var(ExpressionNode):
         stream.write(' %s' % self.name)
 
 
-class FunctionCall(ExpressionNode):
+class FunctionCall(ValueNode):
     """A function call."""
 
     __slots__ = ('functionName')
@@ -542,7 +550,7 @@ class FunctionCall(ExpressionNode):
         super(FunctionCall, self).__init__(*params)
 
 
-class If(ExpressionNode):
+class If(ValueNode):
     """A functional if expression.
 
     An 'if' expression selects among two expressions based on a
@@ -554,36 +562,11 @@ class If(ExpressionNode):
     def __init__(self, cond, thenExpr, elseExpr):
         super(If, self).__init__(cond, thenExpr, elseExpr)
 
+#
+# Operations
+#
 
-class StatementPattern(ExpressionNode):
-    """An expression node representing an statement pattern."""
-
-    __slots__ = ()
-
-    def __init__(self, context, subj, pred, obj):
-        super(StatementPattern, self).__init__(context, subj, pred, obj)
-
-
-class ReifStmtPattern(ExpressionNode):
-    """An expression node representing a reified statement pattern."""
-
-    __slots__ = ()
-
-    def __init__(self, context, stmt, subj, pred, obj):
-        super(ReifStmtPattern, self).__init__(context, stmt, subj, pred, obj)
-
-
-class Joker(ExpressionNode):
-    """An expression node representing a joker, i.e., an open
-    possition in a pattern tha can be filled with everything."""
-
-    __slots__ = ()
-
-    def __init__(self):
-        super(Joker, self).__init__()
-
-
-class Operation(ExpressionNode):
+class Operation(ValueNode):
     """A node representing an operation."""
 
     __slots__ = ()
@@ -745,12 +728,47 @@ class MapValue(BinaryOperation):
     
     __slots__ = ()
 
+#
+# Pattern Nodes
+#
+    
+class StatementPattern(ExpressionNode):
+    """An expression node representing an statement pattern."""
+
+    __slots__ = ()
+
+    def __init__(self, context, subj, pred, obj):
+        super(StatementPattern, self).__init__(context, subj, pred, obj)
+
+
+class ReifStmtPattern(ExpressionNode):
+    """An expression node representing a reified statement pattern."""
+
+    __slots__ = ()
+
+    def __init__(self, context, stmt, subj, pred, obj):
+        super(ReifStmtPattern, self).__init__(context, stmt, subj, pred, obj)
+
+
+class Joker(ExpressionNode):
+    """An expression node representing a joker, i.e., an open
+    possition in a pattern tha can be filled with everything."""
+
+    __slots__ = ()
+
+    def __init__(self):
+        super(Joker, self).__init__()
 
 #
 # Relational Operations
 #
 
-class Empty(ExpressionNode):
+class RelationNode(ExpressionNode):
+    """An expression that evaluates to a set of triples"""
+    
+    __slots__ = ()
+
+class Empty(RelationNode):
     """An expression node representing an empty relation, i.e., one
     containing no tuples."""
 
@@ -760,7 +778,7 @@ class Empty(ExpressionNode):
         super(Empty, self).__init__()
 
 
-class Optional(ExpressionNode):
+class Optional(RelationNode):
     """A node representing an optional relation."""
 
     __slots__ = ()
@@ -769,7 +787,7 @@ class Optional(ExpressionNode):
         super(Optional, self).__init__(baseRel)
 
 
-class Product(ExpressionNode):
+class Product(RelationNode):
     """A node representing a cartesian product of two or more
     relations."""
 
@@ -779,7 +797,7 @@ class Product(ExpressionNode):
         super(Product, self).__init__(*relations)
 
 
-class LeftJoin(ExpressionNode):
+class LeftJoin(RelationNode):
     """A node representing a left outer join of two or more
     relations."""
 
@@ -789,7 +807,7 @@ class LeftJoin(ExpressionNode):
         super(LeftJoin, self).__init__(fixed, optional)
 
 
-class Select(ExpressionNode):
+class Select(RelationNode):
     """A node representing a select expression."""
 
     __slots__ = ()
@@ -869,13 +887,21 @@ class StatementTemplate(ExpressionNode):
 # Result Modifiers
 #
 
-class Distinct(UnaryOperation):
+class QueryResultModifier(ExpressionNode):
+    """A base class for all nodes working in query results."""
+    
+    __slots__ = ()
+
+class Distinct(QueryResultModifier):
     """Specify that the results produced by the subexpression must be
     filtered to eliminate repeated rows."""
 
     __slots__ = ()
+    
+    def __init__(self, operand):
+        super(Distinct, self).__init__(operand)    
 
-class OffsetLimit(ExpressionNode):
+class OffsetLimit(QueryResultModifier):
     """Selects some rows from the results based on their position in
     the result list"""
     
@@ -893,7 +919,7 @@ class OffsetLimit(ExpressionNode):
         
         super(ExpressionNode, self).__init__(subexpr)
         
-class Sort(ExpressionNode):
+class Sort(QueryResultModifier):
     """Sorts the result rows according to the second subexpression"""
     
     __slots__ = ('ascending',
@@ -910,7 +936,7 @@ class Sort(ExpressionNode):
 # Model Modification Operations
 #
 
-class ModifOperation(UnaryOperation):
+class ModifOperation(ExpressionNode):
     """Base class for modification operations. The subexpression is a
     construct query that produces the set of statements to be inserted
     into or deleted from the model."""
@@ -986,7 +1012,7 @@ class DynType(UnaryOperation):
     __slots = ()
 
 
-class Type(ExpressionNode):
+class Type(ValueNode):
     """An expression node corresponding to the runtime representation
     of a concrete data type. This is intended to be replaced by the
     mapper. The replacement is a, most probably constant, expression

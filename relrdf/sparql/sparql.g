@@ -510,7 +510,7 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(lm, self); \
           expr.setExtentsEndFromToken(rp3); }
     |   dt:DATATYPE LPAREN param=expression rp4:RPAREN
-        { expr = nodes.TypeToURI(nodes.DynType(param)); \
+        { expr = nodes.DynType(param); \
           expr.setExtentsStartFromToken(dt, self); \
           expr.setExtentsEndFromToken(rp4); }
     |   bd:BOUND LPAREN param=var rp5:RPAREN
@@ -518,11 +518,11 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(bd, self); \
           expr.setExtentsEndFromToken(rp5); }
     |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
-        { expr = nodes.Equal(nodes.TypeToURI(nodes.DynType(param)), nodes.Uri(commonns.rdfs.Resource)); \
+        { expr = nodes.Equal(nodes.DynType(param), nodes.Uri(commonns.rdfs.Resource)); \
           expr.setExtentsStartFromToken(ii, self); \
           expr.setExtentsEndFromToken(rp6); }
     |   iu:IS_URI LPAREN param=expression rp7:RPAREN
-        { expr = nodes.Equal(nodes.TypeToURI(nodes.DynType(param)), nodes.Uri(commonns.rdfs.Resource)); \
+        { expr = nodes.Equal(nodes.DynType(param), nodes.Uri(commonns.rdfs.Resource)); \
           expr.setExtentsStartFromToken(iu, self); \
           expr.setExtentsEndFromToken(rp7); }
     |   ib:IS_BLANK LPAREN param=expression rp8:RPAREN
@@ -530,7 +530,7 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(ib, self); \
           expr.setExtentsEndFromToken(rp8); }
     |   il:IS_LITERAL LPAREN param=expression rp9:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.Different(nodes.DynType(param), nodes.Uri(commonns.rdfs.Resource)); \
           expr.setExtentsStartFromToken(il, self); \
           expr.setExtentsEndFromToken(rp9); }
     |   expr=regexExpression

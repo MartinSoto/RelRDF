@@ -331,11 +331,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
        expr.staticType = expr[0].staticType
        
     def DynType(self, expr, *subexprs):
-        expr.staticType = typeType
-        
-    def TypeToURI(self, expr, subexpr):
         expr.staticType = resourceType
-
 
 def typeCheck(expr):
     """Type check `expr`. This function sets the ``staticType`` and

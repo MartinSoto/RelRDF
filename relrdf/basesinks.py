@@ -1,3 +1,5 @@
+from relrdf.localization import _
+from relrdf.error import InstantiationError
 from relrdf.expression import uri, blanknode, literal
 
 
@@ -33,3 +35,27 @@ class PrintSink(object):
 
     def close(self):
         pass
+
+
+class DebugModelBase(object):
+    """An incomplete model base to instantiate and serve the debugging
+    sinks in this class."""
+
+    __slots__ = ()
+
+    def getSink(self, sinkType, **sinkArgs):
+        sinkTypeNorm = sinkType.lower()
+
+        try:
+            if sinkTypeNorm == 'null':
+                return NullSink(**sinkArgs)
+            elif sinkTypeNorm == 'print':
+                return PrintSink(**sinkArgs)
+            else:
+                raise InstantiationError(_("Invalid sink type '%s'") % sinkType)
+        except TypeError, e:
+            raise InstantiationError(_("Missing or invalid sink arguments: %s")
+                                     % e)
+
+def getModelBase(**modelBaseArgs):
+    return DebugModelBase(**modelBaseArgs)

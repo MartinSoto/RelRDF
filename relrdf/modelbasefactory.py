@@ -11,6 +11,9 @@ def getModelBase(modelBaseType, **modelBaseArgs):
     elif modelBaseTypeNorm == "sqlite":
         from db import sqlite
         module = sqlite
+    elif modelBaseTypeNorm == "debug":
+        import basesinks
+        module = basesinks
     else:
         raise InstantiationError("invalid model base type '%s'"
                                  % modelBaseType)

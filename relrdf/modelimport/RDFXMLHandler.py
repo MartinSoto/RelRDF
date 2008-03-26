@@ -97,7 +97,7 @@ class BagID(URIRef):
 class ElementHandler(object):
     __slots__ = ['start', 'char', 'end', 'li', 'id',
                  'base', 'subject', 'predicate', 'object',
-                 'list', 'language', 'datatype', 'declared']
+                 'list', 'language', 'datatype', 'declared', 'data']
     def __init__(self):
         self.start = None
         self.char = None
@@ -111,6 +111,7 @@ class ElementHandler(object):
         self.language = None
         self.datatype = None
         self.declared = None
+        self.data = None
 
     def next_li(self):
         self.li += 1
@@ -227,26 +228,26 @@ class RDFXMLHandler(handler.ContentHandler):
 
     def convert(self, name, qname, attrs):
         if name[0] is None:
-            name = name[1]
+            name = URIRef(name[1])
         else:
-            name = "".join(name)
+            name = URIRef("".join(name))
         atts = {}
         for (n, v) in attrs.items(): #attrs._attrs.iteritems(): #
             if n[0] is None:
-                att = n[1]
+                att = URIRef(n[1])
             else:
-                att = "".join(n)
+                att = URIRef("".join(n))
             if att.startswith(XMLNS) or att[0:3].lower()=="xml":
                 pass
             elif att in UNQUALIFIED:
                 #if not RDFNS[att] in atts:
                 atts[RDFNS[att]] = v
             else:
-                atts[att] = v
+                atts[URIRef(att)] = v
         return name, atts
 
     def document_element_start(self, name, qname, attrs):
-        if name[0] and "".join(name) == RDF.RDF:
+        if name[0] and URIRef("".join(name)) == RDF.RDF:
             next = self.next
             next.start = self.node_element_start
             next.end = self.node_element_end
@@ -339,6 +340,7 @@ class RDFXMLHandler(handler.ContentHandler):
         absolutize = self.absolutize
         next = self.next
         object = None
+        current.data = None
         current.list = None
 
         if not name.startswith(RDFNS):
@@ -417,7 +419,7 @@ class RDFXMLHandler(handler.ContentHandler):
         language = current.language
         if datatype is not None:
             # TODO: check that there are no atts other than datatype and id
-            datatype = URIRef(datatype)
+            datatype = absolutize(datatype)
         else:
             for att in atts:
                 if not att.startswith(RDFNS):
@@ -438,25 +440,22 @@ class RDFXMLHandler(handler.ContentHandler):
                     object = BNode()
                 self.store.add((object, predicate, o))
         if object is None:
-            object = Literal("", language, datatype)
-        current.object = object
+            current.data = ""
+            current.object = None
+        else:
+            current.data = None
+            current.object = object
 
     def property_element_char(self, data):
         current = self.current
-        if current.object is None:
-            try:
-                current.object = Literal(data, current.language, current.datatype)
-            except Error, e:
-                self.error(e.msg)
-        else:
-            if isinstance(current.object, Literal):
-                try:
-                    current.object += data
-                except Error, e:
-                    self.error(e.msg)
+        if current.data is not None:
+            current.data += data
 
     def property_element_end(self, name, qname):
         current = self.current
+        if current.data is not None and current.object is None:
+            current.object = Literal(current.data, current.language, current.datatype)
+            current.data = None
         if self.next.end==self.list_node_element_end:
             if current.object!=RDF.nil:
                 self.store.add((current.list, RDF.rest, RDF.nil))

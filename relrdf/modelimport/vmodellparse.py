@@ -40,6 +40,40 @@ class VModellParser(object):
     # generated from their name property.
     nameIdElems = set(('Begriffsabbildung',))
 
+    # Elements that must be excluded because they are unnecessary in
+    # the RDF representation.
+    excludedElements = set((
+            u'Werkzeugreferenzen',
+            u'ErzeugendeAbhängigkeitserweiterungen',
+            u'Projektdurchführungsstrategien',
+            u'Ablaufbausteine',
+            u'Konventionsabbildungen',
+            u'AbstrakteModellElemente',
+            u'Glossar',
+            u'V-Modell-Struktur',
+            u'Entscheidungspunkte',
+            u'Strukturabhängigkeiten',
+            u'Textbausteine',
+            u'Aktivitäten',
+            u'Projektmerkmale',
+            u'Aktivitätsgruppen',
+            u'InhaltlicheAbhängigkeiten',
+            u'Projekttypen',
+            u'Themen',
+            u'Abkürzungen',
+            u'Produktabhängigkeiten',
+            u'Produkte',
+            u'Vorgehensbausteine',
+            u'Rollen',
+            u'Teilaktivitäten',
+            u'Quellen',
+            u'Produktgruppen',
+            u'InhaltlicheAbhängigkeitserweiterungen',
+            u'ErzeugendeAbhängigkeiten',
+            u'Tailoringabhängigkeiten',
+            u'Methodenreferenzen',
+            u'Strukturabhängigkeitserweiterungen',))
+
     # The dummy value used to mark name id elements.
     NAME_ID_URI = '<<Name ID>>'
 
@@ -94,7 +128,7 @@ class VModellParser(object):
             self._addProperty(propertyName, value)
 
         for name, value in attributes.items():
-            if name != 'id' and name != 'link' and ':' not in name:
+            if name not in ('id', 'link', 'version') and ':' not in name:
                 # Make a property.
                 self._addProperty(name, literal.Literal(value))
 
@@ -142,17 +176,18 @@ class VModellParser(object):
         elem.name = name
         self.elems.append(elem)
 
-        if 'id' in attributes:
-            id = attributes['id']
-            elem.uri = self.namespace['id' + id]
-        elif name in self.nameIdElems:
-            # Give the element a dummy URI which will be replaced as
-            # soon as a we see its name property.
-            elem.uri = self.NAME_ID_URI
-        elif len(self.elems) == 1:
+        if len(self.elems) == 1:
             # We associate a special URI to the whole model.
             id = 'root'
             elem.uri = self.namespace[id]
+        elif name not in self.excludedElements:
+            if 'id' in attributes:
+                id = attributes['id']
+                elem.uri = self.namespace['id' + id]
+            elif name in self.nameIdElems:
+                # Give the element a dummy URI which will be replaced
+                # as soon as a we see its name property.
+                elem.uri = self.NAME_ID_URI
 
         self._updateCurrent()
 

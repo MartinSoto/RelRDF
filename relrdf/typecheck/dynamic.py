@@ -1,3 +1,5 @@
+
+from relrdf import commonns
 from relrdf.expression import nodes, rewrite
 
 from typeexpr import commonType, LiteralType, genericLiteralType, \
@@ -26,7 +28,7 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             expr[:] = transfSubexprs
             return expr
 
-        equalTypesExpr = nodes.Equal(*[self._dynTypeExpr(e.copy())
+        equalTypesExpr = nodes.Equal(*[nodes.Equal(self._dynTypeExpr(e.copy()), nodes.Uri(commonns.rdfs.Resource))
                                        for e in transfSubexprs])
         return nodes.And(equalTypesExpr, expr)
 
@@ -43,7 +45,7 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             expr[:] = transfSubexprs
             return expr
 
-        diffTypesExpr = nodes.Different(*[self._dynTypeExpr(e.copy())
+        diffTypesExpr = nodes.Different(*[nodes.Equal(self._dynTypeExpr(e.copy()), nodes.Uri(commonns.rdfs.Resource))
                                           for e in transfSubexprs])
         return nodes.Or(diffTypesExpr, expr)
 

@@ -6,6 +6,10 @@ header {
     import parser, spqnodes
 }
 
+header "__init__" {
+    self.variables = set()
+}
+
 options {
     language = "Python";
 }
@@ -13,7 +17,6 @@ options {
 /*----------------------------------------------------------------------
  * Parser
  *----------Product----------------------------------------------------------*/
-
 class SparqlParser extends Parser("parser.Parser");
 
 options {
@@ -47,23 +50,33 @@ prefixDecl
     ;
 
 selectQuery returns [expr]
-    :   { distinct = False }
-        sl:SELECT
+    :   sl:SELECT
+    
+		{ distinct = False }    
         (   DISTINCT
             { distinct = True }
         )?
-        (   { names, mappingExprs = [], [] }
-            selectColumnList[names, mappingExprs]
+        	
+		{ times = False; names, mappingExprs = [], [] }        		
+        (	selectColumnList[names, mappingExprs]
         |   TIMES
+        	{ times = True }
         )
+        
         ( datasetClause )*
+        
         where=whereClause
-        {   
-            expr = nodes.MapResult(names, where, *mappingExprs);
-            if distinct: \
-               expr = nodes.Distinct(expr); \
+        {
+            if times:
+                names = list(self.variables)
+                mappingExprs = [nodes.Var(name) for name in names]
+                
+            expr = nodes.MapResult(names, where, *mappingExprs)
+            if distinct:
+               expr = nodes.Distinct(expr);
             expr.setExtentsStartFromToken(sl, self);
         }
+        
         expr=solutionModifier[expr]
     ;
 
@@ -370,10 +383,12 @@ varOrBlankNodeOrIriRef returns [expr]
 var returns [expr]
     :   v1:VAR1
         { expr = nodes.Var(v1.getText()); \
-          expr.setExtentsFromToken(v1, self, 1) }
+          expr.setExtentsFromToken(v1, self, 1); \
+          self.variables.add(expr.name); }
     |   v2:VAR2
         { expr = nodes.Var(v2.getText()); \
-          expr.setExtentsFromToken(v2, self, 1) }
+          expr.setExtentsFromToken(v2, self, 1); \
+          self.variables.add(expr.name); }
     ;
 
 graphTerm returns [expr]

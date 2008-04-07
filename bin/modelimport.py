@@ -48,6 +48,11 @@ elif fileType == 'xmi':
 
     parser = xmiparse.XmiParser()
     parser.parse(fileName, sink)
+elif fileType == 'n3':
+    from relrdf.modelimport import rdflibparse
+
+    parser = rdflibparse.rdflibParser('n3')
+    parser.parse(fileName, sink)
 else:
     error(_("Invalid file type '%s'") % fileType)
 

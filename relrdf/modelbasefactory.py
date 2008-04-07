@@ -11,6 +11,9 @@ def getModelBase(modelBaseType, **modelBaseArgs):
     elif modelBaseTypeNorm == "sqlite":
         from db import sqlite
         module = sqlite
+    elif modelBaseTypeNorm == "postgres":
+        from db import postgres
+        module = postgres
     else:
         raise InstantiationError("invalid model base type '%s'"
                                  % modelBaseType)

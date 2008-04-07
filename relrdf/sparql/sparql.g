@@ -645,6 +645,11 @@ WS
         { $skip }
     ;
 
+SL_COMMENT
+		:	"#"
+			(~('\n'|'\r'))* ('\n'|'\r'('\n')?)
+			{ $skip; $newline }
+		;
 
 /*
  * Symbols and operators

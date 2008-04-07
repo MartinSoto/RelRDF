@@ -13,12 +13,12 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         super(SqlEmitter, self).__init__(prePrefix='pre')
 
         self.distinct = 0
-
+        
     def Null(self, expr):
         return 'NULL'
 
     def Uri(self, expr):
-        return '"%s"' % expr.uri
+        return "'%s'" % expr.uri
 
     _noStringTypes = set((xsd.boolean,
                           xsd.integer,
@@ -29,7 +29,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         if expr.literal.typeUri in self._noStringTypes:
             return "%s"  % unicode(expr.literal)
         else:
-            return '"%s"' % unicode(expr.literal)
+            return "'%s'" % unicode(expr.literal)
 
     _functionMap = {
         fn.abs:                'ABS',
@@ -135,7 +135,8 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(SELECT %s FROM %s)' % (sexpr, rel);
 
     def Product(self, expr, *operands):
-        return '(' + ') CROSS JOIN ('.join(operands) + ')'
+        # Note there is a special rule if parent node is Select (see preSelect)
+        return '(' + ' CROSS JOIN '.join(operands) + ')'
 
     def preLeftJoin(self, expr):
         if isinstance(expr[1], nodes.Select):
@@ -148,17 +149,24 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def LeftJoin(self, expr, fixed, optional, cond):
         if cond is not None:
-            return '(%s) LEFT JOIN (%s) ON (%s)' % (fixed, optional, cond)
+            return '(%s LEFT JOIN %s ON (%s))' % (fixed, optional, cond)
         else:
             # If no condition is available, this is actually a cross
             # join.
-            return '(%s) CROSS JOIN (%s)' % (fixed, optional)
+            return '(%s CROSS JOIN %s)' % (fixed, optional)
 
+    def preSelect(self, expr):
+        if isinstance(expr[0], nodes.Product):
+            srel = [self.process(sub) for sub in expr[0]]
+            return (' INNER JOIN '.join(srel), self.process(expr[1]))
+        else:
+            return (self.process(expr[0]), self.process(expr[1]))                        
+        
     def Select(self, expr, rel, cond):
         if isinstance(expr[0], nodes.Product):
             # The relation is some sort of join, we can just add an
             # "ON" clause to it.
-            return '%s\nON %s' % (rel, cond)
+            return '(%s ON %s)' % (rel, cond)
         else:
             # If the expression is not a product it must have an
             # incarnation. We create a derived table which uses the
@@ -177,8 +185,12 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             return [self.process(subexpr) for subexpr in expr]
 
     def MapResult(self, expr, select, *columnExprs):
-        columns = ', '.join(["%s AS '%s'" % (e, n)
-                             for e, n in zip(columnExprs, expr.columnNames)])
+
+        if len(expr.columnNames) > 0:
+            columns = ', '.join(["%s AS %s" % (e, n)
+                                 for e, n in zip(columnExprs, expr.columnNames)])
+        else:
+            columns = '*'
 
         # Distinct?
         if self.distinct:
@@ -301,8 +313,5 @@ def emit(expr):
     # Reduce constant expressions.
     expr = evaluate.reduceConst(expr)
 
-    # Debugging...
-    print emitter.process(expr)
-    
     return emitter.process(expr)
 

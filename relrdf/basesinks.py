@@ -1,4 +1,5 @@
 from relrdf.expression import uri, blanknode, literal
+from relrdf.commonns import rdf
 
 
 class NullSink(object):
@@ -33,3 +34,36 @@ class PrintSink(object):
 
     def close(self):
         pass
+
+class ListSink(list):
+    """An RDF sink that stores triples as a list"""
+    
+    def triple(self, subject, pred, object):
+        self.append((subject, pred, object))
+
+class DictSink(dict):
+    """An RDF sink that stores triples as a dictionary"""
+    
+    def triple(self, subject, pred, object):
+        self[subject, pred] = object
+        
+    def getList(self, base):
+        
+        # Search list elements
+        list = []
+        while True: 
+
+            # Invalid node?
+            if not isinstance(base, blanknode.BlankNode):
+                return list
+            
+            # Search list element
+            try:
+                first = self[base, rdf.first]
+                rest = self[base, rdf.rest]
+            except KeyError:
+                return list
+            
+            # Add, continue with next element
+            list.append(first)
+            base = rest

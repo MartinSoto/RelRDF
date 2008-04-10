@@ -51,11 +51,16 @@ class DictSink(dict):
         
         # Search list elements
         list = []
-        while True: 
+        visited = set()
+        while True:            
 
             # Invalid node?
             if not isinstance(base, blanknode.BlankNode):
                 return list
+            
+            # Check for loop
+            assert not base in visited
+            visited.add(base)
             
             # Search list element
             try:

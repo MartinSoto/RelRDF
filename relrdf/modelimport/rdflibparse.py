@@ -25,7 +25,7 @@ class RdfLibParser(object):
             try:
                 return blanks[node]
             except KeyError:
-                blanks[node] = blanknode.BlankNode()
+                blanks[node] = blanknode.newBlankNode()
                 return blanks[node]
         else:
             assert False, "Received unknown node type from rdflib: " + node.__class__.__name__
@@ -42,5 +42,4 @@ class RdfLibParser(object):
             sink.triple(self._transValue(stmt[0], blanks), 
                         self._transValue(stmt[1], blanks),
                         self._transValue(stmt[2], blanks))
-            
-        
+

@@ -40,7 +40,7 @@ import RDF, RDFS
 #from rdflib import URIRef, BNode, Literal
 from relrdf.expression.uri import Uri as URIRef
 from relrdf.expression.literal import Literal
-from relrdf.expression.blanknode import BlankNode as BNode
+from relrdf.expression.blanknode import newBlankNode as BNode
 
 #from rdflib.exceptions import ParserError, Error
 from relrdf.error import Error

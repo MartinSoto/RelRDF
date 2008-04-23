@@ -42,7 +42,8 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         fn.min:                'LEAST',
         fn['not']:             'NOT',
         fn.round:              'ROUND',
-        fn['upper-case']:      'UPPER'
+        fn['upper-case']:      'UPPER',
+        fn.substring:          'SUBSTR',
     }
     
     def FunctionCall(self, expr, *params):
@@ -229,7 +230,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             if expr.offset != None:
                 # Note: The MySQL manual actually suggests this number.
                 #       Let's hope it's future-proof.
-                query = subepxr + '\nLIMIT %d,18446744073709551615' % expr.offset
+                query = subexpr + '\nLIMIT %d,18446744073709551615' % expr.offset
             
         return query
     

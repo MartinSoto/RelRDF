@@ -1,5 +1,5 @@
 from relrdf.error import InstantiationError
-from relrdf.expression import uri, blanknode, literal
+from relrdf.expression import uri, literal
 from relrdf import commonns
 
 class SingleVersionRdfSink(object):
@@ -47,8 +47,6 @@ class SingleVersionRdfSink(object):
     def triple(self, subject, pred, object):
         if isinstance(object, uri.Uri):
             objectType = commonns.rdfs.Resource
-        elif isinstance(object, blanknode.BlankNode):
-            objectType = '<BLANKNODE>'
         elif isinstance(object, literal.Literal):
             if object.typeUri is None:
                 objectType = commonns.rdfs.Literal

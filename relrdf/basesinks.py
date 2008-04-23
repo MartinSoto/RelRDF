@@ -1,4 +1,4 @@
-from relrdf.expression import uri, blanknode, literal
+from relrdf.expression import uri, literal
 from relrdf.commonns import rdf
 
 
@@ -20,8 +20,6 @@ class PrintSink(object):
     def triple(self, subject, pred, object):
         if isinstance(object, uri.Uri):
             objStr = '<%s>' % object
-        elif isinstance(object, blanknode.BlankNode):
-            objStr = 'bnode:%s' % object
         elif isinstance(object, literal.Literal):
             objStr = '"%s"' % object
         else:
@@ -55,7 +53,7 @@ class DictSink(dict):
         while True:            
 
             # Invalid node?
-            if not isinstance(base, blanknode.BlankNode):
+            if not isinstance(base, uri.Uri) or not base.isBlank():
                 return list
             
             # Check for loop

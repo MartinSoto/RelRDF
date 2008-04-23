@@ -1,6 +1,6 @@
 import md5
 
-from relrdf.expression import uri, blanknode, literal
+from relrdf.expression import uri, literal
 
 
 class SingleVersionRdfSink(object):
@@ -45,8 +45,6 @@ class SingleVersionRdfSink(object):
     def triple(self, subject, pred, object):
         if isinstance(object, uri.Uri):
             objectType = '<RESOURCE>'
-        elif isinstance(object, blanknode.BlankNode):
-            objectType = '<BLANKNODE>'
         elif isinstance(object, literal.Literal):
             if object.typeUri is None:
                 objectType = '<LITERAL>'

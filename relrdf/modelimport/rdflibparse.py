@@ -1,5 +1,5 @@
 
-from relrdf.expression import uri, blanknode, literal
+from relrdf.expression import uri,  literal
 
 import rdflib
 from rdflib.Graph import Graph
@@ -25,7 +25,7 @@ class RdfLibParser(object):
             try:
                 return blanks[node]
             except KeyError:
-                blanks[node] = blanknode.newBlankNode()
+                blanks[node] = uri.newBlank()
                 return blanks[node]
         else:
             assert False, "Received unknown node type from rdflib: " + node.__class__.__name__

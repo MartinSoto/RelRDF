@@ -8,7 +8,7 @@ from relrdf.error import InstantiationError, ModifyError
 from relrdf import results, mapping, parserfactory, commonns
 
 from relrdf.typecheck import dynamic
-from relrdf.expression import uri, blanknode, literal, nodes, build
+from relrdf.expression import uri, literal, nodes, build
 from relrdf.mapping import transform, valueref, sqlnodes, emit
 
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
@@ -172,8 +172,6 @@ class BasicMapper(transform.PureRelationalTransformer):
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
             return nodes.Uri(commonns.rdfs.Literal)
-        elif isinstance(typeExpr, BlankNodeType):
-            return None # FIXME: nodes.Literal(TYPE_ID_BLANKNODE)
         elif isinstance(typeExpr, ResourceType):
             return resourceTypeExpr()
         else:
@@ -908,8 +906,6 @@ class BaseResults(object):
             value = None
         elif typeId == commonns.rdfs.Resource:
             value = uri.Uri(rawValue)
-        #elif typeId == 2:
-        #    value = blanknode.BlankNode(rawValue)
         elif typeId == commonns.rdfs.Literal:
             value = literal.Literal(rawValue)
         else:

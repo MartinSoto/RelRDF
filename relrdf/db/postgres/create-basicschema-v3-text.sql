@@ -33,7 +33,7 @@ CREATE UNIQUE INDEX data_types_unique
   ON data_types (uri);
 
 INSERT INTO data_types (id, uri)
-  VALUES (1, 'http://www.w3.org/2000/01/rdf-schema#Resource'), (2, '<BLANKNODE>'), (3, 'http://www.w3.org/2000/01/rdf-schema#Literal');
+  VALUES (1, 'http://www.w3.org/2000/01/rdf-schema#Resource'), (2, 'http://www.w3.org/2000/01/rdf-schema#Literal');
 
 
 DROP TABLE IF EXISTS version_statement;

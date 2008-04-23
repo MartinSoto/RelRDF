@@ -3,7 +3,7 @@ from relrdf.localization import _
 from relrdf import parserfactory, commonns
 
 from relrdf.typecheck import dynamic
-from relrdf.expression import uri, blanknode, literal, nodes, build
+from relrdf.expression import uri, literal, nodes, build
 from relrdf.mapping import transform, valueref, sqlnodes, emit
 
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
@@ -688,8 +688,6 @@ class Results(object):
             value = None
         elif typeId == 1:
             value = uri.Uri(rawValue)
-        elif typeId == 2:
-            value = blanknode.BlankNode(rawValue)
         elif typeId == 3:
             value = literal.Literal(rawValue)
         else:

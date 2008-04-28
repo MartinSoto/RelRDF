@@ -403,7 +403,7 @@ graphTerm returns [expr]
     |   expr=booleanLiteral
     |   expr=blankNode
     |   nil:NIL
-        { expr = nodes.Uri(commonns.rdfs.nil); \
+        { expr = nodes.Uri(commonns.rdf.nil); \
           expr.setExtentsFromToken(nil, self) }
     ;
 

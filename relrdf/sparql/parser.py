@@ -194,9 +194,9 @@ class Parser(antlr.LLkParser):
                 current = head = new
             else:
                 
-                nextTriple = (current.copy(), nodes.Uri(commonns.rdf.next), new.copy())
-                nextPattern = nodes.StatementPattern(graph.copy(), *nextTriple)
-                pattern.append(nextPattern)
+                restTriple = (current.copy(), nodes.Uri(commonns.rdf.rest), new.copy())
+                restPattern = nodes.StatementPattern(graph.copy(), *restTriple)
+                pattern.append(restPattern)
                 
                 current = new
         
@@ -206,9 +206,9 @@ class Parser(antlr.LLkParser):
             pattern.append(firstPattern)
         
         # Terminate
-        nextTriple = (current.copy(), nodes.Uri(commonns.rdf.next), nodes.Uri(commonns.rdf.nil))
-        nextPattern = nodes.StatementPattern(graph.copy(), *nextTriple)
-        pattern.append(nextPattern)
+        restTriple = (current.copy(), nodes.Uri(commonns.rdf.rest), nodes.Uri(commonns.rdf.nil))
+        restPattern = nodes.StatementPattern(graph.copy(), *restTriple)
+        pattern.append(restPattern)
         
         # Return the head node
         return head.copy()

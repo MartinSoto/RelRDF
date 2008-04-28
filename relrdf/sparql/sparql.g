@@ -308,7 +308,7 @@ constructTriples[expr]
 
 triplesSameSubject[graph, pattern]
     :   subject=varOrTerm propertyListNotEmpty[graph, pattern, subject]
-    |   subject=triplesNode propertyList[graph, pattern, subject]
+    |   subject=triplesNode[graph, pattern] propertyList[graph, pattern, subject]
     ;
 
 propertyList[graph, pattern, subject]
@@ -322,7 +322,7 @@ propertyListNotEmpty[graph, pattern, subject]
     ;
 
 objectList[graph, pattern, subject, predicate]
-    :   obj=graphNode
+    :   obj=graphNode[graph, pattern]
         { stmtPattern = nodes.StatementPattern(graph.copy(),
                                                subject.copy(),
                                                predicate.copy(),
@@ -338,26 +338,28 @@ verb returns [expr]
         { expr=nodes.Uri(rdf.type) }
     ;
 
-triplesNode returns [expr]
-    :   expr=collection
-    /*|   expr=blankNodePropertyList*/
+triplesNode[graph, pattern] returns [expr]
+    :   expr=collection[graph, pattern]
+    |   expr=blankNodePropertyList[graph, pattern]
     ;
 
-/*blankNodePropertyList returns [expr]
-    :   LBRACKET propertyListNotEmpty RBRACKET
-        { expr = nodes.NotSupported(); }
-    ;*/
+blankNodePropertyList[graph, pattern] returns [expr]
+    :   { subject = util.VarMaker.makeBlank() }
+    	LBRACKET propertyListNotEmpty[graph, pattern, subject] RBRACKET
+        { expr = subject }
+    ;
 
-collection returns [expr]
-    :   lp:LPAREN ( node=graphNode )+ rp:RPAREN
-        { expr = nodes.NotSupported(); \
+collection[graph, pattern] returns [expr]
+    :   { nodes = [] }
+    	lp:LPAREN ( node=graphNode[graph, pattern] { nodes.append(node) } )+ rp:RPAREN
+        { expr = self.makeCollectionPattern(graph, pattern, nodes); \
           expr.setExtentsStartFromToken(lp, self); \
           expr.setExtentsEndFromToken(rp) }
     ;
 
-graphNode returns [expr]
+graphNode[graph, pattern] returns [expr]
     :   expr=varOrTerm
-    |   expr=triplesNode
+    |   expr=triplesNode[graph, pattern]
     ;
 
 varOrTerm returns [expr]
@@ -401,7 +403,7 @@ graphTerm returns [expr]
     |   expr=booleanLiteral
     |   expr=blankNode
     |   nil:NIL
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.Uri(commonns.rdfs.nil); \
           expr.setExtentsFromToken(nil, self) }
     ;
 
@@ -533,15 +535,15 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(bd, self); \
           expr.setExtentsEndFromToken(rp5); }
     |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
-        { expr = nodes.Equal(nodes.DynType(param), nodes.Uri(commonns.rdfs.Resource)); \
+        { expr = self.makeIsResource(param, False); \
           expr.setExtentsStartFromToken(ii, self); \
           expr.setExtentsEndFromToken(rp6); }
     |   iu:IS_URI LPAREN param=expression rp7:RPAREN
-        { expr = nodes.Equal(nodes.DynType(param), nodes.Uri(commonns.rdfs.Resource)); \
+        { expr = self.makeIsResource(param, False); \
           expr.setExtentsStartFromToken(iu, self); \
           expr.setExtentsEndFromToken(rp7); }
     |   ib:IS_BLANK LPAREN param=expression rp8:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = self.makeIsResource(param, True); \
           expr.setExtentsStartFromToken(ib, self); \
           expr.setExtentsEndFromToken(rp8); }
     |   il:IS_LITERAL LPAREN param=expression rp9:RPAREN
@@ -626,10 +628,10 @@ qname returns [expr]
 
 blankNode returns [expr]
     :   bnl:BLANK_NODE_LABEL
-        { expr = nodes.NotSupported(); \
+        { expr = self.blankNodeByLabel(bnl.getText()); \
           expr.setExtentsFromToken(bnl, self) }
     |   an:ANON
-        { expr = nodes.NotSupported(); \
+        { expr = util.VarMaker.makeBlank(); \
           expr.setExtentsFromToken(an, self) }
     ;
 
@@ -966,7 +968,7 @@ FALSE
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_BLANK
-    :   "isBLANK"
+    :   "isBlank"
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -976,7 +978,7 @@ IS_IRI
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_LITERAL
-    :   "isLITERAL"
+    :   "isLiteral"
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -1101,7 +1103,7 @@ LANGTAG
 
 
 BLANK_NODE_LABEL
-    :   '_' ':' NCNAME
+    :   '_'! ':'! NCNAME
     ;
 
 

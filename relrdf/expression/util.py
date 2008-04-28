@@ -13,4 +13,7 @@ class VarMaker(object):
         cls._varNr += 1
         return nodes.Var('#var_%d#' % cls._varNr)
 
-
+    @classmethod
+    def makeBlank(cls):
+        cls._varNr += 1
+        return nodes.BlankNode('#blank_%d#' % cls._varNr)

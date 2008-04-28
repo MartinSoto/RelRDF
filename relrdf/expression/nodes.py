@@ -539,6 +539,11 @@ class Var(ValueNode):
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.name)
 
+class BlankNode(Var):
+    """An expression node representing an unspecified blank node"""
+    
+    def __init__(self, name):
+        super(BlankNode, self).__init__(name)
 
 class FunctionCall(ValueNode):
     """A function call."""
@@ -752,7 +757,7 @@ class ReifStmtPattern(ExpressionNode):
 
 class Joker(ExpressionNode):
     """An expression node representing a joker, i.e., an open
-    possition in a pattern tha can be filled with everything."""
+    position in a pattern tha can be filled with everything."""
 
     __slots__ = ()
 

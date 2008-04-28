@@ -11,7 +11,8 @@ class Parser(antlr.LLkParser):
     __slots__ = ('basePrefixes',
                  'externalPrefixes',
                  'localPrefixes',
-                 'variables')
+                 'variables',
+                 'blankNodes')
 
     # A number of namespace prefixes offered by default by this
     # implementation.
@@ -56,6 +57,9 @@ class Parser(antlr.LLkParser):
         # The set of used variable names, in order they first appeared
         self.variables = []
         
+        # Map of blank node labels to the actual resource objects
+        self.blankNodes = {}
+        
     @staticmethod
     def makeTypedLiteral(string, typeUri):
         """Make a `nodes.Literal` expression node with the value given
@@ -63,7 +67,25 @@ class Parser(antlr.LLkParser):
         it.""" 
         lt = literal.Literal(string, typeUri=typeUri)
         return nodes.Literal(lt)
-
+    
+    def makeIsResource(self, expr, blank):
+        """Return an expression that will evaluate to true if given expression
+        is a resource (URI or blank node, respectively)"""
+        
+        # Resources are identified by type URI
+        uriTypeExpr = nodes.Equal(nodes.DynType(expr), nodes.Uri(commonns.rdfs.Resource))
+        
+        # Differentiate URIs and blank nodes by prefix
+        prefixExpr = nodes.FunctionCall(fn.substring,
+                                        expr.copy(),
+                                        self.makeTypedLiteral(1, xsd.integer),
+                                        self.makeTypedLiteral(len(uri.BLANK_NODE_NS), xsd.integer))
+        blankPrefixExpr = self.makeTypedLiteral(uri.BLANK_NODE_NS, xsd.string)
+        
+        if blank:
+            return nodes.And(uriTypeExpr, nodes.Equal(prefixExpr, blankPrefixExpr))
+        else:
+            return nodes.And(uriTypeExpr, nodes.Different(prefixExpr, blankPrefixExpr))
 
     def defineLocalPrefix(self, qnameToken, uriToken):
         """Create a new local prefix from the token `qnameToken` with
@@ -143,3 +165,51 @@ class Parser(antlr.LLkParser):
             return cls(graphUri.uri, cons)
         else:
             return cls(None, cons)
+
+    def blankNodeByLabel(self, label):
+        
+        # Try to return the existing blank node
+        try:
+            return self.blankNodes[label]
+        except KeyError:
+            # And if that fails, create a new one
+            node = util.VarMaker.makeBlank()
+            self.blankNodes[label] = node
+            return node
+    
+    def makeCollectionPattern(self, graph, pattern, collection):
+        
+        assert len(collection) > 0
+        
+        # Create linked list
+        current = head = None
+        for item in collection:
+            
+            # Create new blank node for this collection item            
+            #new = nodes.Uri(uri.newBlank())
+            new = util.VarMaker.makeBlank()
+            
+            # Link the node
+            if head is None:
+                current = head = new
+            else:
+                
+                nextTriple = (current.copy(), nodes.Uri(commonns.rdf.next), new.copy())
+                nextPattern = nodes.StatementPattern(graph.copy(), *nextTriple)
+                pattern.append(nextPattern)
+                
+                current = new
+        
+            # Set the value of this node
+            firstTriple = (current, nodes.Uri(commonns.rdf.first), item)
+            firstPattern = nodes.StatementPattern(graph.copy(), *firstTriple)
+            pattern.append(firstPattern)
+        
+        # Terminate
+        nextTriple = (current.copy(), nodes.Uri(commonns.rdf.next), nodes.Uri(commonns.rdf.nil))
+        nextPattern = nodes.StatementPattern(graph.copy(), *nextTriple)
+        pattern.append(nextPattern)
+        
+        # Return the head node
+        return head.copy()
+    

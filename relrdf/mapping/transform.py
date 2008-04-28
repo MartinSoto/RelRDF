@@ -1,7 +1,7 @@
 import re
 import pprint
 
-from relrdf.commonns import xsd, rdf, relrdf
+from relrdf.commonns import xsd, rdf, rdfs, relrdf
 from relrdf.expression import nodes
 from relrdf.expression import rewrite
 from relrdf.expression import literal, uri
@@ -148,12 +148,11 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
             elif isinstance(component, nodes.Joker):
                 pass
             else:
-                conds.append(\
-                    nodes.And(nodes.Equal(\
-                                  self.mapTypeExpr(component.staticType),
-                                  dynTypeExpr),
-                              nodes.Equal(component,
-                                          valueExpr)))
+                valEqualExpr = nodes.Equal(component, valueExpr)
+                typeEqualExpr = nodes.Equal(\
+                    nodes.Equal(self.mapTypeExpr(component.staticType), nodes.Uri(rdfs.Resource)),
+                    nodes.Equal(dynTypeExpr, nodes.Uri(rdfs.Resource)))
+                conds.append(nodes.And(valEqualExpr, typeEqualExpr))
 
         if conds == []:
             return coreExpr

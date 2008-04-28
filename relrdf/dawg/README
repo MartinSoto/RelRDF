@@ -1,0 +1,15 @@
+
+For the tests, you need the DAWG testcase data from
+  http://www.w3.org/2001/sw/DataAccess/tests/r2.html
+
+Extract the files so the data-r2 directory can be found by
+the scripts (create a symbolic link inside relrdf/dawg, for
+example).
+
+At the moment, the testcases only work somewhat correctly
+with a completely empty Postgres database as backend. To
+run the testcases, specify a base, a sink and a matching
+model. This might look look this:
+
+  ./dawg-eval.sh :postgres host=localhost db=vmodell user=vmodell password=vmodell :singleversion versionId=999 :singleversion versionId=999
+

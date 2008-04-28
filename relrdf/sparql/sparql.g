@@ -1,13 +1,9 @@
 header {
     from relrdf.commonns import rdf, xsd
-    from relrdf.expression import nodes
+    from relrdf.expression import nodes, uri, util
     from relrdf import commonns
 
     import parser, spqnodes
-}
-
-header "__init__" {
-    self.variables = set()
 }
 
 options {
@@ -382,13 +378,17 @@ varOrBlankNodeOrIriRef returns [expr]
 
 var returns [expr]
     :   v1:VAR1
-        { expr = nodes.Var(v1.getText()); \
-          expr.setExtentsFromToken(v1, self, 1); \
-          self.variables.add(expr.name); }
+        {
+          expr = nodes.Var(v1.getText());
+          expr.setExtentsFromToken(v1, self, 1);
+          if not expr.name in self.variables: self.variables.append(expr.name);
+        }
     |   v2:VAR2
-        { expr = nodes.Var(v2.getText()); \
-          expr.setExtentsFromToken(v2, self, 1); \
-          self.variables.add(expr.name); }
+        {
+          expr = nodes.Var(v2.getText());
+          expr.setExtentsFromToken(v2, self, 1);
+          if not expr.name in self.variables: self.variables.append(expr.name);
+        }
     ;
 
 graphTerm returns [expr]

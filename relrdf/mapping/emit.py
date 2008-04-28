@@ -222,14 +222,14 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         # Add LIMIT clause
         if expr.limit != None:
             if expr.offset != None:                
-                query = subexpr + '\nLIMIT %d,%d' % (expr.offset, expr.limit)
+                query = subexpr + '\nLIMIT %d OFFSET %d' % (expr.offset, expr.limit)
             else:
                 query = subexpr + '\nLIMIT %d' % expr.limit
         else:
             if expr.offset != None:
                 # Note: The MySQL manual actually suggests this number.
                 #       Let's hope it's future-proof.
-                query = subexpr + '\nLIMIT %d,18446744073709551615' % expr.offset
+                query = subexpr + '\nOFFSET %d' % expr.offset
             
         return query
     

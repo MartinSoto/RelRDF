@@ -1,8 +1,9 @@
 
-from uuid import uuid4
+from uuid import uuid3, uuid4
 
 # Prefix to use for blank nodes
 BLANK_NODE_NS = "bnode:"
+BLANK_NODE_NS_UUID = uuid4()
 
 class Uri(unicode):
     __slots__ = ()
@@ -18,6 +19,10 @@ def isBlank(obj):
     
 def newBlank():
     return Uri(BLANK_NODE_NS + unicode(uuid4()))
+
+def newBlankFromName(name):
+    uuid = uuid3(BLANK_NODE_NS_UUID, name)
+    return Uri(BLANK_NODE_NS + unicode(uuid))
 
 class Namespace(Uri):
     __slots__ = ()

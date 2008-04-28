@@ -895,7 +895,7 @@ class BaseResults(object):
     def __len__(self):
         return self.length
 
-    def _convertResult(self, rawValue, typeId):
+    def _convertResult(self, rawValue, typeId, blankMap):
         if isinstance(rawValue, str):
             try:
                 rawValue = rawValue.decode('utf8')
@@ -906,12 +906,20 @@ class BaseResults(object):
             value = None
         elif typeId == commonns.rdfs.Resource:
             value = uri.Uri(rawValue)
+            
+            # Needs reinstantiation?
+            if value.isBlank():
+                try:
+                    value = blankMap[rawValue]
+                except KeyError:
+                    value = blankMap[rawValue] = uri.newBlank()
+            
         elif typeId == commonns.rdfs.Literal:
             value = literal.Literal(rawValue)
         else:
             # Expect everything that's not a resource to be some
             # sort of literal
-            value = literal.Literal(rawValue)
+            value = literal.Literal(rawValue, typeId)
         
         return value
 
@@ -943,8 +951,9 @@ class ColumnResults(BaseResults):
         row = self.cursor.fetchone()
         while row is not None:
             result = []
+            blankMap = {}
             for rawValue, typeId in zip(row[0::2], row[1::2]):
-                result.append(self._convertResult(rawValue, typeId))
+                result.append(self._convertResult(rawValue, typeId, blankMap))
             yield tuple(result)
 
             row = self.cursor.fetchone()
@@ -968,11 +977,16 @@ class StmtResults(BaseResults):
     def iterAll(self):
         row = self.cursor.fetchone()
         while row is not None:
+            
+            # The blank node reinstationation map is kept across statements, as
+            # statements in the same row might refer to the same blank nodes.
+            blankMap = {}
+            
             for i in range(self.stmtsPerRow):
                 result = []
                 for rawValue, typeId in zip(row[i*6 : (i+1)*6 : 2],
                                             row[i*6 + 1: (i+1)*6 + 1: 2]):
-                    result.append(self._convertResult(rawValue, typeId))
+                    result.append(self._convertResult(rawValue, typeId, blankMap))
                 yield tuple(result)
 
             row = self.cursor.fetchone()

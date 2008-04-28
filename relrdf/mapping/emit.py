@@ -1,8 +1,7 @@
 import re
 
 from relrdf.commonns import xsd, fn, sql
-from relrdf.expression import rewrite, nodes, simplify, evaluate
-
+from relrdf.expression import uri, rewrite, nodes, simplify, evaluate
 
 class SqlEmitter(rewrite.ExpressionProcessor):
     """Generate SQL code from a relational expression."""
@@ -304,6 +303,12 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def SqlFunctionCall(self, expr, *args):
         return '%s(%s)' % (expr.name, ', '.join(args))
 
+    def BlankNode(self, expr):
+        # Generate a unique UUID for the name used to identify the blank node
+        # Note this will produce the same blank node in all result rows, so the
+        # blank nodes will have to be reinstantiated afterwards.
+        blank = uri.newBlankFromName(expr.name)
+        return "'%s'" % unicode(blank)
 
 def emit(expr):
     emitter = SqlEmitter()

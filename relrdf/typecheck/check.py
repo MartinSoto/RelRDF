@@ -71,6 +71,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def Var(self, expr):
         expr.staticType = self.lookUpVar(expr.name)
 
+    def BlankNode(self, expr):
+        expr.staticType = resourceType
+
     def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()
         for i, subexpr in enumerate(subexprs):

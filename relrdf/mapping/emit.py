@@ -308,7 +308,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         # Note this will produce the same blank node in all result rows, so the
         # blank nodes will have to be reinstantiated afterwards.
         blank = uri.newBlankFromName(expr.name)
-        return "'%s'" % unicode(blank)
+        return "'%s#reinst'" % unicode(blank)
 
 def emit(expr):
     emitter = SqlEmitter()
@@ -318,6 +318,6 @@ def emit(expr):
 
     # Reduce constant expressions.
     expr = evaluate.reduceConst(expr)
-
+    
     return emitter.process(expr)
 

@@ -908,7 +908,7 @@ class BaseResults(object):
             value = uri.Uri(rawValue)
             
             # Needs reinstantiation?
-            if value.isBlank():
+            if value.isBlank() and value.endswith('#reinst'):
                 try:
                     value = blankMap[rawValue]
                 except KeyError:

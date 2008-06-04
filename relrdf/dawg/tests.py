@@ -1,10 +1,13 @@
 
+
 import ns
 from result import SelectQueryResult, ConstructQueryResult
 
 from relrdf import error
 from relrdf.sparql import environment
 from relrdf.modelimport.rdflibparse import RdfLibParser
+
+import pprint
 
 def unprefixFileURL(url):
     
@@ -22,7 +25,7 @@ def readFileFromURL(fileName):
     f.close()
 
     return data    
-
+        
 class SyntaxTest(object):
     
     __slots__ = ('uri',
@@ -40,15 +43,23 @@ class SyntaxTest(object):
         self.action = triples.get((uri, ns.mf.action))
         self.expectSuccess = expectSuccess
         
-    def execute(self, model, sink):
+    def execute(self, model, sink, log):
 
         print "Running %s..." % self.name,
+
+        # Create log        
+        if self.expectSuccess:
+            log.testStart(self.name, "Syntax test (positive)")
+        else:
+            log.testStart(self.name, "Syntax test (negative)")
         
         # Read the action data (SPARQL)
         try:
             query = readFileFromURL(self.action) 
+            log.testEntry("Query", query, pre=True, src=self.action)
         except IOError, detail:
             print "Failed (%s)" % detail
+            log.testFailExc("Could not read query")
             return False
         
         try:
@@ -60,16 +71,20 @@ class SyntaxTest(object):
         except Exception, detail:
             if self.expectSuccess:
                 print "Failed (%s)" % detail
+                log.testFailExc("Could not parse query")
                 return False
             else:
                 print "Ok"
+                log.testOk()
                 return True;
         
         if self.expectSuccess:
             print "Ok"
+            log.testOk()
             return True
         else:
             print "Failed (Negative test: Expected a parser error)"
+            log.testFail("Negative test: Expected a parser error")
             return True
 
 class QueryException(Exception):
@@ -104,27 +119,34 @@ class QueryEvaluationTest(object):
         
         self.result = triples.get((uri, ns.mf.result))
         
-    def evaluate(self, model, sink):
+    def evaluate(self, model, sink, log):
 
         # Read query
         try:
             query = readFileFromURL(self.query)
+            log.testEntry("Query", query, pre=True, src=self.query)
         except IOError, detail:
+            log.testFailExc("Failed to read query")
             raise QueryException("Failed to read query", detail)
 
         # Data to read?
         if self.data != None:
             
+            # Read text for log
+            dataText = readFileFromURL(self.data)
+            log.testEntry("Data", dataText, pre=True, src=self.result)
+
             # Create parser
             from relrdf.modelimport.rdflibparse import RdfLibParser
             parser = RdfLibParser("n3")
-            
+                        
             # Copy data into database (no commit!)
             try:
                 parser.parse(self.data, sink)
                 sink.finish()
             except Exception, detail:
                 sink.rollback()
+                log.testFailExc("Failed to import data")
                 raise QueryException("Failed to import data", detail)
         
         # Execute the query
@@ -135,6 +157,7 @@ class QueryEvaluationTest(object):
             finally:
                 sink.rollback()
         except Exception, detail:
+            log.testFailExc("Failed to run query")
             raise QueryException("Failed to run query", detail)
         
         return result
@@ -144,32 +167,40 @@ class SelectQueryEvaluationTest(QueryEvaluationTest):
     def __init__(self, uri, triples):        
         super(SelectQueryEvaluationTest, self).__init__(uri, triples)
     
-    def execute(self, model, sink):
+    def execute(self, model, sink, log):
         
         print "Running %s..." % self.name,
+        log.testStart(self.name, "Select query test")
         
         # Read the expected result
         try:
+                        
+            # Read text for log
+            log.testEntry("Expected", "", src=self.result)
             
             expectedResult = SelectQueryResult(unprefixFileURL(self.result))
             
         except Exception, detail:
+            log.testFailExc("Failed to read expected result")
             print "Failed to read expected result (%s)" % detail
             return False
         
         # Evaluate the query
         try:
-            result = self.evaluate(model, sink)
+            result = self.evaluate(model, sink, log)
         except QueryException, detail:
+            #print "%s (%s)" % (detail.msg.encode("ascii", 'backslashreplace'), str(detail.nested).encode("ascii", 'backslashreplace'))
             print "%s (%s)" % (detail.msg, detail.nested)
             return False
     
         # Compare result
-        (success, msg) = expectedResult.compare(result)
+        (success, msg) = expectedResult.compare(result, log)
         if not success:
+            log.testFail("Failed result match (%s)" % msg)
             print "Failed result match (%s)" % msg
             return False
         
+        log.testOk()        
         print "Ok"
         return True
 
@@ -178,21 +209,25 @@ class ConstructQueryEvaluationTest(QueryEvaluationTest):
     def __init__(self, uri, triples):        
         super(ConstructQueryEvaluationTest, self).__init__(uri, triples)
 
-    def execute(self, model, sink):
+    def execute(self, model, sink, log):
         print "Running %s..." % self.name,
+        log.testStart(self.name, "Construct query test")
         
         # Read the expected result
         try:
                         
+            log.testEntry("Expected", "", src=self.result)
+
             expectedResult = ConstructQueryResult(unprefixFileURL(self.result))
-            
+                        
         except Exception, detail:
+            log.testFailExc("Failed to read expected result")
             print "Failed to read expected result (%s)" % detail
             return False        
         
         # Evaluate the query
         try:
-            result = self.evaluate(model, sink)
+            result = self.evaluate(model, sink, log)
         except QueryException, detail:
             print "%s (%s)" % (detail.msg, detail.nested)
             return False
@@ -200,9 +235,11 @@ class ConstructQueryEvaluationTest(QueryEvaluationTest):
         # Compare result
         (success, msg) = expectedResult.compare(result)
         if not success:
+            log.testFail("Failed result match (%s)" % msg)            
             print "Failed result match (%s)" % msg
             return False
-                
+        
+        log.testOk()
         print "Ok"
         return True
     
@@ -211,7 +248,7 @@ class AskQueryEvaluationTest(QueryEvaluationTest):
     def __init__(self, uri, triples):        
         super(AskQueryEvaluationTest, self).__init__(uri, triples)
 
-    def execute(self, model, sink):
+    def execute(self, model, sink, log):
         print "Running %s..." % self.name,
         print "Not implemented yet!"
         return False

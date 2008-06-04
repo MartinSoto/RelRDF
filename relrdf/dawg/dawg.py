@@ -10,6 +10,8 @@ from relrdf.expression import uri
 from relrdf.error import InstantiationError
 from relrdf.factory import parseCmdLineArgs
 
+from traceback import format_exc
+
 # Utilities
 def isURI(node):
     return isinstance(node, uri.Uri)
@@ -98,22 +100,77 @@ class Manifesto:
     def entryCount(self):
         return len(self.entries) + sum([m.entryCount() for m in self.manifests])
     
-    def execute(self, model, sink, okSet):
+    def execute(self, model, sink, okSet, log):
         
         if len(self.entries) > 0:
             print "== Executing test cases from %s..." % self.source
+            log.manifestStart(self.source)            
         
         cnt = 0
         for entry in self.entries:
-            result = entry.execute(model, sink)
+            result = entry.execute(model, sink, log)
             if result:
                 cnt += 1
                 okSet.add(entry.uri)
             
         for manifest in self.manifests:
-            cnt += manifest.execute(model, sink, okSet)
+            cnt += manifest.execute(model, sink, okSet, log)
             
         return cnt
+    
+    
+
+class TestLogFile(object):
+    
+    __slots__ = ('file')
+    
+    def __init__(self, file):
+        self.file = file
+    
+    def start(self):
+        self.file.write("<html><body>\n")
+    
+    def manifestStart(self, source):
+        self.file.write("<h1>Test cases from %s</h1>\n" % source)    
+        
+    def testStart(self, name, testType):
+        self.file.write("<h2>Case %s</h2>\n" % name)
+        self.file.write('<table border="1">\n');
+        self.testEntry("Type", testType)
+    
+    def testEntry(self, name, value, pre=False, src=None):
+        if not isinstance(value, unicode):
+            value = unicode(value, errors='ignore')
+        if pre:
+            value = "<pre>%s</pre>" % value.encode('latin-1').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        if not src is None:
+            value += '<p>(<a href="%s">%s</a>)</p>' % (src, src)
+        self.file.write('<tr><th style="vertical-align:top">%s:</th><td>%s</td></tr>' % (name, value))      
+        
+    def testOk(self, value=""):
+        if not isinstance(value, unicode):
+            value = unicode(value, errors='ignore')
+        self.file.write('<tr><th style="color:green;vertical-align:top">OK</th><td>%s</td></tr>' % (value))  
+        self.testEnd()
+ 
+    def testFail(self, value):
+        if not isinstance(value, unicode):
+            value = unicode(value, errors='ignore')
+        self.file.write('<tr><th style="color:red;vertical-align:top">Fail</th><td>%s</td></tr>' % (value))  
+        self.testEnd()
+        
+    def testFailExc(self, msg=None):
+        str = ""
+        if not msg is None:
+            str = "<p>%s:</p>" % msg
+        str += "<pre>%s</pre>" % format_exc(1000)
+        self.testFail(str)
+               
+    def testEnd(self, ):
+        self.file.write("</table>\n")
+    
+    def end(self):
+        self.file.write("</body></html>\n")
 
 if __name__ == '__main__':
     
@@ -164,9 +221,12 @@ if __name__ == '__main__':
         print >> sys.stderr, ("error: %s") % e
         sys.exit(1)
         
+    # Open test log
+    log = TestLogFile(open("log.html", "w"))
+        
     # Execute test cases
     okSet = set()
-    successCount = manifest.execute(model, sink, okSet)
+    successCount = manifest.execute(model, sink, okSet, log)
     
     # Compare with reference set
     refSuccessCount = 0
@@ -177,7 +237,9 @@ if __name__ == '__main__':
     print "== %d/%d test cases succeeded!" % (successCount, entryCount)
     if len(refSet) != 0:
         print "== (%d/%d from reference set)" % (refSuccessCount, len(refSet))
-        
+    
+    log.end()
+    
     # Write log
     refFile = open(TEST_LOG, "w")
     refFile.writelines([s + '\n' for s in okSet])

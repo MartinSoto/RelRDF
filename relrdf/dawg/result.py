@@ -214,7 +214,7 @@ class SelectQueryResult:
             # Add result row
             self.results.append(result)
     
-    def compare(self, result):
+    def compare(self, result, log):
         
         resultVars = result.columnNames
     
@@ -238,6 +238,9 @@ class SelectQueryResult:
             # Add to list
             resultList.append(rowd)
             
+        log.testEntry('Result', pprint.pformat(resultList))
+        log.testEntry('Expected', pprint.pformat(self.results))
+        
         # Compare lists
         return _compare(self.variables, resultList, self.results, self.indexes)
                 

@@ -45,9 +45,9 @@ typedef struct {
 
 #define TYPE_COMPATIBLE_MASK ((uint32_t) 0xFFFFFF00)
 
-#define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFF0000)
+#define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFFF000)
 #define STORAGE_TYPE_IRI     ((uint32_t) 0x00000000)
-#define STORAGE_TYPE_NUM     ((uint32_t) 0x00010000)
+#define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
 
 inline bool
 is_num_type(uint32_t type_id)
@@ -186,7 +186,7 @@ rdf_term_in(PG_FUNCTION_ARGS)
 		
 		/* Scan type ID */
 		len = pos-start; pos += 1;
-		if(1 != sscanf(pos, "^^%d", &type_id))
+		if(1 != sscanf(pos, "^^%x", &type_id))
 			PG_RETURN_NULL();
 		if(is_num_type(type_id))
 			PG_RETURN_NULL();
@@ -202,7 +202,7 @@ rdf_term_in(PG_FUNCTION_ARGS)
 		pos += len;
 		
 		/* Scan type ID */
-		if(1 != sscanf(pos, "^^%d", &type_id))
+		if(1 != sscanf(pos, "^^%x", &type_id))
 			PG_RETURN_NULL();
 		if(is_text_type(type_id))
 			PG_RETURN_NULL();
@@ -244,7 +244,7 @@ rdf_term_out(PG_FUNCTION_ARGS)
 		pos += len;		
 		*pos = '\''; pos += 1;
 		
-		snprintf(pos, 2 + 10 + 1, "^^%d", term->type_id);
+		snprintf(pos, 2 + 10 + 1, "^^%x", term->type_id);
 		
 	}
 	else
@@ -255,7 +255,7 @@ rdf_term_out(PG_FUNCTION_ARGS)
 		result = (char *) palloc(len);
 	
 		/* Construct string */
-		snprintf(result, len, "%lg^^%d", term->num, term->type_id);
+		snprintf(result, len, "%lg^^%x", term->num, term->type_id);
 		
 	}
 	
@@ -382,6 +382,42 @@ rdf_term_text(PG_FUNCTION_ARGS)
 }
 
 /* Operators */
+
+PG_FUNCTION_INFO_V1(rdf_term_is_num_type_t);
+Datum
+rdf_term_is_num_type_t(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+
+	PG_RETURN_BOOL(is_num_type(term->type_id));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_is_num_type_i);
+Datum
+rdf_term_is_num_type_i(PG_FUNCTION_ARGS)
+{
+	uint32_t type_id = PG_GETARG_UINT32(0);
+
+	PG_RETURN_BOOL(is_num_type(type_id));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_is_text_type_t);
+Datum
+rdf_term_is_text_type_t(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+
+	PG_RETURN_BOOL(is_text_type(term->type_id));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_is_text_type_i);
+Datum
+rdf_term_is_text_type_i(PG_FUNCTION_ARGS)
+{
+	uint32_t type_id = PG_GETARG_UINT32(0);
+
+	PG_RETURN_BOOL(is_text_type(type_id));
+}
 
 PG_FUNCTION_INFO_V1(rdf_term_types_compatible_tt);
 Datum

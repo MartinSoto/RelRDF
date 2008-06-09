@@ -15,26 +15,56 @@ CREATE TABLE statements (
   id SERIAL PRIMARY KEY,
   subject rdf_term NOT NULL,
   predicate rdf_term NOT NULL,
-  object rdf_term NOT NULL,
+  object rdf_term NOT NULL
 );
 
 CREATE INDEX statements_subject_predicate_index
-  ON statements (subject_text, predicate_text);
+  ON statements (subject, predicate);
+CREATE INDEX statements_subject_predicate_compatible_index
+  ON statements (subject rdf_term_compatible, predicate rdf_term_compatible);
   
 DROP TABLE IF EXISTS data_types;
 
 CREATE TABLE data_types (
-  id SERIAL,
-  uri varchar(255) NOT NULL,
-  PRIMARY KEY  (id)
+  id SERIAL PRIMARY KEY,
+  uri varchar(255) NOT NULL
 );
 
 CREATE UNIQUE INDEX data_types_unique
   ON data_types (uri);
 
-INSERT INTO data_types (id, uri)
-  VALUES (1, 'http://www.w3.org/2000/01/rdf-schema#Resource'), (2, 'http://www.w3.org/2000/01/rdf-schema#Literal');
+INSERT INTO data_types (id, uri) VALUES
+  (0, 'http://www.w3.org/2000/01/rdf-schema#Resource'),
+  
+  (4096, 'http://www.w3.org/2001/XMLSchema#integer'),
+  (4097, 'http://www.w3.org/2001/XMLSchema#decimal'),
+  (4098, 'http://www.w3.org/2001/XMLSchema#float'),
+  (4099, 'http://www.w3.org/2001/XMLSchema#double'),
+  (4100, 'http://www.w3.org/2001/XMLSchema#positiveInteger'),
+  (4101, 'http://www.w3.org/2001/XMLSchema#negativeInteger'),
+  (4102, 'http://www.w3.org/2001/XMLSchema#nonPositiveInteger'),
+  (4103, 'http://www.w3.org/2001/XMLSchema#nonNegativeInteger'),
+  (4104, 'http://www.w3.org/2001/XMLSchema#long'),
+  (4105, 'http://www.w3.org/2001/XMLSchema#int'),
+  (4106, 'http://www.w3.org/2001/XMLSchema#short'),
+  (4107, 'http://www.w3.org/2001/XMLSchema#byte'),
+  (4108, 'http://www.w3.org/2001/XMLSchema#unsignedLong'),
+  (4109, 'http://www.w3.org/2001/XMLSchema#unsignedInt'),
+  (4110, 'http://www.w3.org/2001/XMLSchema#unsignedShort'),
+  (4111, 'http://www.w3.org/2001/XMLSchema#unsignedByte'),
 
+  (8192, 'http://www.w3.org/2001/XMLSchema#boolean'),
+
+  (8448, 'http://www.w3.org/2001/XMLSchema#dateTime'),
+
+  (8704, 'http://www.w3.org/2001/XMLSchema#string'),
+  
+  (8960, 'http://www.w3.org/2000/01/rdf-schema#Literal');
+
+ALTER SEQUENCE data_types_id_seq
+  INCREMENT BY 256
+  START WITH 16384
+  NO CYCLE;
 
 DROP TABLE IF EXISTS version_statement;
 
@@ -119,5 +149,5 @@ CREATE TABLE prefixes (
 INSERT INTO prefixes (prefix, namespace)
   VALUES ('vmxt', 'http://www.v-modell-xt.de/schema/1#'), ('vmxti', 'http://www.v-modell-xt.de/model/1#');
   
-  
+GRANT ALL ON data_types, data_types_id_seq, prefixes, relrdf_schema_version, statements, statements_id_seq, twoway, twoway_conns, twoway_use_time, threeway, threeway_conns, threeway_use_time, version_statement TO vmodell;
 

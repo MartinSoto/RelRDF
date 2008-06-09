@@ -1,7 +1,6 @@
 
 MODULES = rdf_term
-#DATA_built = isbn_issn.sql
-#DOCS = README.isbn_issn
+DATA_built = rdf_term.sql
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

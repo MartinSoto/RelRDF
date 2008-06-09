@@ -45,6 +45,27 @@ CREATE FUNCTION rdf_term(int, text)
   LANGUAGE C IMMUTABLE STRICT;
 
 
+CREATE FUNCTION rdf_term_is_num_type(rdf_term)
+  RETURNS bool
+  AS 'rdf_term', 'rdf_term_is_num_type_t'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_is_num_type(int4)
+  RETURNS bool
+  AS 'rdf_term', 'rdf_term_is_num_type_i'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_is_text_type(rdf_term)
+  RETURNS bool
+  AS 'rdf_term', 'rdf_term_is_text_type_t'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_is_text_type(int4)
+  RETURNS bool
+  AS 'rdf_term', 'rdf_term_is_text_type_i'
+  LANGUAGE C IMMUTABLE STRICT;
+  
+
 CREATE FUNCTION rdf_term_types_compatible(rdf_term, rdf_term)
   RETURNS bool
   AS 'rdf_term', 'rdf_term_types_compatible_tt'
@@ -168,7 +189,7 @@ CREATE OPERATOR = (
 	negator = !=,
 	restrict = eqsel,
 	join = eqjoinsel,
-	merges, hashes
+	merges
 );
 
 CREATE OPERATOR !== (

@@ -20,43 +20,49 @@ class SingleVersionRdfSink(object):
         self.connection = connection
         self.versionId = versionId
         self.verbose = verbose
+        self.verbose = True
 
         self.pendingRows = []
 
         self.cursor = self.connection.cursor()
 
-        # FIXME: A bug/limitation in MySQL causes an automatic commit
-        # whenever a table is dropped. To work around it, we use a
-        # different table for each required width and reuse them as
-        # needed. See basicquery.SingleVersionMapper.
-
         # Create (if it doesn't exist already) a temporary table to
-        # hold the results. We create the hash column but don't fill
-        # it, since method 'close' issues an update to do this at
-        # server side.
+        # hold the results.
         self.cursor.execute(
             """
             CREATE TEMPORARY TABLE statements_temp1 (
+              subject_type text NOT NULL,
               subject_text text NOT NULL,
+              predicate_type text NOT NULL,
               predicate_text text NOT NULL,
               object_type text NOT NULL,
               object_text text NOT NULL
             ) ON COMMIT DROP;
             """)
         
-    def triple(self, subject, pred, object):
-        if isinstance(object, uri.Uri):
-            objectType = commonns.rdfs.Resource
-        elif isinstance(object, literal.Literal):
-            if object.typeUri is None:
-                objectType = commonns.rdfs.Literal
+    def _typeUri(self, term):
+        
+        if isinstance(term, uri.Uri):
+            return commonns.rdfs.Resource
+        elif isinstance(term, literal.Literal):
+            if term.typeUri is None:
+                return commonns.rdfs.Literal
             else:
-                objectType = object.typeUri
+                return term.typeUri
         else:
             assert False, "Unexpected object type '%d'" \
                    % object.__class__.__name__
+        
 
-        self.pendingRows.append((unicode(subject).encode('utf-8'),
+    def triple(self, subject, pred, object):
+        
+        subjectType = self._typeUri(subject)
+        predType = self._typeUri(pred)
+        objectType = self._typeUri(object)
+
+        self.pendingRows.append((unicode(subjectType).encode('utf-8'),
+                                 unicode(subject).encode('utf-8'),
+                                 unicode(predType).encode('utf-8'),
                                  unicode(pred).encode('utf-8'),
                                  unicode(objectType).encode('utf-8'),
                                  unicode(object).encode('utf-8')))
@@ -73,8 +79,8 @@ class SingleVersionRdfSink(object):
         self.cursor.executemany(
             """
             INSERT INTO statements_temp1
-              (subject_text, predicate_text, object_type, object_text)
-            VALUES (%s, %s, %s, %s)""",
+              (subject_type, subject_text, predicate_type, predicate_text, object_type, object_text)
+            VALUES (%s, %s, %s, %s, %s, %s)""",
             self.pendingRows)
         
         self.pendingRows = []
@@ -82,20 +88,23 @@ class SingleVersionRdfSink(object):
     def finish(self):
         self._writePendingRows()
         
-        writeNum = False;
+        # Write RDF term values
+        writeFormat = 2;
         
         # Create any missing data types.
         if self.verbose:
             print "Creating data types..."
-        self.cursor.execute(
-            """
-            INSERT INTO data_types (uri)              
-              SELECT DISTINCT s.object_type
-              FROM statements_temp1 s LEFT JOIN data_types dt 
-                  ON s.object_type = dt.uri
-              WHERE dt.id IS NULL
-            """)        
-       
+        for typeColumn in ("subject_type", "predicate_type", "object_type"):
+            self.cursor.execute(
+                """
+                INSERT INTO data_types (uri)              
+                  SELECT DISTINCT s.%s
+                  FROM statements_temp1 s LEFT JOIN data_types dt 
+                      ON s.%s = dt.uri
+                  WHERE dt.id IS NULL
+                """ % (typeColumn, typeColumn))
+            
+        # Create temporary table to hold statement IDs
         self.cursor.execute(
             """
             CREATE TEMPORARY TABLE version_statement_temp1 (
@@ -105,7 +114,7 @@ class SingleVersionRdfSink(object):
             """)
                 
         existIDs = []
-        if writeNum:
+        if writeFormat == 0:
             
             # Create any missing text values
             if self.verbose:
@@ -171,7 +180,28 @@ class SingleVersionRdfSink(object):
                 """)
             
             
+        elif writeFormat == 1:
+            
+            pass
+            
         else:
+            
+            # Convert statements to RDF term objects (look up data type IDs)
+            if self.verbose:
+                print "Converting to RDF terms..."            
+            self.cursor.execute(
+                """
+                CREATE TEMPORARY TABLE statements_temp2 (subject, predicate, object)
+                  ON COMMIT DROP
+                  AS SELECT
+                       CASE WHEN rdf_term_is_num_type(st.id) THEN rdf_term(st.id, CAST (s.subject_text AS DOUBLE PRECISION)) ELSE rdf_term(st.id, s.subject_text) END,
+                       CASE WHEN rdf_term_is_num_type(pt.id) THEN rdf_term(pt.id, CAST (s.predicate_text AS DOUBLE PRECISION)) ELSE rdf_term(pt.id, s.predicate_text) END,
+                       CASE WHEN rdf_term_is_num_type(ot.id) THEN rdf_term(ot.id, CAST (s.object_text AS DOUBLE PRECISION)) ELSE rdf_term(ot.id, s.object_text) END
+                     FROM statements_temp1 s
+                       LEFT JOIN data_types st ON s.subject_type = st.uri
+                       LEFT JOIN data_types pt ON s.predicate_type = pt.uri
+                       LEFT JOIN data_types ot ON s.object_type = ot.uri                       
+                """)
             
             # Get IDs of existing statements
             if self.verbose:
@@ -179,8 +209,12 @@ class SingleVersionRdfSink(object):
             self.cursor.execute(
                 """
                 INSERT INTO version_statement_temp1 (version_id, stmt_id)
-                    SELECT %d, ss.id FROM statements_temp1 s
-                      RIGHT JOIN statements ss ON s.subject_text = ss.subject_text AND s.predicate_text = ss.predicate_text AND s.object_text = ss.object_text
+                  SELECT %d, ss.id
+                    FROM statements_temp2 s
+                      RIGHT JOIN statements ss
+                          ON ss.subject = s.subject AND
+                             ss.predicate = s.predicate AND
+                             ss.object = s.object
                 """ % int(self.versionId)) 
             
             # Insert the statements into the statements table.
@@ -188,19 +222,17 @@ class SingleVersionRdfSink(object):
                 print "Inserting statements..."
             self.cursor.execute(
                 """
-                INSERT INTO statements (subject_text, predicate_text, object_type,
-                                        object_text)
-                 SELECT DISTINCT s.subject_text, s.predicate_text, dt.id, s.object_text
-                  FROM statements_temp1 s
-                      LEFT JOIN data_types dt ON s.object_type = dt.uri
+                INSERT INTO statements (subject, predicate, object)
+                  SELECT DISTINCT s.subject, s.predicate, s.object
+                    FROM statements_temp2 s
                       LEFT JOIN statements ss
-                          ON ss.subject_text = s.subject_text AND
-                             ss.predicate_text = s.predicate_text AND
-                             ss.object_text = s.object_text
-                  WHERE ss.id IS NULL
+                          ON ss.subject = s.subject AND
+                             ss.predicate = s.predicate AND
+                             ss.object = s.object
+                    WHERE ss.id IS NULL
                   RETURNING id
                 """)
-        
+                    
         # Get IDs of newly inserted rows
         ids = self.cursor.fetchall()
         ids = [(int(self.versionId), x.pop()) for x in ids]

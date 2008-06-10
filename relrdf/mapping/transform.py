@@ -148,11 +148,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
             elif isinstance(component, nodes.Joker):
                 pass
             else:
-                valEqualExpr = nodes.Equal(component, valueExpr)
-                typeEqualExpr = nodes.Equal(\
-                    nodes.Equal(self.mapTypeExpr(component.staticType), nodes.Uri(rdfs.Resource)),
-                    nodes.Equal(dynTypeExpr, nodes.Uri(rdfs.Resource)))
-                conds.append(nodes.And(valEqualExpr, typeEqualExpr))
+                conds.append(nodes.Equal(component, valueExpr))
 
         if conds == []:
             return coreExpr

@@ -456,6 +456,14 @@ class Null(ValueNode):
     def __init__(self):
         super(Null, self).__init__()
 
+class Int(ValueNode):
+    """Represents a raw SQL integer"""
+    
+    __slots__ = ('val',)
+    
+    def __init__(self, val):
+        self.val = val
+        super(Int, self).__init__()
 
 class Uri(ValueNode):
     """An expression node representing a URI reference."""
@@ -576,6 +584,10 @@ class Operation(ValueNode):
 
     __slots__ = ()
 
+class TypeCompatible(Operation):
+    """Determine if two or more operands are type-compatible (= comparable)""" 
+
+    __slots__ = ()
 
 class UnaryOperation(Operation):
     """A node representing a unary operation."""

@@ -1,6 +1,6 @@
 import re
 
-from relrdf.commonns import xsd, fn, sql
+from relrdf.commonns import xsd, fn, sql, rdfs
 from relrdf.expression import uri, rewrite, nodes, simplify, evaluate
 
 class SqlEmitter(rewrite.ExpressionProcessor):
@@ -13,11 +13,18 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
         self.distinct = 0
         
+    def _typeIdFromURI(self, uri):
+        return "(SELECT id FROM data_types WHERE uri='%s')" % uri
+        
     def Null(self, expr):
         return 'NULL'
+    
+    def Int(self, expr):
+        return '%d' % expr.val
 
     def Uri(self, expr):
-        return "'%s'" % expr.uri
+        return "rdf_term(%s, '%s')" \
+            % (self._typeIdFromURI(rdfs.Resource), expr.uri)
 
     _noStringTypes = set((xsd.boolean,
                           xsd.integer,
@@ -25,10 +32,17 @@ class SqlEmitter(rewrite.ExpressionProcessor):
                           xsd.double))
 
     def Literal(self, expr):
+        
+        # Type ID lookup
+        typeUri = expr.literal.typeUri
+        if typeUri is None:
+            typeUri = rdfs.Literal
+        typeIdExpr = self._typeIdFromURI(typeUri)
+        
         if expr.literal.typeUri in self._noStringTypes:
-            return "%s"  % unicode(expr.literal)
+            return "rdf_term(%s, %s)"  % (typeIdExpr, unicode(expr.literal))
         else:
-            return "'%s'" % unicode(expr.literal)
+            return "rdf_term(%s, '%s')" % (typeIdExpr, unicode(expr.literal))
 
     _functionMap = {
         fn.abs:                'ABS',

@@ -159,7 +159,7 @@ class TextIdMapping(valueref.ValueMapping):
         return expr
 
 def checksumValueRef(incarnation, fieldId):
-    return sqlnodes.SqlFieldRef(incarnation, fieldId + "_text")
+    return sqlnodes.SqlFieldRef(incarnation, fieldId)
 #    return valueref.ValueRef(TextIdMapping(),
 #                             sqlnodes.SqlFieldRef(incarnation, fieldId))
     
@@ -223,7 +223,7 @@ class BasicSingleVersionMapper(BasicMapper):
              (nodes.And,
               (nodes.Equal,
                (sqlnodes.SqlFieldRef, 1, 'version_id'),
-               (nodes.Literal, self.versionId)),
+               (nodes.Int, self.versionId)),
               (nodes.Equal,
                (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
                (sqlnodes.SqlFieldRef, 2, 'id'))))

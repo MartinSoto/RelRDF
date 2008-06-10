@@ -28,8 +28,7 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
             expr[:] = transfSubexprs
             return expr
 
-        equalTypesExpr = nodes.Equal(*[nodes.Equal(self._dynTypeExpr(e.copy()), nodes.Uri(commonns.rdfs.Resource))
-                                       for e in transfSubexprs])
+        equalTypesExpr = nodes.TypeCompatible([e.copy() for e in transfSubexprs])
         return nodes.And(equalTypesExpr, expr)
 
     Equal = _addEqualTypesExpr
@@ -37,17 +36,20 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
     LessThanOrEqual = _addEqualTypesExpr
     GreaterThan = _addEqualTypesExpr
     GreaterThanOrEqual = _addEqualTypesExpr
+    Different = _addEqualTypesExpr
+    # Note that (a != b) isn't supposed to match
+    # if the types of a and b are incompatible!
 
-    def Different(self, expr, *transfSubexprs):
-        common = commonType(*transfSubexprs)
-        if isinstance(common, BlankNodeType) or \
-               isinstance(common, ResourceType):
-            expr[:] = transfSubexprs
-            return expr
-
-        diffTypesExpr = nodes.Different(*[nodes.Equal(self._dynTypeExpr(e.copy()), nodes.Uri(commonns.rdfs.Resource))
-                                          for e in transfSubexprs])
-        return nodes.Or(diffTypesExpr, expr)
+#    def Different(self, expr, *transfSubexprs):
+#        common = commonType(*transfSubexprs)
+#        if isinstance(common, BlankNodeType) or \
+#               isinstance(common, ResourceType):
+#            expr[:] = transfSubexprs
+#            return expr
+#
+#        diffTypesExpr = nodes.Different(*[nodes.Equal(self._dynTypeExpr(e.copy()), nodes.Uri(commonns.rdfs.Resource))
+#                                          for e in transfSubexprs])
+#        return nodes.Or(diffTypesExpr, expr)
 
     def _dynTypeExpr(self, expr):
         typeExpr = expr.staticType        

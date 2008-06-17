@@ -381,7 +381,16 @@ rdf_term_text(PG_FUNCTION_ARGS)
 	PG_RETURN_RDF_TERM(term);
 }
 
-/* Operators */
+/* Accessors */
+
+PG_FUNCTION_INFO_V1(rdf_term_get_type_id);
+Datum
+rdf_term_get_type_id(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+
+	PG_RETURN_UINT32(term->type_id);
+}
 
 PG_FUNCTION_INFO_V1(rdf_term_is_num_type_t);
 Datum
@@ -418,6 +427,8 @@ rdf_term_is_text_type_i(PG_FUNCTION_ARGS)
 
 	PG_RETURN_BOOL(is_text_type(type_id));
 }
+
+/* Operators */
 
 PG_FUNCTION_INFO_V1(rdf_term_types_compatible_tt);
 Datum

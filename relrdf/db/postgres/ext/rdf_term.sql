@@ -45,6 +45,11 @@ CREATE FUNCTION rdf_term(int, text)
   LANGUAGE C IMMUTABLE STRICT;
 
 
+CREATE FUNCTION rdf_term_get_type_id(rdf_term)
+  RETURNS int4
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+  
 CREATE FUNCTION rdf_term_is_num_type(rdf_term)
   RETURNS bool
   AS 'rdf_term', 'rdf_term_is_num_type_t'

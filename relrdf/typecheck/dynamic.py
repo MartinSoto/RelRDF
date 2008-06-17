@@ -3,53 +3,22 @@ from relrdf import commonns
 from relrdf.expression import nodes, rewrite
 
 from typeexpr import commonType, LiteralType, genericLiteralType, \
-     BlankNodeType, blankNodeType, ResourceType, resourceType
+     BlankNodeType, blankNodeType, ResourceType, resourceType, NullType
 
-
-class DynTypeCheckTransl(rewrite.ExpressionTransformer):
-    """An expression translator that adds generic dynamic type checks
-    to a decoupled relational expression."""
+class DynTypeTransl(rewrite.ExpressionTransformer):
+    """An expression translator that replaces DynType node
+    with known type information where possible"""
 
     __slots__ = ()
 
     def __init__(self):
-        super(DynTypeCheckTransl, self).__init__(prePrefix='pre')
+        super(DynTypeTransl, self).__init__(prePrefix='pre')
 
     def preDynType(self, expr):
         return (self._dynTypeExpr(expr[0].copy()),)
 
     def DynType(self, expr, subexpr):
         return subexpr
-
-    def _addEqualTypesExpr(self, expr, *transfSubexprs):
-        common = commonType(*transfSubexprs)
-        if isinstance(common, BlankNodeType) or \
-               isinstance(common, ResourceType):
-            expr[:] = transfSubexprs
-            return expr
-
-        equalTypesExpr = nodes.TypeCompatible([e.copy() for e in transfSubexprs])
-        return nodes.And(equalTypesExpr, expr)
-
-    Equal = _addEqualTypesExpr
-    LessThan = _addEqualTypesExpr
-    LessThanOrEqual = _addEqualTypesExpr
-    GreaterThan = _addEqualTypesExpr
-    GreaterThanOrEqual = _addEqualTypesExpr
-    Different = _addEqualTypesExpr
-    # Note that (a != b) isn't supposed to match
-    # if the types of a and b are incompatible!
-
-#    def Different(self, expr, *transfSubexprs):
-#        common = commonType(*transfSubexprs)
-#        if isinstance(common, BlankNodeType) or \
-#               isinstance(common, ResourceType):
-#            expr[:] = transfSubexprs
-#            return expr
-#
-#        diffTypesExpr = nodes.Different(*[nodes.Equal(self._dynTypeExpr(e.copy()), nodes.Uri(commonns.rdfs.Resource))
-#                                          for e in transfSubexprs])
-#        return nodes.Or(diffTypesExpr, expr)
 
     def _dynTypeExpr(self, expr):
         typeExpr = expr.staticType        
@@ -70,3 +39,64 @@ class DynTypeCheckTransl(rewrite.ExpressionTransformer):
         result.staticType = resourceType
         return result
 
+class TypeCheckCollector(rewrite.ExpressionProcessor):
+    """An expression processor that collects needed type compatibility checks
+    for an expression."""
+
+    __slots__ = ('typechecks', )
+
+    def __init__(self):
+        self.typechecks = []
+        
+        super(TypeCheckCollector, self).__init__(prePrefix='pre')
+    
+    def _addTypecheck(self, expr, *transfSubexprs):
+        
+        # TODO: Is this actually correct?
+        common = commonType(expr)
+        if isinstance(common, NullType):
+            subexprCopies = [e.copy() for e in transfSubexprs];
+            typechecks.append(nodes.TypeCompatible(subexprCopies))
+
+    # TODO: Only checking comparisons. Should be expanded in future.
+    Equal = _addTypecheck
+    LessThan = _addTypecheck
+    LessThanOrEqual = _addTypecheck
+    GreaterThan = _addTypecheck
+    GreaterThanOrEqual = _addTypecheck
+    Different = _addTypecheck
+    
+    def Default(self, expr, *sexpr):
+        pass
+    
+class SelectTypeCheckTransformer(rewrite.ExpressionTransformer):
+    """An expression transformer that adds dynamic type checks to
+    all select predicates."""
+
+    def __init__(self):
+        super(SelectTypeCheckTransformer, self).__init__(prePrefix='pre')
+    
+    def Select(self, expr, rel, pred):
+        
+        # Collect type checks
+        collector = TypeCheckCollector();
+        collector.process(pred)
+        
+        # Add dynamic type checks
+        if collector.typechecks != []:
+            pred = nodes.And(pred, *collector.typechecks)
+        
+        return nodes.Select(rel, pred)
+        
+    
+def dynTypeCheckTranslate(expr):
+
+    # Replace DynType nodes where possible
+    dynTypeTrans = DynTypeTransl()
+    expr = dynTypeTrans.process(expr)
+    
+    # Insert type checks into predicates
+    typeCheckTrans = SelectTypeCheckTransformer()
+    expr = typeCheckTrans.process(expr)
+
+    return expr

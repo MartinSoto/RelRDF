@@ -328,10 +328,13 @@ def emit(expr):
     emitter = SqlEmitter()
 
     # Simplify the expression first.
+    # -- deactivated, as it might have to deal with SQL-specific stuff by this point
     expr = simplify.simplify(expr)
 
     # Reduce constant expressions.
-    expr = evaluate.reduceConst(expr)
+    # -- deactivated until type informations are properly preserved
+    # expr = evaluate.reduceConst(expr)
     
+    print emitter.process(expr)
     return emitter.process(expr)
 

@@ -456,15 +456,6 @@ class Null(ValueNode):
     def __init__(self):
         super(Null, self).__init__()
 
-class Int(ValueNode):
-    """Represents a raw SQL integer"""
-    
-    __slots__ = ('val',)
-    
-    def __init__(self, val):
-        self.val = val
-        super(Int, self).__init__()
-
 class Uri(ValueNode):
     """An expression node representing a URI reference."""
 
@@ -567,7 +558,7 @@ class If(ValueNode):
     """A functional if expression.
 
     An 'if' expression selects among two expressions based on a
-    condition. THe intended semantics are that onyl the selected
+    condition. The intended semantics are that only the selected
     expression is evaluated."""
 
     __slots__ = ()

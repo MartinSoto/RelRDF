@@ -8,8 +8,8 @@ from relrdf.error import InstantiationError, ModifyError
 from relrdf import results, mapping, parserfactory, commonns
 
 from relrdf.typecheck import dynamic
-from relrdf.expression import uri, literal, nodes, build
-from relrdf.mapping import transform, valueref, sqlnodes, emit
+from relrdf.expression import uri, literal, nodes, build, simplify
+from relrdf.mapping import transform, valueref, sqlnodes, emit, sqltranslate
 
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
      ResourceType, RdfNodeType, resourceType, rdfNodeType
@@ -119,8 +119,11 @@ class TypeUriMapping(valueref.ValueMapping):
         return expr
 
 def typeValueRef(incarnation, fieldId):
-    return valueref.ValueRef(TypeUriMapping(),
-                             sqlnodes.SqlFieldRef(incarnation, fieldId))
+    
+    valueExpr = sqlnodes.SqlFieldRef(incarnation, fieldId);
+    typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', valueExpr)    
+    
+    return valueref.ValueRef(TypeUriMapping(), typeIdExpr)
 
 class TextIdMapping(valueref.ValueMapping):
     
@@ -223,7 +226,7 @@ class BasicSingleVersionMapper(BasicMapper):
              (nodes.And,
               (nodes.Equal,
                (sqlnodes.SqlFieldRef, 1, 'version_id'),
-               (nodes.Int, self.versionId)),
+               (sqlnodes.SqlInt, self.versionId)),
               (nodes.Equal,
                (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
                (sqlnodes.SqlFieldRef, 2, 'id'))))
@@ -242,7 +245,7 @@ class BasicSingleVersionMapper(BasicMapper):
                           checksumValueRef(2, 'predicate'),
                           resourceTypeExpr(),
                           checksumValueRef(2, 'object'),
-                          typeValueRef(2, 'object_type'))
+                          typeValueRef(2, 'object'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -450,7 +453,7 @@ class AllVersionsMapper(BasicMapper,
                           checksumValueRef(2, 'predicate'),
                           resourceTypeExpr(),
                           checksumValueRef(2, 'object'),
-                          typeValueRef(2, 'object_type'))
+                          typeValueRef(2, 'object'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -493,7 +496,7 @@ class AllStmtsMapper(BasicMapper,
                           checksumValueRef(1, 'predicate'),
                           resourceTypeExpr(),
                           checksumValueRef(1, 'object'),
-                          typeValueRef(1, 'object_type'))
+                          typeValueRef(1, 'object'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -619,7 +622,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               nodes.Literal(commonns.rdf.object),
                               resourceTypeExpr(),
                               checksumValueRef(1, 'object'),
-                              typeValueRef(1, 'object_type'))
+                              typeValueRef(1, 'object'))
 
         if replExpr is not None:
             return (replExpr,
@@ -649,7 +652,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                           checksumValueRef(1, 'predicate'),
                           resourceTypeExpr(),
                           checksumValueRef(1, 'object'),
-                          typeValueReff(1, 'object_type'))
+                          typeValueReff(1, 'object'))
 
         self.reifStmtRepl = (replExpr,
             ('context', 'stmt', 'subject', 'predicate', 'object'))
@@ -727,7 +730,7 @@ class TwoWayComparisonMapper(BasicMapper,
                               checksumValueRef(2, 'predicate'),
                               resourceTypeExpr(),
                               checksumValueRef(2, 'object'),
-                              typeValueRef(2, 'object_type'))
+                              typeValueRef(2, 'object'))
         else:
             rel = build.buildExpression(
                 (nodes.Select,
@@ -759,7 +762,7 @@ class TwoWayComparisonMapper(BasicMapper,
                               checksumValueRef(2, 'predicate'),
                               resourceTypeExpr(),
                               checksumValueRef(2, 'object'),
-                              typeValueRef(2, 'object_type'))
+                              typeValueRef(2, 'object'))
 
         return (replExpr,
                 ('context', 'subject', 'predicate', 'object'))
@@ -835,7 +838,7 @@ class ThreeWayComparisonMapper(BasicMapper,
                               checksumValueRef(2, 'predicate'),
                               resourceTypeExpr(),
                               checksumValueRef(2, 'object'),
-                              typeValueRef(2, 'object_type'))
+                              typeValueRef(2, 'object'))
         else:
             rel = build.buildExpression(
                 (nodes.Select,
@@ -870,7 +873,7 @@ class ThreeWayComparisonMapper(BasicMapper,
                               checksumValueRef(2, 'predicate'),
                               resourceTypeExpr(),
                               checksumValueRef(2, 'object'),
-                              typeValueRef(2, 'object_type'))
+                              typeValueRef(2, 'object'))
 
         return (replExpr,
                 ('context', 'subject', 'predicate', 'object'))
@@ -1028,20 +1031,32 @@ class BasicModel(object):
         self._connection = self.modelBase.createConnection()
 
     def _exprToSql(self, expr):
+        
         # Add explicit type columns to results.
         transf = transform.ExplicitTypeTransformer()
         expr = transf.process(expr)
-
-        # Add dynamic type checks.
-        transf = dynamic.DynTypeCheckTransl()
-        expr = transf.process(expr)
+        print expr
 
         # Apply the selected mapping.
         expr = self.mappingTransf.process(expr)
+        print expr
+        
+        # Add dynamic type checks.
+        expr = dynamic.dynTypeCheckTranslate(expr)
+        print expr
 
         # Dereference value references from the mapping.
         transf = valueref.ValueRefDereferencer()
         expr = transf.process(expr)
+        print expr
+        
+        # Simplify the expression
+        expr = simplify.simplify(expr)
+        print expr
+
+        # Convert select predicates to SQL
+        expr = sqltranslate.translateSelectToSqlBool(expr)
+        print expr
         
         # Generate SQL.
         return emit.emit(expr)

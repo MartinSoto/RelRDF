@@ -19,7 +19,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def Null(self, expr):
         return 'NULL'
     
-    def Int(self, expr):
+    def SqlInt(self, expr):
         return '%d' % expr.val
 
     def Uri(self, expr):
@@ -71,35 +71,35 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def If(self, expr, cond, thenExpr, elseExpr):
         return 'IF(%s, %s, %s)' % (cond, thenExpr, elseExpr)
 
-    def Equal(self, expr, operand1, *operands):
+    def SqlEqual(self, expr, operand1, *operands):
         return ' AND '.join(['(%s) = (%s)' % (operand1, o) for o in operands])
 
-    def LessThan(self, expr, operand1, operand2):
+    def SqlLessThan(self, expr, operand1, operand2):
         return '(%s) < (%s)' % (operand1, operand2)
 
-    def LessThanOrEqual(self, expr, operand1, operand2):
+    def SqlLessThanOrEqual(self, expr, operand1, operand2):
         return '(%s) <= (%s)' % (operand1, operand2)
 
-    def GreaterThan(self, expr, operand1, operand2):
+    def SqlGreaterThan(self, expr, operand1, operand2):
         return '(%s) > (%s)' % (operand1, operand2)
 
-    def GreaterThanOrEqual(self, expr, operand1, operand2):
+    def SqlGreaterThanOrEqual(self, expr, operand1, operand2):
         return '(%s) >= (%s)' % (operand1, operand2)
 
-    def Different(self, expr, *operands):
+    def SqlDifferent(self, expr, *operands):
         disj = []
         for i, operand1 in enumerate(operands):
             for operand2 in operands[i + 1:]:
                 disj.append('(%s) <> (%s)' % (operand1, operand2))
         return ' AND '.join(disj)
 
-    def Or(self, expr, *operands):
+    def SqlOr(self, expr, *operands):
         return '(' + ') OR ('.join(operands) + ')'
 
-    def Not(self, expr, operand):
+    def SqlNot(self, expr, operand):
         return 'NOT (%s)' % operand
 
-    def And(self, expr, *operands):
+    def SqlAnd(self, expr, *operands):
         return '(' + ') AND ('.join(operands) + ')'
 
     def Plus(self, expr, *operands):

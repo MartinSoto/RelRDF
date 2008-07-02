@@ -162,7 +162,7 @@ class TextIdMapping(valueref.ValueMapping):
         return expr
 
 def checksumValueRef(incarnation, fieldId):
-    return sqlnodes.SqlFieldRef(incarnation, fieldId)
+    return sqlnodes.SqlTypedFieldRef(incarnation, fieldId)
 #    return valueref.ValueRef(TextIdMapping(),
 #                             sqlnodes.SqlFieldRef(incarnation, fieldId))
     

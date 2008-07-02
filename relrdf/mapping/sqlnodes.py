@@ -1,4 +1,5 @@
 from relrdf.expression import nodes
+from relrdf.typecheck import typeexpr
 
 import valueref
 
@@ -114,6 +115,14 @@ class SqlFieldRef(nodes.ExpressionNode):
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.attributesRepr())
 
+class SqlTypedFieldRef(SqlFieldRef):
+    """Like SqlFieldRef, but points to a typed field (so this node
+    is initialized with a valid type)."""
+    
+    def __init__(self, *args):
+        super(SqlTypedFieldRef, self).__init__(*args)
+        
+        self.staticType = typeexpr.rdfNodeType
 
 class SqlFunctionCall(nodes.ExpressionNode):
     """A SQL function call."""

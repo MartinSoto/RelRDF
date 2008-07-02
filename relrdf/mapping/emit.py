@@ -309,6 +309,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def SqlFieldRef(self, expr):
         return 'rel_%s.%s' % (expr.incarnation, expr.fieldId)
 
+    def SqlTypedFieldRef(self, expr):
+        return 'rel_%s.%s' % (expr.incarnation, expr.fieldId)
+
     _subexprPattern = re.compile(r'\$([0-9]+)\$')
 
     def SqlScalarExpr(self, expr, *subexprs):

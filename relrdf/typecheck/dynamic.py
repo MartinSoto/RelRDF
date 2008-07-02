@@ -3,7 +3,7 @@ from relrdf import commonns
 from relrdf.expression import nodes, rewrite
 
 from typeexpr import commonType, LiteralType, genericLiteralType, \
-     BlankNodeType, blankNodeType, ResourceType, resourceType, NullType
+     BlankNodeType, blankNodeType, ResourceType, resourceType, RdfNodeType
 
 class DynTypeTransl(rewrite.ExpressionTransformer):
     """An expression translator that replaces DynType node
@@ -52,11 +52,12 @@ class TypeCheckCollector(rewrite.ExpressionProcessor):
     
     def _addTypecheck(self, expr, *transfSubexprs):
         
-        # TODO: Is this actually correct?
-        common = commonType(expr)
-        if isinstance(common, NullType):
-            subexprCopies = [e.copy() for e in transfSubexprs];
-            typechecks.append(nodes.TypeCompatible(subexprCopies))
+        # Dynamically check wether the two values are type-compatible
+        # (provided both actually are some sort of RDF node)
+        common = commonType(*expr)
+        if isinstance(common, RdfNodeType):
+            subexprCopies = [e.copy() for e in expr];
+            self.typechecks.append(nodes.TypeCompatible(*subexprCopies))
 
     # TODO: Only checking comparisons. Should be expanded in future.
     Equal = _addTypecheck

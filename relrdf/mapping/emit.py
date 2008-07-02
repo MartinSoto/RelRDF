@@ -93,6 +93,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
                 disj.append('(%s) <> (%s)' % (operand1, operand2))
         return ' AND '.join(disj)
 
+    def SqlTypeCompatible(self, expr, operand1, *operands):
+        return ' AND '.join(['(%s) === (%s)' % (operand1, o) for o in operands])
+
     def SqlOr(self, expr, *operands):
         return '(' + ') OR ('.join(operands) + ')'
 

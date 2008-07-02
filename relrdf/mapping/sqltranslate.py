@@ -42,6 +42,8 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
         return sqlnodes.SqlLessThanOrEqual(*subexpr)
     def Different(self, expr, *subexpr):
         return sqlnodes.SqlDifferent(*subexpr)
+    def TypeCompatible(self, expr, *subexpr):
+        return sqlnodes.SqlTypeCompatible(*subexpr)
     
     # Keep existing boolean SQL nodes
     def keep(self, expr, *sexpr):
@@ -58,6 +60,7 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
     SqlGreaterThan = keep
     SqlGreaterThanOrEqual = keep
     SqlDifferent = keep
+    SqlTypeCompatible = keep
         
     # Cast unknown nodes to bool
     def Default(self, expr, *subexpr):

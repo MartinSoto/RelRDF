@@ -429,6 +429,43 @@ rdf_term_is_text_type_i(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(is_text_type(type_id));
 }
 
+PG_FUNCTION_INFO_V1(rdf_term_to_string);
+Datum
+rdf_term_to_string(PG_FUNCTION_ARGS)
+{
+	/* Return data formatted as string - similar to rdf_term_out, but
+	   without type indentifier */
+
+	RdfTerm *term = (RdfTerm *) PG_GETARG_RDF_TERM(0);
+	size_t len;
+	char *result;
+	
+	/* Text type? */
+	if(is_text_type(term->type_id))
+	{
+	
+		/* Copy text */
+		len = get_text_len(term);
+		result = (char *) palloc(len + 1);
+		
+		memcpy((void *) result, (void *) term->text, len);
+		result[len] = '\0';
+		
+	}
+	else
+	{
+	
+		/* Print into buffer */
+		len = 100 + 1;
+		result = (char *) palloc(len);
+	
+		snprintf(result, len, "%lg", term->num);
+	
+	}
+	
+	PG_RETURN_CSTRING(result);	
+}
+
 /* Operators */
 
 PG_FUNCTION_INFO_V1(rdf_term_types_compatible_tt);

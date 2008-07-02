@@ -69,6 +69,11 @@ CREATE FUNCTION rdf_term_is_text_type(int4)
   RETURNS bool
   AS 'rdf_term', 'rdf_term_is_text_type_i'
   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_to_string(rdf_term)
+  RETURNS cstring
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
   
 
 CREATE FUNCTION rdf_term_types_compatible(rdf_term, rdf_term)

@@ -48,6 +48,46 @@ class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     Intersection = _setOperation
 
 
+class ResultMappingTransformer(rewrite.ExpressionTransformer):
+    """Applies a function to all result value columns."""
+
+    __slots__ = ('function',)
+    
+    def __init__(self, function):
+        super(ResultMappingTransformer, self).__init__()
+        
+        self.function = function
+        
+    def _applyFunction(self, expr):
+        f = self.function.copy();
+        f.append(expr.copy())
+        return f
+
+    def MapResult(self, expr, relExpr, *mappingExprs):
+        expr[0] = relExpr
+        for i, mappingExpr in enumerate(mappingExprs):
+            expr[i+1] = self._applyFunction(mappingExprs[i])
+        return expr
+
+    def StatementResult(self, expr, relExpr, *stmtTmpls):
+        expr = nodes.MapResult([], relExpr)
+        for i, stmtTmpl in enumerate(stmtTmpls):
+            for colName, mappingExpr in zip(('subject', 'predicate', 'object'),
+                                            stmtTmpl):
+                expr.columnNames.append('%s%d' % (colName, i + 1))
+                expr.append(self._applyFunction(mappingExpr))
+                
+        return expr
+
+    def _setOperation(self, expr, *operands):
+        expr.columnNames = list(operands[0].columnNames)
+        expr[:] = operands
+        return expr
+
+    Union = _setOperation
+    SetDifference = _setOperation
+    Intersection = _setOperation
+    
 class Incarnator(object):
     """A singleton used to generate unique relation incarnations."""
 
@@ -92,8 +132,7 @@ class Incarnator(object):
             ret.append(rewrite.exprApply(expr.copy(), postOp=postOp)[0])
 
         return ret
-
-
+    
 class PureRelationalTransformer(rewrite.ExpressionTransformer):
     """An abstract expression transformer that transforms a decoupled
     expression containing patterns into a pure relational expression.
@@ -105,8 +144,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         super(PureRelationalTransformer, self).__init__(prePrefix='pre')
 
         # A dictionary for variable replacements. Variable names are
-        # associated to pairs consisting of the value and type
-        # replacement expressions.
+        # associated to value replacement expressions.
         self.varBindings = {}
 
     def matchPattern(self, pattern, replacementExpr, columnNames):
@@ -140,11 +178,9 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         conds = []
         for component, columnName in zip(pattern, columnNames):
             valueExpr = replacementExpr.subexprByName(columnName)
-            dynTypeExpr = replacementExpr.subexprByName('type__' +
-                                                        columnName)
 
             if isinstance(component, nodes.Var):
-                self.varBindings[component.name] = (valueExpr, dynTypeExpr)
+                self.varBindings[component.name] = valueExpr
             elif isinstance(component, nodes.Joker):
                 pass
             else:
@@ -174,7 +210,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
 
     def Var(self, expr):
         # Substitute the variable.
-        return self.varBindings[expr.name][0].copy()
+        return self.varBindings[expr.name].copy()
 
     def preStatementPattern(self, expr):
         # Don't process the subexpressions.
@@ -193,7 +229,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
             return (nodes.Null(),)
         elif isinstance(expr[0], nodes.Var):
             # Expand the variable's type.
-            return (self.varBindings[expr[0].name][1].copy(),)
+            return (nodes.DynType, self.varBindings[expr[0].name].copy(),)
         else:
             repl = self.mapTypeExpr(expr[0].staticType)
             if repl is not None:

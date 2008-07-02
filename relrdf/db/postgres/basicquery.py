@@ -233,19 +233,15 @@ class BasicSingleVersionMapper(BasicMapper):
             )
 
         replExpr = \
-          nodes.MapResult(['context', 'type__context',
-                           'subject', 'type__subject',
-                           'predicate', 'type__predicate',
-                           'object', 'type__object'],
+          nodes.MapResult(['context',
+                           'subject',
+                           'predicate',
+                           'object'],
                           rel,
                           nodes.Uri(self.versionUri + str(self.versionId)),
-                          resourceTypeExpr(),
                           checksumValueRef(2, 'subject'),
-                          resourceTypeExpr(),
                           checksumValueRef(2, 'predicate'),
-                          resourceTypeExpr(),
-                          checksumValueRef(2, 'object'),
-                          typeValueRef(2, 'object'))
+                          checksumValueRef(2, 'object'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -955,8 +951,11 @@ class ColumnResults(BaseResults):
         while row is not None:
             result = []
             blankMap = {}
-            for rawValue, typeId in zip(row[0::2], row[1::2]):
-                result.append(self._convertResult(rawValue, typeId, blankMap))
+            for pair in row:
+                (val, _, type) = pair.rpartition(',')
+                val = val.lstrip('(')
+                type = type.rstrip(')')
+                result.append(self._convertResult(val, type, blankMap))
             yield tuple(result)
 
             row = self.cursor.fetchone()
@@ -1032,11 +1031,12 @@ class BasicModel(object):
 
     def _exprToSql(self, expr):
         
-        # Add explicit type columns to results.
-        transf = transform.ExplicitTypeTransformer()
-        expr = transf.process(expr)
+        # Apply result value formatting
         print expr
-
+        transf = transform.ResultMappingTransformer(sqlnodes.SqlFunctionCall('format_rdf_term'))
+        expr = transf.process(expr)        
+        print expr
+        
         # Apply the selected mapping.
         expr = self.mappingTransf.process(expr)
         print expr

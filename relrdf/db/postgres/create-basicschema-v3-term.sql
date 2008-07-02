@@ -18,10 +18,17 @@ CREATE TABLE statements (
   object rdf_term NOT NULL
 );
 
+CREATE INDEX statements_predicate_index
+  ON statements (predicate);  
 CREATE INDEX statements_subject_predicate_index
   ON statements (subject, predicate);
-CREATE INDEX statements_subject_predicate_compatible_index
-  ON statements (subject rdf_term_compatible, predicate rdf_term_compatible);
+
+CREATE INDEX statements_subject_hash_index
+  ON statements USING hash (subject);
+CREATE INDEX statements_predicate_hash_index
+  ON statements USING hash (predicate);
+CREATE INDEX statements_object_hash_index
+  ON statements USING hash (object);
   
 DROP TABLE IF EXISTS data_types;
 

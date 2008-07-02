@@ -136,6 +136,13 @@ CREATE FUNCTION rdf_term_greater(rdf_term, rdf_term)
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
   
+ 
+CREATE FUNCTION rdf_term_hash(rdf_term)
+  RETURNS int4
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+  
+  
 CREATE OPERATOR < (
 	procedure = rdf_term_less,
 	leftarg = rdf_term,
@@ -194,7 +201,7 @@ CREATE OPERATOR = (
 	negator = !=,
 	restrict = eqsel,
 	join = eqjoinsel,
-	merges
+	hashes, merges
 );
 
 CREATE OPERATOR !== (
@@ -264,11 +271,16 @@ CREATE OPERATOR CLASS rdf_term_equal
 	DEFAULT FOR TYPE rdf_term USING btree AS
 		OPERATOR 1 <,
 		OPERATOR 2 <=,
-		OPERATOR 3 = RECHECK,
+		OPERATOR 3 =,
 		OPERATOR 4 >=,
 		OPERATOR 5 >,
 		FUNCTION 1 rdf_term_compare(rdf_term, rdf_term);
 
+CREATE OPERATOR CLASS rdf_term_hash
+	DEFAULT FOR TYPE rdf_term USING hash AS
+		OPERATOR 1 = RECHECK,
+		FUNCTION 1 rdf_term_hash(rdf_term);
+		
 CREATE OPERATOR CLASS rdf_term_compatible
 	FOR TYPE rdf_term USING btree AS
 		OPERATOR 1 <,

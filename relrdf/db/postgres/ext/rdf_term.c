@@ -2,6 +2,7 @@
 #include "postgres.h"
 #include "fmgr.h"
 #include "libpq/pqformat.h"
+#include "access/hash.h"
 
 #include <stdint.h>
 #include <assert.h>
@@ -559,5 +560,30 @@ rdf_term_greater(PG_FUNCTION_ARGS)
 	
 	PG_RETURN_BOOL(compare_terms(term1, term2) > 0);	
 }
+
+/* Hash function */
+
+PG_FUNCTION_INFO_V1(rdf_term_hash);
+Datum
+rdf_term_hash(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);	
+	uint32_t type_id = term->type_id;
+	
+	/* Values of compatible types must have the same hash value */
+	Datum hash = hash_uint32(type_id & TYPE_COMPATIBLE_MASK);
+	
+	/* Hash the rest using hash_any
+	
+	   Note that we might hash a double value here, which might
+	   be dangerous because that's not a canoncial representation
+	   of a given number (consider +0 / -0, for example) */
+	hash |= hash_any(
+		(unsigned char *) term + RDF_TERM_HEADER_SIZE,
+		VARSIZE(term) - RDF_TERM_HEADER_SIZE);
+	
+	return hash;
+}
+
 
 

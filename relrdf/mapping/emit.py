@@ -289,7 +289,7 @@ def emit(expr):
     expr = evaluate.reduceConst(expr)
 
     # Debugging...
-    print emitter.process(expr)
+    #print emitter.process(expr)
     
     return emitter.process(expr)
 

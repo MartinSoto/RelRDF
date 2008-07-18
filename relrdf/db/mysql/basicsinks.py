@@ -23,18 +23,13 @@ class SingleVersionRdfSink(object):
 
         self.cursor = self.connection.cursor()
 
-        # FIXME: A bug/limitation in MySQL causes an automatic commit
-        # whenever a table is dropped. To work around it, we use a
-        # different table for each required width and reuse them as
-        # needed. See basicquery.SingleVersionMapper.
-
         # Create (if it doesn't exist already) a temporary table to
         # hold the results. We create the hash column but don't fill
         # it, since method 'close' issues an update to do this at
         # server side.
         self.cursor.execute(
             """
-            CREATE TEMPORARY TABLE statements_temp1 (
+            CREATE TEMPORARY TABLE IF NOT EXISTS statements_temp_sink (
               hash binary(16),
               subject_text longtext NOT NULL,
               predicate_text longtext NOT NULL,
@@ -48,7 +43,7 @@ class SingleVersionRdfSink(object):
         # there.
         self.cursor.execute(
             """
-            DELETE FROM statements_temp1;
+            DELETE FROM statements_temp_sink;
             """)
 
     def triple(self, subject, pred, object):
@@ -78,7 +73,7 @@ class SingleVersionRdfSink(object):
 
         self.cursor.executemany(
             """
-            INSERT INTO statements_temp1
+            INSERT INTO statements_temp_sink
               (subject_text, predicate_text, object_type, object_text)
             VALUES (_utf8%s, _utf8%s, _utf8%s, _utf8%s)""",
             self.pendingRows)
@@ -91,7 +86,7 @@ class SingleVersionRdfSink(object):
         # Update the hash values.
         self.cursor.execute(
             """
-            UPDATE statements_temp1
+            UPDATE statements_temp_sink
               SET hash = unhex(md5(concat(subject_text, predicate_text,
                                           object_text)));
             """)
@@ -101,7 +96,7 @@ class SingleVersionRdfSink(object):
             """
             INSERT INTO data_types (uri)
               SELECT s.object_type
-              FROM statements_temp1 s
+              FROM statements_temp_sink s
             ON DUPLICATE KEY UPDATE uri = uri;
             """)
 
@@ -115,7 +110,7 @@ class SingleVersionRdfSink(object):
                      unhex(md5(predicate_text)),
                      unhex(md5(object_text)), s.subject_text, s.predicate_text,
                      dt.id, s.object_text
-              FROM statements_temp1 s, data_types dt
+              FROM statements_temp_sink s, data_types dt
               WHERE s.object_type = dt.uri
             ON DUPLICATE KEY UPDATE statements.subject = statements.subject;
             """)
@@ -125,10 +120,17 @@ class SingleVersionRdfSink(object):
             """
             INSERT INTO version_statement (version_id, stmt_id)
               SELECT %d AS v_id, s.id
-              FROM statements s, statements_temp1 st
+              FROM statements s, statements_temp_sink st
               WHERE s.hash = st.hash
             ON DUPLICATE KEY UPDATE version_id = version_id;
             """ % int(self.versionId))
+
+        # Clean up the table contents, but don't drop it, since a drop
+        # forces a commit.
+        self.cursor.execute(
+            """
+            DELETE FROM statements_temp_sink;
+            """)
 
         self.cursor.close()
 

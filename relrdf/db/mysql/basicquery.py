@@ -303,7 +303,7 @@ class SingleVersionMapper(BasicSingleVersionMapper,
 
     _deleteRemoveFromVersion = string.Template(
         """
-        DELETE FROM version_statement v
+        DELETE FROM v
         USING version_statement v, statements s,
               statements_temp$stmtsPerRow st
         WHERE
@@ -1084,8 +1084,8 @@ class BasicModel(object):
     def close(self):
         self.rollback()
 
-    def __del__(self):
-        self.close()
+#     def __del__(self):
+#         self.close()
 
 
 class TwoWayModel(BasicModel):

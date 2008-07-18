@@ -365,13 +365,13 @@ class ModelBase(SyncMethodsMixin):
 
         # Delete those use times not in use by a current connection.
         cursor.execute("""
-            DELETE FROM twoway_use_time ut
+            DELETE FROM ut
             USING twoway_use_time ut LEFT JOIN twoway_conns c
             ON ut.version_a = c.version_a AND ut.version_b = c.version_b
             WHERE c.version_a is null
             """)
         cursor.execute("""
-            DELETE FROM threeway_use_time ut
+            DELETE FROM ut
             USING threeway_use_time ut LEFT JOIN threeway_conns c
             ON ut.version_a = c.version_a AND ut.version_b = c.version_b
                AND ut.version_c = c.version_c
@@ -380,13 +380,13 @@ class ModelBase(SyncMethodsMixin):
 
         # Delete the comparison models not in use currently.
         cursor.execute("""
-            DELETE FROM twoway t
+            DELETE FROM t
             USING twoway t LEFT JOIN twoway_use_time ut
             ON t.version_a = ut.version_a AND t.version_b = ut.version_b
             WHERE ut.version_a is null
             """)
         cursor.execute("""
-            DELETE FROM threeway t
+            DELETE FROM t
             USING threeway t LEFT JOIN threeway_use_time ut
             ON t.version_a = ut.version_a AND t.version_b = ut.version_b
                AND t.version_c = ut.version_c

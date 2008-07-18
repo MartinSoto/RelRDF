@@ -225,12 +225,28 @@ class ModelBase(SyncMethodsMixin):
         self._connection.commit()
         cursor.close()
 
+    _releaseConnTwoWay = string.Template(
+        """
+        DELETE FROM twoway_conns
+        WHERE twoway_conns.connection = connection_id() and
+              twoway_conns.version_a = $versionA and
+              twoway_conns.version_b = $versionB
+        """)
+
     @synchronized
     def releaseTwoWay(self, versionA, versionB):
         count = self._twoWayUsers[(versionA, versionB)]
         assert count > 0
         count -= 1
         self._twoWayUsers[(versionA, versionB)] = count
+        if count == 0:
+            # Remove the control connection as a user of this comparison.
+            cursor = self._connection.cursor()
+            cursor.execute(self._releaseConnTwoWay. \
+                               substitute(versionA=versionA,
+                                          versionB=versionB))
+            self._connection.commit()
+            cursor.close()
 
     _updateTimeThreeWay = string.Template(
         """
@@ -329,12 +345,31 @@ class ModelBase(SyncMethodsMixin):
         self._connection.commit()
         cursor.close()
 
+
+    _releaseConnThreeWay = string.Template(
+        """
+        DELETE FROM threeway_conns
+        WHERE threeway_conns.connection = connection_id() and
+              threeway_conns.version_a = $versionA and
+              threeway_conns.version_b = $versionB and
+              threeway_conns.version_c = $versionC
+        """)
+
     @synchronized
     def releaseThreeWay(self, versionA, versionB, versionC):
         count = self._threeWayUsers[(versionA, versionB, versionC)]
         assert count > 0
         count -= 1
         self._threeWayUsers[(versionA, versionB, versionC)] = count
+        if count == 0:
+            # Remove the control connection as a user of this comparison.
+            cursor = self._connection.cursor()
+            cursor.execute(self._releaseConnThreeWay. \
+                               substitute(versionA=versionA,
+                                          versionB=versionB,
+                                          versionC=versionC))
+            self._connection.commit()
+            cursor.close()
 
     @synchronized
     def cleanUpCaches(self):

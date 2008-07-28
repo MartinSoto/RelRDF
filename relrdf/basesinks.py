@@ -57,5 +57,8 @@ class DebugModelBase(object):
             raise InstantiationError(_("Missing or invalid sink arguments: %s")
                                      % e)
 
+    def close(self):
+        pass
+
 def getModelBase(**modelBaseArgs):
     return DebugModelBase(**modelBaseArgs)

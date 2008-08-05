@@ -125,12 +125,12 @@ def simplifyNode(expr, subexprsModif):
             expr, m = flattenSelect(expr)
             modif = modif or m
         
-        for i, subexpr in enumerate(expr):
-            if isinstance(subexpr, nodes.MapValue):
-                expr, m = promoteMapValue(expr, i)
-                if m:
-                    modif = True;
-                    break
+#        for i, subexpr in enumerate(expr):
+#            if isinstance(subexpr, nodes.MapValue):
+#                expr, m = promoteMapValue(expr, i)
+#                if m:
+#                    modif = True;
+#                    break
 
         subexprsModif = subexprsModif or modif
     

@@ -218,19 +218,31 @@ class BasicSingleVersionMapper(BasicMapper):
         if self.stmtRepl is not None:
             return self.stmtRepl
 
-        rel = build.buildExpression(
-            (nodes.Select,
-             (nodes.Product,
-              (sqlnodes.SqlRelation, 1, 'version_statement'),
-              (sqlnodes.SqlRelation, 2, 'statements')),
-             (nodes.And,
-              (nodes.Equal,
-               (sqlnodes.SqlFieldRef, 1, 'version_id'),
-               (sqlnodes.SqlInt, self.versionId)),
-              (nodes.Equal,
-               (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-               (sqlnodes.SqlFieldRef, 2, 'id'))))
-            )
+#        rel = build.buildExpression(
+#            (nodes.Select,
+#             (nodes.Product,
+#              (sqlnodes.SqlRelation, 1, 'version_statement'),
+#              (sqlnodes.SqlRelation, 2, 'statements')),
+#             (nodes.And,
+#              (nodes.Equal,
+#               (sqlnodes.SqlFieldRef, 1, 'version_id'),
+#               (sqlnodes.SqlInt, self.versionId)),
+#              (nodes.Equal,
+#               (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
+#               (sqlnodes.SqlFieldRef, 2, 'id'))))
+#            )
+
+        rel = nodes.Select(
+            sqlnodes.SqlRelation(2, 'statements'),
+            nodes.Equal(
+              sqlnodes.SqlInt(self.versionId),
+              nodes.MapValue(
+                nodes.Select(
+                  sqlnodes.SqlRelation(1, 'version_statement'),
+                  sqlnodes.SqlEqual(
+                    sqlnodes.SqlFieldRef(1, 'stmt_id'),
+                    sqlnodes.SqlFieldRef(2, 'id'))),
+                sqlnodes.SqlFieldRef(1, 'version_id'))))
 
         replExpr = \
           nodes.MapResult(['context',

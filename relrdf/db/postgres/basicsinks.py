@@ -20,12 +20,15 @@ class SingleVersionRdfSink(object):
         self.connection = connection
         self.versionId = versionId
         self.verbose = verbose
-        self.verbose = True
 
         self.pendingRows = []
 
         self.cursor = self.connection.cursor()
+        
+        self._createTempTable()
 
+    def _createTempTable(self):
+        
         # Create (if it doesn't exist already) a temporary table to
         # hold the results.
         self.cursor.execute(
@@ -268,15 +271,7 @@ class SingleVersionRdfSink(object):
         
         self.connection.rollback()
         
-        self.cursor.execute(
-            """
-            CREATE TEMPORARY TABLE statements_temp1 (
-              subject_text text NOT NULL,
-              predicate_text text NOT NULL,
-              object_type text NOT NULL,
-              object_text text NOT NULL
-            ) ON COMMIT DROP;
-            """)
+        self._createTempTable()
                 
     def close(self):
                 

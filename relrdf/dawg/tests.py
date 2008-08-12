@@ -1,5 +1,4 @@
 
-
 import ns
 from result import SelectQueryResult, ConstructQueryResult
 
@@ -134,7 +133,7 @@ class QueryEvaluationTest(object):
             
             # Read text for log
             dataText = readFileFromURL(self.data)
-            log.testEntry("Data", dataText, pre=True, src=self.result)
+            log.testEntry("Data", dataText, pre=True, src=self.data)
 
             # Create parser
             from relrdf.modelimport.rdflibparse import RdfLibParser

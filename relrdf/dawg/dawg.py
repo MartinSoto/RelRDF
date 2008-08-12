@@ -12,6 +12,8 @@ from relrdf.factory import parseCmdLineArgs
 
 from traceback import format_exc
 
+import textwrap
+
 # Utilities
 def isURI(node):
     return isinstance(node, uri.Uri)
@@ -118,14 +120,15 @@ class Manifesto:
             
         return cnt
     
-    
-
 class TestLogFile(object):
     
     __slots__ = ('file')
     
     def __init__(self, file):
         self.file = file
+    
+    def _wrap(self, text):
+        return "\n".join(["\n    ".join(textwrap.wrap(t, 100)) for t in text.split("\n")])
     
     def start(self):
         self.file.write("<html><body>\n")
@@ -142,7 +145,8 @@ class TestLogFile(object):
         if not isinstance(value, unicode):
             value = unicode(value, errors='ignore')
         if pre:
-            value = "<pre>%s</pre>" % value.encode('latin-1').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            text = value.encode('latin-1').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            value = "<pre>%s</pre>" % self._wrap(text)
         if not src is None:
             value += '<p>(<a href="%s">%s</a>)</p>' % (src, src)
         self.file.write('<tr><th style="vertical-align:top">%s:</th><td>%s</td></tr>' % (name, value))      
@@ -163,7 +167,7 @@ class TestLogFile(object):
         str = ""
         if not msg is None:
             str = "<p>%s:</p>" % msg
-        str += "<pre>%s</pre>" % format_exc(1000)
+        str += "<pre>%s</pre>" % self._wrap(format_exc(1000))
         self.testFail(str)
                
     def testEnd(self, ):

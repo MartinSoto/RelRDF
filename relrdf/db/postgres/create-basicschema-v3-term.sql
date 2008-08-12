@@ -74,7 +74,7 @@ ALTER SEQUENCE data_types_id_seq
   NO CYCLE;
   
 CREATE FUNCTION format_rdf_term(t rdf_term) RETURNS text AS $$
-  SELECT rdf_term_to_string($1) || '^^' || d.uri
+  SELECT '(' || rdf_term_to_string($1) || ',' || d.uri || ')'
    FROM data_types d WHERE d.id = rdf_term_get_type_id($1);
 $$ LANGUAGE SQL;
 

@@ -950,6 +950,18 @@ class BaseResults(object):
             value = literal.Literal(rawValue, typeId)
         
         return value
+    
+    def _splitPair(self, pair):
+        
+        # Split the string representation of a value/name pair
+        # as it's coming from the database into both components
+        
+        if pair is None:
+            return (None, None)
+        else:
+            (val, _, type) = pair.rpartition(',')
+            return (val.lstrip('('), type.rstrip(')'))
+        
 
     def close(self):
         if self.cursor is not None:
@@ -981,9 +993,7 @@ class ColumnResults(BaseResults):
             result = []
             blankMap = {}
             for pair in row:
-                (val, _, type) = pair.rpartition(',')
-                val = val.lstrip('(')
-                type = type.rstrip(')')
+                (val, type) = self._splitPair(pair)
                 result.append(self._convertResult(val, type, blankMap))
             yield tuple(result)
 
@@ -1015,9 +1025,9 @@ class StmtResults(BaseResults):
             
             for i in range(self.stmtsPerRow):
                 result = []
-                for rawValue, typeId in zip(row[i*6 : (i+1)*6 : 2],
-                                            row[i*6 + 1: (i+1)*6 + 1: 2]):
-                    result.append(self._convertResult(rawValue, typeId, blankMap))
+                for pair in row[i*3 : i*3+3]:
+                    (val, type) = self._splitPair(pair)                    
+                    result.append(self._convertResult(val, type, blankMap))
                 yield tuple(result)
 
             row = self.cursor.fetchone()

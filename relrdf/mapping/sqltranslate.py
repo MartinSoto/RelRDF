@@ -36,10 +36,10 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
         return sqlnodes.SqlLessThan(*subexpr)
     def LessThanOrEqual(self, expr, *subexpr):
         return sqlnodes.SqlLessThanOrEqual(*subexpr)
-    def LessThan(self, expr, *subexpr):
-        return sqlnodes.SqlLessThan(*subexpr)
-    def LessThanOrEqual(self, expr, *subexpr):
-        return sqlnodes.SqlLessThanOrEqual(*subexpr)
+    def GreaterThan(self, expr, *subexpr):
+        return sqlnodes.SqlGreaterThan(*subexpr)
+    def GreaterThanOrEqual(self, expr, *subexpr):
+        return sqlnodes.SqlGreaterThanOrEqual(*subexpr)
     def Different(self, expr, *subexpr):
         return sqlnodes.SqlDifferent(*subexpr)
     def TypeCompatible(self, expr, *subexpr):
@@ -79,14 +79,7 @@ class SqlSelectBoolTranslator(rewrite.ExpressionTransformer):
     SQL boolean values """
 
     def __init__(self):
-        super(SqlSelectBoolTranslator, self).__init__(prePrefix='pre')
-    
-    def preDefault(self, expr):
-        # Stop recursion at value nodes
-        if isinstance(expr, nodes.ValueNode):
-            return expr[:]
-        else:
-            return self._recurse(expr)        
+        super(SqlSelectBoolTranslator, self).__init__(prePrefix='pre')       
     
     def Select(self, expr, rel, pred):
         

@@ -344,6 +344,5 @@ def emit(expr):
     # -- deactivated until type informations are properly preserved
     # expr = evaluate.reduceConst(expr)
     
-    print emitter.process(expr)
     return emitter.process(expr)
 

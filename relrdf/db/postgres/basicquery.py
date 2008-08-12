@@ -1071,31 +1071,24 @@ class BasicModel(object):
     def _exprToSql(self, expr):
         
         # Apply result value formatting
-        print expr
         transf = transform.ResultMappingTransformer(sqlnodes.SqlFunctionCall('format_rdf_term'))
-        expr = transf.process(expr)        
-        print expr
+        expr = transf.process(expr)
         
         # Apply the selected mapping.
         expr = self.mappingTransf.process(expr)
-        print expr
-        
+       
         # Add dynamic type checks.
         expr = dynamic.dynTypeCheckTranslate(expr)
-        print expr
 
         # Dereference value references from the mapping.
         transf = valueref.ValueRefDereferencer()
         expr = transf.process(expr)
-        print expr
-        
+         
         # Simplify the expression
         expr = simplify.simplify(expr)
-        print expr
 
         # Convert select predicates to SQL
         expr = sqltranslate.translateSelectToSqlBool(expr)
-        print expr
         
         # Generate SQL.
         return emit.emit(expr)

@@ -229,7 +229,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
             return (nodes.Null(),)
         elif isinstance(expr[0], nodes.Var):
             # Expand the variable's type.
-            return (nodes.DynType, self.varBindings[expr[0].name].copy(),)
+            return (nodes.DynType(self.varBindings[expr[0].name].copy()),)
         else:
             repl = self.mapTypeExpr(expr[0].staticType)
             if repl is not None:

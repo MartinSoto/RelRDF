@@ -87,7 +87,18 @@ class TypeUriMapping(valueref.ValueMapping):
     __slots__ = ()
     
     def intToExt(self, internal):
-        (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
+        (expr,) = transform.Incarnator.reincarnate(
+          sqlnodes.SqlFunctionCall('rdf_term',
+            nodes.MapValue(
+                nodes.Select(
+                     sqlnodes.SqlRelation(1, 'data_types'),
+                     nodes.Equal(
+                          sqlnodes.SqlFieldRef(1, 'uri'),
+                          sqlnodes.SqlString(rdfs.Resource)
+                     )
+                ),
+                sqlnodes.SqlFieldRef(1, 'id')),
+            nodes.MapValue(
                 nodes.Select(
                      sqlnodes.SqlRelation(1, 'data_types'),
                      nodes.Equal(
@@ -96,10 +107,10 @@ class TypeUriMapping(valueref.ValueMapping):
                      )
                 ),
                 sqlnodes.SqlFieldRef(1, 'uri')
-            ))    
+            )))
         # Replace null by actual ID (done late so it won't reincarnate)
-        assert isinstance(expr[0][1][1], nodes.Null)
-        expr[0][1][1] = internal
+        assert isinstance(expr[1][0][1][1], nodes.Null)
+        expr[1][0][1][1] = internal
         return expr
     
     def extToInt(self, external):
@@ -108,14 +119,17 @@ class TypeUriMapping(valueref.ValueMapping):
                      sqlnodes.SqlRelation(1, 'data_types'),
                      nodes.Equal(
                           sqlnodes.SqlFieldRef(1, 'uri'),
-                          nodes.Null()
+                          sqlnodes.SqlFunctionCall('text',
+                          sqlnodes.SqlFunctionCall('rdf_term_to_string',
+                            nodes.Null()
+                          ))
                      )
                 ),
                 sqlnodes.SqlFieldRef(1, 'id')
             ))
         # Replace null by actual URI (done late so it won't reincarnate)
-        assert isinstance(expr[0][1][1], nodes.Null)
-        expr[0][1][1] = external
+        assert isinstance(expr[0][1][1][0][0], nodes.Null)
+        expr[0][1][1][0][0] = external
         return expr
 
 def typeValueRef(incarnation, fieldId):
@@ -190,7 +204,10 @@ class BasicMapper(transform.PureRelationalTransformer):
     def delete(self, cursor, stmtQuery, stmtsPerRow):
         """Delete the statements returned by `stmtQuery` from the model."""
         raise NotImplementedError
-
+    
+    def DynType(self, expr, subexpr):
+        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', subexpr[0])
+        return valueref.ValueRef(TypeUriMapping(), typeIdExpr)
 
 class BasicSingleVersionMapper(BasicMapper):
     """Abstract class that targets an abstract query to a context set

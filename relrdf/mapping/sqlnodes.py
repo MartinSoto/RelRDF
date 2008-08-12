@@ -11,10 +11,15 @@ class SqlInt(nodes.ValueNode):
     def __init__(self, val):
         self.val = val
         super(SqlInt, self).__init__()
-
+        
 class SqlEqual(nodes.Comparison):
     """Tests two values for equivalence, returning the result as a 
     raw SQL boolean value"""
+    
+    __slots__ = ()
+
+class SqlIn(nodes.Comparison):
+    """Tests wether a value appears in a value set (as returned by MapValue)"""
     
     __slots__ = ()
 

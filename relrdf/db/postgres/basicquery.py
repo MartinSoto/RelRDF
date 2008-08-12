@@ -234,7 +234,7 @@ class BasicSingleVersionMapper(BasicMapper):
 
         rel = nodes.Select(
             sqlnodes.SqlRelation(2, 'statements'),
-            nodes.Equal(
+            sqlnodes.SqlIn(
               sqlnodes.SqlInt(self.versionId),
               nodes.MapValue(
                 nodes.Select(

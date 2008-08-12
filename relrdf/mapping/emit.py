@@ -74,6 +74,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def SqlEqual(self, expr, operand1, *operands):
         return ' AND '.join(['(%s) = (%s)' % (operand1, o) for o in operands])
 
+    def SqlIn(self, expr, operand1, operand2):
+        return '(%s) IN (%s)' % (operand1, operand2)
+    
     def SqlLessThan(self, expr, operand1, operand2):
         return '(%s) < (%s)' % (operand1, operand2)
 
@@ -239,7 +242,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         # Add LIMIT clause
         if expr.limit != None:
             if expr.offset != None:                
-                query = subexpr + '\nLIMIT %d OFFSET %d' % (expr.offset, expr.limit)
+                query = subexpr + '\nLIMIT %d OFFSET %d' % (expr.limit, expr.offset)
             else:
                 query = subexpr + '\nLIMIT %d' % expr.limit
         else:

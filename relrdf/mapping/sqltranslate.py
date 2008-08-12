@@ -55,6 +55,7 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
     SqlNot = keep
     
     SqlEqual = keep
+    SqlIn = keep
     SqlLessThan = keep
     SqlLessThanOrEqual = keep
     SqlGreaterThan = keep

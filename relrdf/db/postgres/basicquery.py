@@ -1144,9 +1144,10 @@ class BasicModel(object):
         except:
             self.rollback()
             raise
-
-    def query(self, queryLanguageOrTemplate, queryText=None,
+        
+    def _parse(self, queryLanguageOrTemplate, queryText=None,
               fileName=_("<unknown>"), **keywords):
+        
         # FIXME: This code should be in a generic superclass.
         if queryText is None:
             # We should have been called with a template.
@@ -1172,7 +1173,13 @@ class BasicModel(object):
         # Parse the query.
         parser = parserfactory.getQueryParser(queryLanguage,
                                               **self.modelArgs)
-        expr = parser.parse(queryText, fileName)
+        return parser.parse(queryText, fileName)        
+        
+    def query(self, queryLanguageOrTemplate, queryText=None,
+              fileName=_("<unknown>"), **keywords):
+
+        # Parse the query
+        expr = self._parse(queryLanguageOrTemplate, queryText, fileName, **keywords)
 
         if isinstance(expr, nodes.ModifOperation):
             return self._processModifOp(expr)
@@ -1194,6 +1201,16 @@ class BasicModel(object):
                                self._exprToSql(expr))
         else:
             assert False, 'No mapping expression'
+
+    def querySQL(self, queryLanguageOrTemplate, queryText=None,
+              fileName=_("<unknown>"), **keywords):
+        
+        expr = self._parse(queryLanguageOrTemplate, queryText, fileName, **keywords)        
+        
+        if isinstance(expr, nodes.ModifOperation):
+            return self._exprToSql(expr[0])
+        else:
+            return self._exprToSql(expr)
 
     def commit(self):
         if self._connection is None:

@@ -150,11 +150,21 @@ class QueryEvaluationTest(object):
         
         # Execute the query
         try:
-            # Try to execute the query, always rollback immediately
+            
             try:
+                
+                # Parse query, log SQL
+                sql = model.querySQL('SPARQL', query, self.query)
+                log.testEntry("SQL", sql, pre=True)
+                
+                # Try to execute the query
                 result = model.query('SPARQL', query, self.query)
+                
             finally:
+                
+                # Always rollback immediately
                 sink.rollback()
+                
         except Exception, detail:
             log.testFailExc("Failed to run query")
             raise QueryException("Failed to run query", detail)
@@ -188,7 +198,6 @@ class SelectQueryEvaluationTest(QueryEvaluationTest):
         try:
             result = self.evaluate(model, sink, log)
         except QueryException, detail:
-            #print "%s (%s)" % (detail.msg.encode("ascii", 'backslashreplace'), str(detail.nested).encode("ascii", 'backslashreplace'))
             print "%s (%s)" % (detail.msg, detail.nested)
             return False
     

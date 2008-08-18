@@ -205,8 +205,8 @@ class BasicMapper(transform.PureRelationalTransformer):
         """Delete the statements returned by `stmtQuery` from the model."""
         raise NotImplementedError
     
-    def DynType(self, expr, subexpr):
-        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', subexpr[0])
+    def _makeDynType(self, subexpr):
+        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', subexpr)
         return valueref.ValueRef(TypeUriMapping(), typeIdExpr)
 
 class BasicSingleVersionMapper(BasicMapper):

@@ -229,7 +229,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
             return (nodes.Null(),)
         elif isinstance(expr[0], nodes.Var):
             # Expand the variable's type.
-            return (nodes.DynType(self.varBindings[expr[0].name].copy()),)
+            return (self._makeDynType(self.varBindings[expr[0].name].copy()),)
         else:
             repl = self.mapTypeExpr(expr[0].staticType)
             if repl is not None:
@@ -252,7 +252,10 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
                 assert False, "Cannot determine type from [[%s]]" % expr.id
             else:
                 assert False, "Cannot determine type"
-
+                
+    # Can be overridden by child classes
+    def _makeDynType(self, value):
+        return nodes.DynType(value)
 
 class MatchReifTransformer(PureRelationalTransformer):
     """A `PureRelationalTransformer` extension to match reified

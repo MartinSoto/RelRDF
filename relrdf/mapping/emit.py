@@ -12,9 +12,14 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         super(SqlEmitter, self).__init__(prePrefix='pre')
 
         self.distinct = 0
-        
+    
+    _hardcodedTypeIDs = { rdfs.Resource: 0 }
+    
     def _typeIdFromURI(self, uri):
-        return "(SELECT id FROM data_types WHERE uri='%s')" % uri
+        try:
+            return "%s" % self._hardcodedTypeIDs[uri]
+        except KeyError:
+            return "(SELECT id FROM data_types WHERE uri='%s')" % uri
         
     def Null(self, expr):
         return 'NULL'

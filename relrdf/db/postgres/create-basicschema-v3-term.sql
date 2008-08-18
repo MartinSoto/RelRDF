@@ -63,6 +63,7 @@ INSERT INTO data_types (id, uri) VALUES
   (8192, 'http://www.w3.org/2001/XMLSchema#boolean'),
 
   (8448, 'http://www.w3.org/2001/XMLSchema#dateTime'),
+  (8449, 'http://www.w3.org/2001/XMLSchema#date'),
 
   (8704, 'http://www.w3.org/2001/XMLSchema#string'),
   

@@ -100,7 +100,7 @@ class SqlRelation(nodes.ExpressionNode):
         stream.write(' %s %s' % (self.sqlCode, self.incarnation))
 
 
-class SqlFieldRef(nodes.ExpressionNode):
+class SqlFieldRef(nodes.ValueNode):
     """A reference to one particular field of a particular relation
     (incarnation)."""
 

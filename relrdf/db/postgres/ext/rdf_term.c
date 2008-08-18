@@ -6,10 +6,14 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <math.h>
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
 #endif
+
+/* Hardcoded type IDs */
+#define TYPE_ID_BOOL 0x2000
 
 /* RDF term structure */
 typedef struct {
@@ -145,6 +149,34 @@ compare_terms(RdfTerm *term1, RdfTerm *term2)
 		
 	/* Otherwise: textual type */
 	return strcoll(term1->text, term2->text);	
+}
+
+/* == Boolean operations == */
+
+inline bool
+to_bool(RdfTerm *term)
+{
+	if(is_num_type(term->type_id))
+	{
+		return isnan(term->num) || term->num != 0.0f;
+	}
+	else if(term->type_id == TYPE_ID_BOOL)
+	{
+		return strcoll(term->text, "true") == 0;
+	}
+	else
+	{
+		return get_text_len(term) > 0; 
+	}
+}
+
+inline RdfTerm *
+create_term_bool(bool flag)
+{
+	if(flag)
+		return create_term_text(TYPE_ID_BOOL, "true", 4);
+	else
+		return create_term_text(TYPE_ID_BOOL, "false", 5);
 }
 
 /* == PostgreSQL interface == */
@@ -466,7 +498,7 @@ rdf_term_to_string(PG_FUNCTION_ARGS)
 	PG_RETURN_CSTRING(result);	
 }
 
-/* Operators */
+/* Comparison operators */
 
 PG_FUNCTION_INFO_V1(rdf_term_types_compatible_tt);
 Datum
@@ -596,6 +628,67 @@ rdf_term_greater(PG_FUNCTION_ARGS)
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
 	
 	PG_RETURN_BOOL(compare_terms(term1, term2) > 0);	
+}
+
+/* Boolean operators */
+
+PG_FUNCTION_INFO_V1(rdf_term_to_bool);
+Datum
+rdf_term_to_bool(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	bool result = to_bool(term);
+
+	PG_RETURN_BOOL(result);
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_not_raw);
+Datum
+rdf_term_not_raw(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	bool result = !to_bool(term);
+
+	PG_RETURN_BOOL(result);
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_not);
+Datum
+rdf_term_not(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	bool result = !to_bool(term);
+
+	PG_RETURN_RDF_TERM(create_term_bool(result));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_and);
+Datum
+rdf_term_and(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
+	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
+	bool result = to_bool(term1) && to_bool(term2);
+
+	PG_RETURN_RDF_TERM(create_term_bool(result));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_or);
+Datum
+rdf_term_or(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
+	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
+	bool result = to_bool(term1) || to_bool(term2);
+
+	PG_RETURN_RDF_TERM(create_term_bool(result));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_bound);
+Datum
+rdf_term_bound(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_RDF_TERM(create_term_bool(!PG_ARGISNULL(0)));
 }
 
 /* Hash function */

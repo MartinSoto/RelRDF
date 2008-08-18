@@ -31,8 +31,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return "rdf_term(%s, '%s')" \
             % (self._typeIdFromURI(rdfs.Resource), expr.uri)
 
-    _noStringTypes = set((xsd.boolean,
-                          xsd.integer,
+    _noStringTypes = set((xsd.integer,
                           xsd.decimal,
                           xsd.double))
 
@@ -75,6 +74,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def If(self, expr, cond, thenExpr, elseExpr):
         return 'IF(%s, %s, %s)' % (cond, thenExpr, elseExpr)
+    
+    def SqlCastBool(self, expr, subexpr):
+        return '!!(%s)' % subexpr
 
     def SqlEqual(self, expr, operand1, *operands):
         return ' AND '.join(['(%s) = (%s)' % (operand1, o) for o in operands])
@@ -108,7 +110,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(' + ') OR ('.join(operands) + ')'
 
     def SqlNot(self, expr, operand):
-        return 'NOT (%s)' % operand
+        return '!(%s)' % operand
 
     def SqlAnd(self, expr, *operands):
         return '(' + ') AND ('.join(operands) + ')'
@@ -129,7 +131,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(%s) / (%s)' % (op1, op2)
     
     def IsBound(self, expr, var):
-        return '%s IS NOT NULL' % var
+        return 'rdf_term_bound(%s)' % var
 
     def CastBool(self, expr, var):
         return '(%s) != 0' % var

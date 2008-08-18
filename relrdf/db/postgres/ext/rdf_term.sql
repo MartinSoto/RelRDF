@@ -74,7 +74,8 @@ CREATE FUNCTION rdf_term_to_string(rdf_term)
   RETURNS cstring
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
-  
+
+/* Comparisons */  
 
 CREATE FUNCTION rdf_term_types_compatible(rdf_term, rdf_term)
   RETURNS bool
@@ -140,13 +141,6 @@ CREATE FUNCTION rdf_term_greater(rdf_term, rdf_term)
   RETURNS bool
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
-  
- 
-CREATE FUNCTION rdf_term_hash(rdf_term)
-  RETURNS int4
-  AS 'rdf_term'
-  LANGUAGE C IMMUTABLE STRICT;
-  
   
 CREATE OPERATOR < (
 	procedure = rdf_term_less,
@@ -272,6 +266,61 @@ CREATE OPERATOR === (
 	merges
 );
 
+/* Boolean operations */
+
+CREATE FUNCTION rdf_term_to_bool(rdf_term)
+  RETURNS bool
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_not_raw(rdf_term)
+  RETURNS bool
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_not(rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_bound(rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE;
+
+
+CREATE OPERATOR !! (
+	procedure = rdf_term_to_bool,
+	rightarg = rdf_term,
+	negator = !
+);
+
+CREATE OPERATOR ! (
+	procedure = rdf_term_not_raw,
+	rightarg = rdf_term,
+	negator = !!
+);
+
+CREATE FUNCTION rdf_term_bool_not(f bool) RETURNS bool AS 'SELECT NOT $1' LANGUAGE SQL;
+CREATE OPERATOR ! (
+	procedure = rdf_term_bool_not,
+	rightarg = bool
+);
+
+CREATE OPERATOR ^! (
+	procedure = rdf_term_not,
+	rightarg = rdf_term
+);
+
+/* Hash function */
+ 
+CREATE FUNCTION rdf_term_hash(rdf_term)
+  RETURNS int4
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+/* Index definitions */
+
 CREATE OPERATOR CLASS rdf_term_equal
 	DEFAULT FOR TYPE rdf_term USING btree AS
 		OPERATOR 1 <,
@@ -295,22 +344,3 @@ CREATE OPERATOR CLASS rdf_term_compatible
 		OPERATOR 5 >,
 		FUNCTION 1 rdf_term_compare(rdf_term, rdf_term);
 
-DROP TABLE IF EXISTS test;
-CREATE TABLE test (
-	id serial PRIMARY KEY,
-  term rdf_term
-);
-
-CREATE INDEX test_term_idx ON test(term);
-CREATE INDEX test_term_idx2 ON test(term) rdf_term_compatible;
-
-INSERT INTO test (term) VALUES 
-	(rdf_term(0, 'a')),
-  (rdf_term(0, 'b')),
-  (rdf_term(0, 'ä')),
-  
-  (rdf_term(256, 'a')),
-  (rdf_term(256, 'b')),
-  (rdf_term(256, 'ä'));
- 
- 

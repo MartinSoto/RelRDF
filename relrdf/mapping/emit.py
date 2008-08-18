@@ -276,6 +276,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             query = subexpr + ", " + orderCrit
         else:
             query = subexpr + "\nORDER BY " + orderCrit
+        query = query + ' NULLS FIRST'
         
         return query
 

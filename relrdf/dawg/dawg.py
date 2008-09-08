@@ -102,7 +102,7 @@ class Manifesto:
     def entryCount(self):
         return len(self.entries) + sum([m.entryCount() for m in self.manifests])
     
-    def execute(self, model, sink, okSet, log):
+    def execute(self, model, sink, okSet, refSet, log):
         
         if len(self.entries) > 0:
             print "== Executing test cases from %s..." % self.source
@@ -110,13 +110,13 @@ class Manifesto:
         
         cnt = 0
         for entry in self.entries:
-            result = entry.execute(model, sink, log)
+            result = entry.execute(model, sink, entry.uri in refSet, log)
             if result:
                 cnt += 1
                 okSet.add(entry.uri)
             
         for manifest in self.manifests:
-            cnt += manifest.execute(model, sink, okSet, log)
+            cnt += manifest.execute(model, sink, okSet, refSet, log)
             
         return cnt
     
@@ -151,24 +151,32 @@ class TestLogFile(object):
             value += '<p>(<a href="%s">%s</a>)</p>' % (src, src)
         self.file.write('<tr><th style="vertical-align:top">%s:</th><td>%s</td></tr>' % (name, value))      
         
-    def testOk(self, value=""):
+    def testOk(self, ref, value=""):
         if not isinstance(value, unicode):
             value = unicode(value, errors='ignore')
-        self.file.write('<tr><th style="color:green;vertical-align:top">OK</th><td>%s</td></tr>' % (value))  
+        if ref:
+            heading = 'Ok'
+        else:
+            heading = 'NEW'
+        self.file.write('<tr><th style="color:green;vertical-align:top">%s</th><td>%s</td></tr>' % (heading, value))
         self.testEnd()
  
-    def testFail(self, value):
+    def testFail(self, ref, value):
         if not isinstance(value, unicode):
             value = unicode(value, errors='ignore')
-        self.file.write('<tr><th style="color:red;vertical-align:top">Fail</th><td>%s</td></tr>' % (value))  
+        if ref:
+            heading = 'REGRESSION'
+        else:
+            heading = 'Fail'
+        self.file.write('<tr><th style="color:red;vertical-align:top">%s</th><td>%s</td></tr>' % (heading, value))  
         self.testEnd()
         
-    def testFailExc(self, msg=None):
+    def testFailExc(self, ref, msg=None):
         str = ""
         if not msg is None:
             str = "<p>%s:</p>" % msg
         str += "<pre>%s</pre>" % self._wrap(format_exc(1000))
-        self.testFail(str)
+        self.testFail(ref, str)
                
     def testEnd(self, ):
         self.file.write("</table>\n")
@@ -230,7 +238,7 @@ if __name__ == '__main__':
         
     # Execute test cases
     okSet = set()
-    successCount = manifest.execute(model, sink, okSet, log)
+    successCount = manifest.execute(model, sink, okSet, refSet, log)
     
     # Compare with reference set
     refSuccessCount = 0

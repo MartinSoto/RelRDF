@@ -714,30 +714,15 @@ class IsBlankNode(UnaryOperation):
     
     __slots__ = ()
 
-class CastBool(UnaryOperation):
-     """Converts the given value to the boolean datatype"""
+class Cast(UnaryOperation):
+     """Converts the given value to another datatype, if possible"""
     
-     __slots__ = ()
-  
-class CastDecimal(UnaryOperation):
-     """Converts the given value to the decimal datatype"""
-    
-     __slots__ = ()
-  
-class CastInt(UnaryOperation):
-     """Converts the given value to the integer datatype"""
-    
-     __slots__ = ()
-  
-class CastDateTime(UnaryOperation):
-     """Converts the given value to the date/time datatype"""
-    
-     __slots__ = ()
-  
-class CastString(UnaryOperation):
-     """Converts the given value to the string datatype"""
-    
-     __slots__ = ()
+     __slots__ = ('type')
+     
+     def __init__(self, sexpr, type):
+         self.type = type
+         super(Cast, self).__init__(sexpr)
+     
   
 class MapValue(BinaryOperation):
     """Computes the value of a single expression concerning a relation"""

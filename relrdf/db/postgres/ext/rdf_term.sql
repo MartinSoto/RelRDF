@@ -40,6 +40,11 @@ CREATE FUNCTION rdf_term(int, text)
   AS 'rdf_term', 'rdf_term_create'
   LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION rdf_term_cast(int, rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
 
 CREATE FUNCTION rdf_term_get_type_id(rdf_term)
   RETURNS int4

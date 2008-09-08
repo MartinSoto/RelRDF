@@ -129,20 +129,8 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def IsBlankNode(self, expr, sexpr):
         return 'rdf_term_starts_with(%s, \'%s\')' % (sexpr, uri.BLANK_NODE_NS)
 
-    def CastBool(self, expr, var):
-        return '(%s) != 0' % var
-
-    def CastDecimal(self, expr, var):
-        return 'CAST(%s AS DECIMAL)' % var
-
-    def CastInt(self, expr, var):
-        return 'CAST(%s AS SIGNED INTEGER)' % var
-
-    def CastDateTime(self, expr, var):
-        return 'CAST(%s AS DATETIME)' % var
-
-    def CastString(self, expr, var):
-        return 'CAST(%s AS CHAR)' % var
+    def Cast(self, expr, sexpr):
+        return 'rdf_term_cast(%s, %s)' % (self._typeIdFromURI(expr.type), sexpr)
     
     def preMapValue(self, expr):
         if isinstance(expr[0], nodes.Select):

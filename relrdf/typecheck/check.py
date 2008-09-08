@@ -187,25 +187,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, 'BLANK_NODE')
         expr.staticType = booleanLiteralType
 
-    def CastBool(self, expr, var):
-        self._checkScalarOperands(expr, 'BOOL')
-        expr.staticType = booleanLiteralType
-
-    def CastDecimal(self, expr, var):
-        self._checkScalarOperands(expr, 'DEC')
-        expr.staticType = LiteralType(xsd.decimal)
-
-    def CastInt(self, expr, var):
-        self._checkScalarOperands(expr, 'INT')
-        expr.staticType = LiteralType(xsd.integer)
-
-    def CastDateTime(self, expr, var):
-        self._checkScalarOperands(expr, 'DT')
-        expr.staticType = LiteralType(xsd.dateTime)
-
-    def CastString(self, expr, var):
-        self._checkScalarOperands(expr, 'STR')
-        expr.staticType = LiteralType(xsd.string)
+    def Cast(self, expr, sexpr):
+        self._checkScalarOperands(expr, 'CAST')
+        expr.staticType = LiteralType(expr.type)
         
     def MapValue(self, expr, rel, sexpr):
         expr.staticType = expr[1].staticType

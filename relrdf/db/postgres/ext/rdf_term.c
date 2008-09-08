@@ -143,7 +143,7 @@ create_term_num(uint32_t type_id, char *text, size_t len)
 	double num; char buf[12+1];
 	strncpy(buf, text, len); buf[len] = '\0';
 	if(sscanf(buf, "%lg%n", &num, &num_len) < 1 || num_len != len)
-		num = NAN;
+		return NULL;
 	
 	/* Create the term */
 	term = create_term(type_id, text, len);
@@ -510,6 +510,25 @@ rdf_term_create(PG_FUNCTION_ARGS)
 
 	/* Create the appropriate term */
 	term = create_term_by_id(type_id, text, len);
+	
+	/* Invalid? */
+	if(!term)
+	  PG_RETURN_NULL();
+	
+	PG_RETURN_RDF_TERM(term);
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_cast);
+Datum
+rdf_term_cast(PG_FUNCTION_ARGS)
+{
+	int32 type_id = PG_GETARG_INT32(0);
+	RdfTerm *old_term = PG_GETARG_RDF_TERM(1);
+	RdfTerm *term = NULL;
+
+	/* Create the appropriate term */
+	term = create_term_by_id(type_id,
+		old_term->text, get_text_len(old_term));
 	
 	/* Invalid? */
 	if(!term)

@@ -1,6 +1,6 @@
 header {
     from relrdf.commonns import rdf, xsd
-    from relrdf.expression import nodes, uri, util
+    from relrdf.expression import nodes, uri, util, literal
     from relrdf import commonns
 
     import parser, spqnodes
@@ -498,23 +498,23 @@ brackettedExpression returns [expr]
 
 builtInCall returns [expr]
     :   bool:BOOL LPAREN param=expression rp1:RPAREN
-        { expr = nodes.CastBool(param); \
+        { expr = nodes.Cast(param, commonns.xsd.boolean); \
           expr.setExtentsStartFromToken(bool, self); \
           expr.setExtentsEndFromToken(rp1); }
     |   dec:DEC LPAREN param=expression rp12:RPAREN
-        { expr = nodes.CastDecimal(param); \
+        { expr = nodes.Cast(param, commonns.xsd.decimal); \
           expr.setExtentsStartFromToken(dec, self); \
           expr.setExtentsEndFromToken(rp12); }
     |   int:INT LPAREN param=expression rp13:RPAREN
-        { expr = nodes.CastInt(param); \
+        { expr = nodes.Cast(param, commonns.xsd.integer); \
           expr.setExtentsStartFromToken(int, self); \
           expr.setExtentsEndFromToken(rp13); }
     |   dT:DT LPAREN param=expression rp14:RPAREN
-        { expr = nodes.CastDateTime(param); \
+        { expr = nodes.Cast(param, commonns.xsd.dateTime); \
           expr.setExtentsStartFromToken(dT, self); \
           expr.setExtentsEndFromToken(rp14); }
     |   str:STR LPAREN param=expression rp15:RPAREN
-        { expr = nodes.CastString(param); \
+        { expr = nodes.Cast(param, commonns.xsd.string); \
           expr.setExtentsStartFromToken(str, self); \
           expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN
@@ -600,18 +600,14 @@ booleanLiteral returns [expr]
     ;
 
 string returns [expr]
-    :   s1:STRING_LITERAL1
-        { expr = nodes.Literal(s1.getText()); \
-          expr.setExtentsFromToken(s1, self) }
-    |   s2:STRING_LITERAL2
-        { expr = nodes.Literal(s2.getText()); \
-          expr.setExtentsFromToken(s2, self) }
-    |   s1l:STRING_LITERAL_LONG1
-        { expr = nodes.Literal(s1l.getText()); \
-          expr.setExtentsFromToken(s1l, self) }
-    |   s2l:STRING_LITERAL_LONG2
-        { expr = nodes.Literal(s2l.getText()); \
-          expr.setExtentsFromToken(s2l, self) }
+    :   
+    (	s1:STRING_LITERAL1 { s = s1 }
+    |   s2:STRING_LITERAL2 { s = s2 }
+    |   s1l:STRING_LITERAL_LONG1 { s = s1l }
+    |   s2l:STRING_LITERAL_LONG2 { s = s2l }
+    )
+    {   expr = nodes.Literal(s.getText()); \
+        expr.setExtentsFromToken(s, self); }    	
     ;
 
 iriRef returns [expr]

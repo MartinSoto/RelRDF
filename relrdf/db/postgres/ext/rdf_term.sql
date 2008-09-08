@@ -301,12 +301,6 @@ CREATE OPERATOR ! (
 	negator = !!
 );
 
-CREATE FUNCTION rdf_term_bool_not(f bool) RETURNS bool AS 'SELECT NOT $1' LANGUAGE SQL;
-CREATE OPERATOR ! (
-	procedure = rdf_term_bool_not,
-	rightarg = bool
-);
-
 CREATE OPERATOR ^! (
 	procedure = rdf_term_not,
 	rightarg = rdf_term

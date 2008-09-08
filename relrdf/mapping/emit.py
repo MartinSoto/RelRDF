@@ -110,7 +110,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(' + ') OR ('.join(operands) + ')'
 
     def SqlNot(self, expr, operand):
-        return '!(%s)' % operand
+        return 'NOT (%s)' % operand
 
     def SqlAnd(self, expr, *operands):
         return '(' + ') AND ('.join(operands) + ')'

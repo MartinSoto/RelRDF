@@ -541,16 +541,6 @@ class BlankNode(Var):
     def __init__(self, name):
         super(BlankNode, self).__init__(name)
 
-class FunctionCall(ValueNode):
-    """A function call."""
-
-    __slots__ = ('functionName')
-
-    def __init__(self, functionName, *params):
-        self.functionName = functionName
-        super(FunctionCall, self).__init__(*params)
-
-
 class If(ValueNode):
     """A functional if expression.
 
@@ -711,16 +701,15 @@ class IsBlankNode(UnaryOperation):
     
     __slots__ = ()
 
-class Cast(UnaryOperation):
+class Cast(Operation):
      """Converts the given value to another datatype, if possible"""
     
      __slots__ = ('type')
      
-     def __init__(self, sexpr, type):
+     def __init__(self, type, *sexpr):
          self.type = type
-         super(Cast, self).__init__(sexpr)
+         super(Cast, self).__init__(*sexpr)
      
-  
 class MapValue(BinaryOperation):
     """Computes the value of a single expression concerning a relation"""
     

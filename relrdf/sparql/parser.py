@@ -207,3 +207,23 @@ class Parser(antlr.LLkParser):
         # Return the head node
         return head.copy()
     
+    CONS_FUNCS = (commonns.xsd.boolean,
+                  commonns.xsd.double,
+                  commonns.xsd.float,
+                  commonns.xsd.decimal,
+                  commonns.xsd.integer,
+                  commonns.xsd.dateTime,
+                  commonns.xsd.string,
+                  )
+    
+    def _makeFunctionCall(self, uri, extents):
+        
+        # Constructor function?
+        if uri in self.CONS_FUNCS:
+            return nodes.Cast(uri)
+        
+        # Unknown function...
+        raise error.SyntaxError(msg=_("Unknown function '%s'" % uri),
+                                extents=extents)
+        
+    

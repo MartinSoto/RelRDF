@@ -277,7 +277,7 @@ constraint returns [expr]
 
 functionCall returns [expr]
     :   name=iriRef
-        { expr = nodes.FunctionCall(name.uri) }
+        { expr = self._makeFunctionCall(name.uri, name.extents) }
         argList[expr]
     ;
 
@@ -497,24 +497,8 @@ brackettedExpression returns [expr]
     ;
 
 builtInCall returns [expr]
-    :   bool:BOOL LPAREN param=expression rp1:RPAREN
-        { expr = nodes.Cast(param, commonns.xsd.boolean); \
-          expr.setExtentsStartFromToken(bool, self); \
-          expr.setExtentsEndFromToken(rp1); }
-    |   dec:DEC LPAREN param=expression rp12:RPAREN
-        { expr = nodes.Cast(param, commonns.xsd.decimal); \
-          expr.setExtentsStartFromToken(dec, self); \
-          expr.setExtentsEndFromToken(rp12); }
-    |   int:INT LPAREN param=expression rp13:RPAREN
-        { expr = nodes.Cast(param, commonns.xsd.integer); \
-          expr.setExtentsStartFromToken(int, self); \
-          expr.setExtentsEndFromToken(rp13); }
-    |   dT:DT LPAREN param=expression rp14:RPAREN
-        { expr = nodes.Cast(param, commonns.xsd.dateTime); \
-          expr.setExtentsStartFromToken(dT, self); \
-          expr.setExtentsEndFromToken(rp14); }
-    |   str:STR LPAREN param=expression rp15:RPAREN
-        { expr = nodes.Cast(param, commonns.rdfs.Literal); \
+    :   str:STR LPAREN param=expression rp15:RPAREN
+        { expr = nodes.Cast(commonns.rdfs.Literal, param); \
           expr.setExtentsStartFromToken(str, self); \
           expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN
@@ -564,7 +548,7 @@ regexExpression returns [expr]
 
 iriRefOrFunction returns [expr]
     :   expr=iriRef
-        (   { expr = nodes.FunctionCall(expr.uri) }
+        (   { expr = self._makeFunctionCall(expr.uri, expr.extents) }
             argList[expr]
         )?
     ;
@@ -913,26 +897,6 @@ SELECT
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
-BOOL
-    :   ('B'|'b') ('O'|'o') ('O'|'o') ('L'|'l')
-    ;
-    
-protected  /* See QNAME_OR_KEYWORD. */
-DEC
-    :   ('D'|'d') ('E'|'e') ('C'|'c')
-    ;
-    
-protected  /* See QNAME_OR_KEYWORD. */
-INT
-    :   ('I'|'i') ('N'|'n') ('T'|'t')
-    ;
-    
-protected  /* See QNAME_OR_KEYWORD. */
-DT
-    :   ('D'|'d') ('T'|'t')
-    ;
-
-protected  /* See QNAME_OR_KEYWORD. */
 STR
     :   ('S'|'s') ('T'|'t') ('R'|'r')
     ;
@@ -1038,14 +1002,6 @@ QNAME_OR_KEYWORD
         { $setType(REGEX) }
     |   ( SELECT ) => SELECT
         { $setType(SELECT) }
-    |   ( BOOL ) => BOOL
-        { $setType(BOOL) }
-    |   ( DEC ) => DEC
-        { $setType(DEC) }
-    |   ( INT ) => INT
-        { $setType(INT) }
-    |   ( DT ) => DT
-        { $setType(DT) }
     |   ( STR ) => STR
         { $setType(STR) }
     |   ( UNION ) => UNION

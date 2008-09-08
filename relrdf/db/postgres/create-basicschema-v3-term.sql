@@ -62,16 +62,17 @@ INSERT INTO data_types (id, uri) VALUES
 
   (8192, 'http://www.w3.org/2001/XMLSchema#boolean'),
 
-  (8448, 'http://www.w3.org/2001/XMLSchema#dateTime'),
-  (8449, 'http://www.w3.org/2001/XMLSchema#date'),
+  (12288, 'http://www.w3.org/2001/XMLSchema#dateTime'),
+  (12544, 'http://www.w3.org/2001/XMLSchema#date'),
+  (12800, 'http://www.w3.org/2001/XMLSchema#time'),
 
-  (8704, 'http://www.w3.org/2001/XMLSchema#string'),
+  (16384, 'http://www.w3.org/2001/XMLSchema#string'),
   
-  (8960, 'http://www.w3.org/2000/01/rdf-schema#Literal');
+  (16896, 'http://www.w3.org/2000/01/rdf-schema#Literal');
 
 ALTER SEQUENCE data_types_id_seq
   INCREMENT BY 256
-  START WITH 16384
+  START WITH 17152
   NO CYCLE;
   
 CREATE FUNCTION format_rdf_term(t rdf_term) RETURNS text AS $$

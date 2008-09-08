@@ -31,10 +31,6 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return "rdf_term(%s, '%s')" \
             % (self._typeIdFromURI(rdfs.Resource), expr.uri)
 
-    _noStringTypes = set((xsd.integer,
-                          xsd.decimal,
-                          xsd.double))
-
     def Literal(self, expr):
         
         # Type ID lookup
@@ -43,10 +39,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             typeUri = rdfs.Literal
         typeIdExpr = self._typeIdFromURI(typeUri)
         
-        if expr.literal.typeUri in self._noStringTypes:
-            return "rdf_term(%s, %s)"  % (typeIdExpr, unicode(expr.literal))
-        else:
-            return "rdf_term(%s, '%s')" % (typeIdExpr, unicode(expr.literal))
+        return "rdf_term(%s, '%s')" % (typeIdExpr, unicode(expr.literal))
 
     _functionMap = {
         fn.abs:                'ABS',

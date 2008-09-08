@@ -7,13 +7,18 @@
 #include <stdint.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h>
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
 #endif
 
 /* Hardcoded type IDs */
-#define TYPE_ID_BOOL 0x2000
+#define TYPE_ID_BOOL         ((uint32_t) 0x00002000)
+
+#define TYPE_ID_DATETIME     ((uint32_t) 0x00003000)
+#define TYPE_ID_DATE         ((uint32_t) 0x00003100)
+#define TYPE_ID_TIME         ((uint32_t) 0x00003200)
 
 /* RDF term structure */
 typedef struct {
@@ -27,16 +32,19 @@ typedef struct {
 	/* Language ID (future) */
 	/* uint32_t lang_id; */
 	
-	/* Actual value */
-	union {
+	/* Value representation */
+	union {		
 		double num;
-		char text[1];
+		time_t time;
 	};
+	bool time_have_tz;
+	
+	/* Original */
+	char text[1];
 	
 } RdfTerm;
 
-#define RDF_TERM_NUM_SIZE 		sizeof( ((RdfTerm *)0)->num )
-#define RDF_TERM_HEADER_SIZE	(sizeof(RdfTerm) - RDF_TERM_NUM_SIZE)
+#define RDF_TERM_HEADER_SIZE	(sizeof(RdfTerm) - sizeof(char))
 
 /*
 	== Type classification ==
@@ -53,6 +61,7 @@ typedef struct {
 #define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFFF000)
 #define STORAGE_TYPE_IRI     ((uint32_t) 0x00000000)
 #define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
+#define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
 
 inline bool
 is_num_type(uint32_t type_id)
@@ -61,11 +70,18 @@ is_num_type(uint32_t type_id)
 }
 
 inline bool
+is_date_time_type(uint32_t type_id)
+{
+	return (type_id & STORAGE_TYPE_MASK) == STORAGE_TYPE_DT;
+}
+
+inline bool
 is_text_type(uint32_t type_id)
 {
 	/* IRIs are stored as text, too */
-	return !is_num_type(type_id);
+	return !is_num_type(type_id) && !is_date_time_type(type_id);
 }
+
 
 inline bool
 types_compatible(uint32_t type_id1, uint32_t type_id2)
@@ -86,26 +102,12 @@ get_text_len(RdfTerm *term)
 /* == Constructors == */
 
 RdfTerm *
-create_term_num(uint32_t type_id, double num)
-{
-	/* Allocate */
-	uint32_t size = RDF_TERM_HEADER_SIZE + RDF_TERM_NUM_SIZE;
-	RdfTerm *term = (RdfTerm *) palloc(size);
-	
-	/* Initialize */
-	SET_VARSIZE(term, size);
-	term->type_id = type_id;
-	term->num = num;
-	
-	return term;
-}
-
-RdfTerm *
-create_term_text(uint32_t type_id, char *text, size_t len)
+create_term(uint32_t type_id, char *text, size_t len)
 {
 	/* Allocate */
 	uint32_t size = RDF_TERM_HEADER_SIZE + len + sizeof(char);
 	RdfTerm *term = (RdfTerm *) palloc(size);
+	memset(term, 0, size);
 	
 	/* Initialize */
 	SET_VARSIZE(term, size);
@@ -124,6 +126,156 @@ create_term_text(uint32_t type_id, char *text, size_t len)
 	term->text[len] = '\0';
 	
 	return term;
+}
+
+RdfTerm *
+create_term_text(uint32_t type_id, char *text, size_t len)
+{
+	return create_term(type_id, text, len);
+}
+
+RdfTerm *
+create_term_num(uint32_t type_id, char *text, size_t len)
+{
+	RdfTerm *term; size_t num_len;
+	
+	/* Parse the number */
+	double num; char buf[12+1];
+	strncpy(buf, text, len); buf[len] = '\0';
+	if(sscanf(buf, "%lg%n", &num, &num_len) < 1 || num_len != len)
+		num = NAN;
+	
+	/* Create the term */
+	term = create_term(type_id, text, len);
+	term->num = num;
+	
+	return term;
+}
+
+
+RdfTerm *
+create_term_date_time(uint32_t type_id, char *text, size_t len)
+{
+	RdfTerm *term;
+	int year=0, month=0, day=0,
+	    hour=0, minute=0, second=0, fraction=0,
+	    tz_hour=0, tz_minute=0;
+	bool have_tz = false;
+	struct tm tm; time_t t;
+	int scan_len;
+	char *pos;
+	
+	/* Copy data into buffer. Limit size of effencieny reasons. */
+	char buf[40+1];	if(len > 30) len = 40;
+	strncpy(buf, text, len); buf[len] = '\0';
+	pos = buf;
+	
+	/* Scan date */
+	if(type_id == TYPE_ID_DATETIME || type_id == TYPE_ID_DATE)
+	{
+		if(sscanf(pos, "%d-%d-%d%n", &year, &month, &day, &scan_len) < 3)
+			return NULL;
+		pos += scan_len;
+	}
+	
+	/* Seperator */
+	if(type_id == TYPE_ID_DATETIME)
+	{
+		if(*pos != 'T')
+			return NULL;
+		pos = pos + sizeof(char);
+	}
+	
+	/* Scan time */
+	if(type_id == TYPE_ID_DATETIME || type_id == TYPE_ID_TIME)
+	{
+		if(sscanf(pos, "%d:%d:%d%n", &hour, &minute, &second, &scan_len) < 3)
+			return NULL;
+		pos += scan_len;
+		
+		/* Fractions? */
+		if(*pos == '.')
+		{
+			pos = pos + sizeof(char);
+			if(sscanf(pos, "%d%n", &fraction, &scan_len) < 1)
+				return NULL;
+			pos += scan_len;
+			
+			/* Validate */
+			if(fraction % 10 == 0)
+				return NULL;
+		}
+	}
+	
+	/* Time zone (optional) */
+	if(*pos == 'Z')
+	{
+		/* UTC time zone (standard) - so ignore it */
+		pos = pos + sizeof(char);
+		have_tz = true;
+	}
+	else if(*pos == '+' || *pos == '-')
+	{
+		
+		/* Not allowed for time values */
+		if(type_id == TYPE_ID_TIME)
+			return NULL;
+			
+		/* Scan timezone data */
+		if(sscanf(pos, "%d:%d%n", &tz_hour, &tz_minute, &scan_len) < 2)
+			return NULL;
+		pos = pos + scan_len;
+		
+		have_tz = true;
+	}
+	
+	/* Must be at end */
+	if(*pos)
+		return NULL;
+		
+	/* 
+	  Convert to seconds since the Epoch. This is obviously very rough:
+	  * Fractions are stripped
+	  * Might overflow and underflow (for year < 1900 for example)
+	  * mktime() uses the local timezone, not the one given by tz_hour/tz_minute
+	*/
+	memset(&tm, 0, sizeof(tm));
+	tm.tm_sec = second;
+	tm.tm_min = minute;
+	tm.tm_hour = hour;
+	if(type_id != TYPE_ID_TIME)
+	{
+		tm.tm_mday = day;
+		tm.tm_mon = month-1;
+		tm.tm_year = year-1900;
+	}
+	else
+	{
+		tm.tm_mday = 1;
+		tm.tm_year = 2; /* I have no idea why this is the lowest value that's accepted. */
+	}
+	t = mktime(&tm);
+	
+	if(t == (time_t) -1)
+		return create_term_text(0, "mkt", 3);
+		
+	/* Create the term */
+	term = create_term(type_id, text, len);
+	term->time = t;
+	term->time_have_tz = have_tz;
+	
+	return term;
+}
+
+RdfTerm *
+create_term_by_id(uint32_t type_id, char *text, size_t len)
+{
+	if(is_num_type(type_id))
+		return create_term_num(type_id, text, len);
+	else if(is_date_time_type(type_id))
+		return create_term_date_time(type_id, text, len);
+	else
+		return create_term_text(type_id, text, len);
 }
 
 /* == Compare == */
@@ -147,6 +299,22 @@ compare_terms(RdfTerm *term1, RdfTerm *term2)
 			return 1;
 	}
 		
+	/* Date/Time type? */
+	if(is_date_time_type(term1->type_id))
+	{
+		if(term1->time < term2->time)
+			return -1;
+		else if(term1->time == term2->time)
+			if(term1->time_have_tz < term2->time_have_tz)
+				return -1;
+			else if(term1->time_have_tz == term2->time_have_tz)
+				return 0;
+			else
+				return 1;
+		else
+			return 1;
+	}
+	
 	/* Otherwise: textual type */
 	return strcoll(term1->text, term2->text);	
 }
@@ -195,57 +363,38 @@ rdf_term_in(PG_FUNCTION_ARGS)
 	char *pos = str;
 	char *start;
 	
-	double num;
-	
 	uint32_t type_id, len;
 	
-	RdfTerm *term;
+	RdfTerm *term = NULL;
 	
 	/* Go over whitespace */
 	while(isblank(*pos))
 		pos += 1;
 
-	/* Text type? */
-	if(*pos == '\'')
-	{
-		/* Search for end */
-		start = pos = pos + 1;
-		while(*pos && *pos != '\'')
-			pos += 1;
-		
-		/* Invalid? */
-		if(!*pos)
-			PG_RETURN_NULL();
-		
-		/* Scan type ID */
-		len = pos-start; pos += 1;
-		if(1 != sscanf(pos, "^^%x", &type_id))
-			PG_RETURN_NULL();
-		if(is_num_type(type_id))
-			PG_RETURN_NULL();
-			
-		/* Create term (TODO: escaping)*/
-		term = create_term_text(type_id, start, len);
-	}
-
-	/* Number type? */
-	else if(sscanf(pos, "%lg%n", &num, &len) > 0)
-	{
-		/* Advance pointer */
-		pos += len;
-		
-		/* Scan type ID */
-		if(1 != sscanf(pos, "^^%x", &type_id))
-			PG_RETURN_NULL();
-		if(is_text_type(type_id))
-			PG_RETURN_NULL();
-			
-		/* Create term */
-		term = create_term_num(type_id, num);
-	}
+	/* Seperator? */
+	if(*pos != '\'')
+		PG_RETURN_NULL();
 	
+	
+	/* Search for end */
+	start = pos = pos + 1;
+	while(*pos && *pos != '\'')
+		pos += 1;
+	
+	/* Invalid? */
+	if(!*pos)
+		PG_RETURN_NULL();
+	
+	/* Scan type ID */
+	len = pos-start; pos += 1;
+	if(1 != sscanf(pos, "^^%x", &type_id))
+		PG_RETURN_NULL();
+		
+	/* Create term (TODO: escaping)*/
+	term = create_term_by_id(type_id, start, len);
+		
 	/* Invalid input */
-	else
+	if(!term)
 		PG_RETURN_NULL();
 	
 	PG_RETURN_RDF_TERM(term);
@@ -259,38 +408,21 @@ rdf_term_out(PG_FUNCTION_ARGS)
 	size_t len;
 	char *result, *pos;
 	
-	/* Text type? */
-	if(is_text_type(term->type_id))
-	{
-
-		/* Allocate a buffer large enough */
-		len = get_text_len(term);
-		result = (char *) palloc(1 + len + 1 + 2 + 10 + 1);
-		
-		/* Construct string (TODO: escaping) */
-		pos = result;	
-		
-		*pos = '\''; pos += 1;
-		memcpy((void *) pos,
-		       (void *) term->text,
-		       len);
-		pos += len;		
-		*pos = '\''; pos += 1;
-		
-		snprintf(pos, 2 + 10 + 1, "^^%x", term->type_id);
-		
-	}
-	else
-	{
+	/* Allocate a buffer large enough */
+	len = get_text_len(term);
+	result = (char *) palloc(1 + len + 1 + 2 + 10 + 1);
 	
-		/* Allocate a buffer large enough */
-		len = 100 + 2 + 10 + 1;
-		result = (char *) palloc(len);
+	/* Construct string (TODO: escaping) */
+	pos = result;	
 	
-		/* Construct string */
-		snprintf(result, len, "%lg^^%x", term->num, term->type_id);
-		
-	}
+	*pos = '\''; pos += 1;
+	memcpy((void *) pos,
+	       (void *) term->text,
+	       len);
+	pos += len;		
+	*pos = '\''; pos += 1;
+	
+	snprintf(pos, 2 + 10 + 1, "^^%x", term->type_id);
 	
 	PG_RETURN_CSTRING(result);	
 }
@@ -302,40 +434,28 @@ rdf_term_recv(PG_FUNCTION_ARGS)
 	StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
 	
 	uint32_t type_id;
-	double num; char *text;	int len;
-	RdfTerm *term;
+	char *text;	int len;
+	RdfTerm *term = NULL;
 	
 	/* Read type ID */
 	type_id = (uint32_t) pq_getmsgint(buf, 4);
-	
-	/* Text type? */
-	if(is_text_type(type_id))
-	{
 			
-		/* Read length */
-		len = (uint32_t) pq_getmsgint(buf, 4);
+	/* Read length */
+	len = (uint32_t) pq_getmsgint(buf, 4);
 
-		/* Read text and actual length after decoding */
-		text = pq_getmsgtext(buf, len, &len);
-		
-		/* Allocate term */
-		term = create_term_text(type_id, text, len);
-		
-		/* Free text */
-		pfree(text);
-		
-	}
-	else
-	{
-
-		/* Read num */
-		num = pq_getmsgfloat8(buf);
-		
-		/* Allocate term */
-		term = create_term_num(type_id, num);
-		
-	}
+	/* Read text and actual length after decoding */
+	text = pq_getmsgtext(buf, len, &len);
 	
+	/* Allocate term */
+	term = create_term_by_id(type_id, text, len);
+	
+	/* Free text */
+	pfree(text);
+	
+	/* Invalid input */
+	if(!term)
+		PG_RETURN_NULL();
+		
 	/* Done */
 	pq_getmsgend(buf);
 	PG_RETURN_RDF_TERM(term);
@@ -378,39 +498,23 @@ rdf_term_send(PG_FUNCTION_ARGS)
 
 /* Constructors */
 
-PG_FUNCTION_INFO_V1(rdf_term_double);
+PG_FUNCTION_INFO_V1(rdf_term_create);
 Datum
-rdf_term_double(PG_FUNCTION_ARGS)
+rdf_term_create(PG_FUNCTION_ARGS)
 {
 	int32 type_id = PG_GETARG_INT32(0);
-	float8 num = PG_GETARG_FLOAT8(1);
-	RdfTerm *term;
+	text *data = PG_GETARG_TEXT_PP(1);
+	char *text = VARDATA_ANY(data);
+	size_t len = VARSIZE_ANY_EXHDR(data);
+	RdfTerm *term = NULL;
+
+	/* Create the appropriate term */
+	term = create_term_by_id(type_id, text, len);
 	
-	/* Make sure the type ID is valid */
-	if(!is_num_type(type_id))
-		PG_RETURN_NULL();
-
-	/* Create the appropriate term */
-	term = create_term_num(type_id, (double) num);		
-	PG_RETURN_RDF_TERM(term);
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_text);
-Datum
-rdf_term_text(PG_FUNCTION_ARGS)
-{
-	int32 type_id = PG_GETARG_INT32(0);
-	text *txt = PG_GETARG_TEXT_PP(1);
-	RdfTerm *term;
-
-	/* Make sure the type ID is valid */
-	if(!is_text_type(type_id))
-		PG_RETURN_NULL();
-
-	/* Create the appropriate term */
-	term = create_term_text(type_id,
-		VARDATA_ANY(txt),
-		VARSIZE_ANY_EXHDR(txt));		
+	/* Invalid? */
+	if(!term)
+	  PG_RETURN_NULL();
+	
 	PG_RETURN_RDF_TERM(term);
 }
 
@@ -472,28 +576,12 @@ rdf_term_to_string(PG_FUNCTION_ARGS)
 	size_t len;
 	char *result;
 	
-	/* Text type? */
-	if(is_text_type(term->type_id))
-	{
+	/* Copy text */
+	len = get_text_len(term);
+	result = (char *) palloc(len + 1);
 	
-		/* Copy text */
-		len = get_text_len(term);
-		result = (char *) palloc(len + 1);
-		
-		memcpy((void *) result, (void *) term->text, len);
-		result[len] = '\0';
-		
-	}
-	else
-	{
-	
-		/* Print into buffer */
-		len = 100 + 1;
-		result = (char *) palloc(len);
-	
-		snprintf(result, len, "%lg", term->num);
-	
-	}
+	memcpy((void *) result, (void *) term->text, len);
+	result[len] = '\0';
 	
 	PG_RETURN_CSTRING(result);	
 }
@@ -708,9 +796,14 @@ rdf_term_hash(PG_FUNCTION_ARGS)
 	   Note that we might hash a double value here, which might
 	   be dangerous because that's not a canoncial representation
 	   of a given number (consider +0 / -0, for example) */
-	hash |= hash_any(
-		(unsigned char *) term + RDF_TERM_HEADER_SIZE,
-		VARSIZE(term) - RDF_TERM_HEADER_SIZE);
+	if(is_text_type(type_id))
+		hash |= hash_any(
+			(unsigned char *) term + RDF_TERM_HEADER_SIZE,
+			VARSIZE(term) - RDF_TERM_HEADER_SIZE);
+	else
+		hash |= hash_any(
+			(unsigned char *) &term->num,
+			sizeof(term->num));
 	
 	return hash;
 }

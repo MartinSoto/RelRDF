@@ -34,14 +34,10 @@ CREATE TYPE rdf_term (
   storage = extended
 );
 
-CREATE FUNCTION rdf_term(int, double precision)
-  RETURNS rdf_term
-  AS 'rdf_term', 'rdf_term_double'
-  LANGUAGE C IMMUTABLE STRICT;
-  
+
 CREATE FUNCTION rdf_term(int, text)
   RETURNS rdf_term
-  AS 'rdf_term', 'rdf_term_text'
+  AS 'rdf_term', 'rdf_term_create'
   LANGUAGE C IMMUTABLE STRICT;
 
 

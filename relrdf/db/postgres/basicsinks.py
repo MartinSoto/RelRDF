@@ -197,9 +197,9 @@ class SingleVersionRdfSink(object):
                 CREATE TEMPORARY TABLE statements_temp2 (subject, predicate, object)
                   ON COMMIT DROP
                   AS SELECT
-                       CASE WHEN rdf_term_is_num_type(st.id) THEN rdf_term(st.id, CAST (s.subject_text AS DOUBLE PRECISION)) ELSE rdf_term(st.id, s.subject_text) END,
-                       CASE WHEN rdf_term_is_num_type(pt.id) THEN rdf_term(pt.id, CAST (s.predicate_text AS DOUBLE PRECISION)) ELSE rdf_term(pt.id, s.predicate_text) END,
-                       CASE WHEN rdf_term_is_num_type(ot.id) THEN rdf_term(ot.id, CAST (s.object_text AS DOUBLE PRECISION)) ELSE rdf_term(ot.id, s.object_text) END
+                       rdf_term(st.id, s.subject_text),
+                       rdf_term(pt.id, s.predicate_text),
+                       rdf_term(ot.id, s.object_text) 
                      FROM statements_temp1 s
                        LEFT JOIN data_types st ON s.subject_type = st.uri
                        LEFT JOIN data_types pt ON s.predicate_type = pt.uri

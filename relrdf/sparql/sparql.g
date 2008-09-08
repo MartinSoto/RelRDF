@@ -514,7 +514,7 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(dT, self); \
           expr.setExtentsEndFromToken(rp14); }
     |   str:STR LPAREN param=expression rp15:RPAREN
-        { expr = nodes.Cast(param, commonns.xsd.string); \
+        { expr = nodes.Cast(param, commonns.rdfs.Literal); \
           expr.setExtentsStartFromToken(str, self); \
           expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN

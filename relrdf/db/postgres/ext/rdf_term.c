@@ -13,7 +13,28 @@
 PG_MODULE_MAGIC;
 #endif
 
-/* Hardcoded type IDs */
+/*
+	== Type classification ==
+	
+	Types whose IDs only differ in the least-significant byte
+	are considered to be	comparable, see also type_compatible()
+	below.
+
+	The type IDs are ordered this way to ensure we get the right
+	order when using rdf_term values in ORDER BY clauses.
+*/
+
+#define TYPE_COMPATIBLE_MASK ((uint32_t) 0xFFFFFF00)
+
+#define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFFF000)
+#define STORAGE_TYPE_IRI     ((uint32_t) 0x00000000)
+#define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
+#define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
+
+/* 
+	== Hardcoded type IDs == 
+*/
+
 #define TYPE_ID_BOOL         ((uint32_t) 0x00002000)
 
 #define TYPE_ID_DATETIME     ((uint32_t) 0x00003000)
@@ -45,23 +66,6 @@ typedef struct {
 } RdfTerm;
 
 #define RDF_TERM_HEADER_SIZE	(sizeof(RdfTerm) - sizeof(char))
-
-/*
-	== Type classification ==
-	
-	Types whose IDs only differ in the least-
-	significant byte are considered to be	comparable.
-
-	Types with an ID lower than 0x0001000 are numeric
-	types.
-*/
-
-#define TYPE_COMPATIBLE_MASK ((uint32_t) 0xFFFFFF00)
-
-#define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFFF000)
-#define STORAGE_TYPE_IRI     ((uint32_t) 0x00000000)
-#define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
-#define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
 
 inline bool
 is_num_type(uint32_t type_id)
@@ -131,6 +135,13 @@ create_term(uint32_t type_id, char *text, size_t len)
 RdfTerm *
 create_term_text(uint32_t type_id, char *text, size_t len)
 {
+
+	/* Additional check for boolean values */
+	if(type_id == TYPE_ID_BOOL)
+		if( (len != 4 || strncmp(text, "true", 4)) &&
+		    (len != 5 || strncmp(text, "false", 5)) )
+			return NULL;
+		
 	return create_term(type_id, text, len);
 }
 

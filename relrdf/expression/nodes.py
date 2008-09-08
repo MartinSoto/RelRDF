@@ -706,6 +706,14 @@ class IsBound(UnaryOperation):
     
     __slots__ = ()
 
+class IsBlankNode(UnaryOperation):
+    """Determines wether a resource expression is a blank node
+    
+    Note: Won't check the type of the expression, this must be done
+          seperately!"""
+    
+    __slots__ = ()
+
 class CastBool(UnaryOperation):
      """Converts the given value to the boolean datatype"""
     

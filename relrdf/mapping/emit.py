@@ -126,6 +126,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def IsBound(self, expr, var):
         return 'rdf_term_bound(%s)' % var
 
+    def IsBlankNode(self, expr, sexpr):
+        return 'rdf_term_starts_with(%s, \'%s\')' % (sexpr, uri.BLANK_NODE_NS)
+
     def CastBool(self, expr, var):
         return '(%s) != 0' % var
 

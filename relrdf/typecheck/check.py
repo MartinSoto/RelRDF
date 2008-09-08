@@ -183,6 +183,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, 'BOUND')
         expr.staticType = booleanLiteralType
 
+    def IsBlankNode(self, expr, var):
+        self._checkScalarOperands(expr, 'BLANK_NODE')
+        expr.staticType = booleanLiteralType
+
     def CastBool(self, expr, var):
         self._checkScalarOperands(expr, 'BOOL')
         expr.staticType = booleanLiteralType

@@ -718,7 +718,7 @@ rdf_term_greater(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(compare_terms(term1, term2) > 0);	
 }
 
-/* Boolean operators */
+/* Boolean operators and predicates */
 
 PG_FUNCTION_INFO_V1(rdf_term_to_bool);
 Datum
@@ -777,6 +777,25 @@ Datum
 rdf_term_bound(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_RDF_TERM(create_term_bool(!PG_ARGISNULL(0)));
+}
+
+
+PG_FUNCTION_INFO_V1(rdf_term_starts_with);
+Datum
+rdf_term_starts_with(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	text *data = PG_GETARG_TEXT_PP(1);
+	char *text = VARDATA_ANY(data);
+	size_t len = VARSIZE_ANY_EXHDR(data);
+	
+	/* Check length and compare */
+	bool result = false;
+	if(get_text_len(term) >= len)
+		if(strncmp(term->text, text, len) == 0)
+			result = true;
+	
+	PG_RETURN_RDF_TERM(create_term_bool(result));
 }
 
 /* Hash function */

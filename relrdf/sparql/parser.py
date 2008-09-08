@@ -72,20 +72,14 @@ class Parser(antlr.LLkParser):
         """Return an expression that will evaluate to true if given expression
         is a resource (URI or blank node, respectively)"""
         
-        # Resources are identified by type URI
-        uriTypeExpr = nodes.Equal(nodes.DynType(expr), nodes.Uri(commonns.rdfs.Resource))
-        
-        # Differentiate URIs and blank nodes by prefix
-        prefixExpr = nodes.FunctionCall(fn.substring,
-                                        expr.copy(),
-                                        self.makeTypedLiteral(1, xsd.integer),
-                                        self.makeTypedLiteral(len(uri.BLANK_NODE_NS), xsd.integer))
-        blankPrefixExpr = self.makeTypedLiteral(uri.BLANK_NODE_NS, xsd.string)
+        # Resources are identified by type URI, blank nodes by prefix (see emitter)
+        typeExpr = nodes.Equal(nodes.DynType(expr), nodes.Uri(commonns.rdfs.Resource))
+        blankExpr = nodes.IsBlankNode(expr.copy())
         
         if blank:
-            return nodes.And(uriTypeExpr, nodes.Equal(prefixExpr, blankPrefixExpr))
+            return nodes.And(typeExpr, blankExpr)
         else:
-            return nodes.And(uriTypeExpr, nodes.Different(prefixExpr, blankPrefixExpr))
+            return nodes.And(typeExpr, nodes.Not(blankExpr))
 
     def defineLocalPrefix(self, qnameToken, uriToken):
         """Create a new local prefix from the token `qnameToken` with

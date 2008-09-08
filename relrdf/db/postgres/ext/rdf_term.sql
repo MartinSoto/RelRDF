@@ -262,7 +262,7 @@ CREATE OPERATOR === (
 	merges
 );
 
-/* Boolean operations */
+/* Boolean operations and predicates */
 
 CREATE FUNCTION rdf_term_to_bool(rdf_term)
   RETURNS bool
@@ -283,6 +283,11 @@ CREATE FUNCTION rdf_term_bound(rdf_term)
   RETURNS rdf_term
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE;
+
+CREATE FUNCTION rdf_term_starts_with(rdf_term, text)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
 
 
 CREATE OPERATOR !! (

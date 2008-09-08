@@ -71,7 +71,7 @@ class BasicExpressionNode(list):
                  'endSubexpr',
 
                  'staticType',
-                 'dynamicType')
+                 'failSafe')
 
     def __init__(self, *subexprs):
         super(BasicExpressionNode, self).__init__(subexprs)
@@ -93,12 +93,9 @@ class BasicExpressionNode(list):
         # expression.
         self.staticType = None
 
-        # Dynamic type of the expression, a second expression telling
-        # how to calculate the type in run-time, when the static type
-        # is too generic. If the dynamic type is None, it is always
-        # equal to the static type (i.e., it is known at translation
-        # time and doesn't have to be calculated dynamically at all.)
-        self.dynamicType = None
+        # Wether the expression may fail (return NULL). This is generally
+        # true for a lot of expression, thus the default value is False.
+        self.failSafe = False
 
     def copy(self):
         """Return a copy of the complete expression tree."""
@@ -241,8 +238,8 @@ class BasicExpressionNode(list):
 
         if self.staticType is not None:
             stream.write(' st:<<%s>>' % self.staticType)
-        if self.dynamicType is not None:
-            stream.write(' dyn:<<%s>>' % self.dynamicType)
+        if self.failSafe is not None:
+            stream.write(' fs')
 
         stream.write('\n')
         for subexpr in self:

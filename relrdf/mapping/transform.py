@@ -223,25 +223,8 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         # Don't process the subexpressions.
         return expr
 
-    def preDynType(self, expr):
-        if isinstance(expr[0], nodes.Null):
-            # Dynamic type from Null is defined as Null.
-            return (nodes.Null(),)
-        elif isinstance(expr[0], nodes.Var):
-            # Expand the variable's type.
-            return (self._makeDynType(self.varBindings[expr[0].name].copy()),)
-        else:
-            repl = self.mapTypeExpr(expr[0].staticType)
-            if repl is not None:
-                return (repl,)
-            else:
-                if hasattr(expr, 'id'):
-                    assert False, "Cannot determine type from [[%s]]" % expr.id
-                else:
-                    assert False, "Cannot determine type"
-
     def DynType(self, expr, subexpr):
-        return subexpr
+        return self._makeDynType(subexpr)
 
     def Type(self, expr):
         repl = self.mapTypeExpr(expr.typeExpr)

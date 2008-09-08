@@ -188,7 +188,10 @@ class BasicMapper(transform.PureRelationalTransformer):
                 
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
-            return nodes.Uri(commonns.rdfs.Literal)
+            if typeExpr.typeUri is None:
+                return nodes.Uri(commonns.rdfs.Literal)
+            else:
+                return nodes.Uri(typeExpr.typeUri)
         elif isinstance(typeExpr, ResourceType):
             return resourceTypeExpr()
         else:
@@ -1074,11 +1077,14 @@ class BasicModel(object):
         transf = transform.ResultMappingTransformer(sqlnodes.SqlFunctionCall('format_rdf_term'))
         expr = transf.process(expr)
         
+        # Insert known type information
+        expr = dynamic.dynTypeTranslate(expr)
+        
         # Apply the selected mapping.
         expr = self.mappingTransf.process(expr)
        
         # Add dynamic type checks.
-        expr = dynamic.dynTypeCheckTranslate(expr)
+        expr = dynamic.typeCheckTranslate(expr)
 
         # Dereference value references from the mapping.
         transf = valueref.ValueRefDereferencer()

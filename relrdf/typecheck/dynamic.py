@@ -21,21 +21,20 @@ class DynTypeTransl(rewrite.ExpressionTransformer):
         return subexpr
 
     def _dynTypeExpr(self, expr):
-        typeExpr = expr.staticType        
-        if isinstance(typeExpr, LiteralType):
-            # FIXME:Search for the actual type id.
-            result = nodes.Type(genericLiteralType)
-        elif isinstance(typeExpr, BlankNodeType):
-            result = nodes.Type(blankNodeType)
-        elif isinstance(typeExpr, ResourceType):
-            result = nodes.Type(resourceType)
-        else:
+        
+        # Only replace type if the expression is failsafe
+        result = None
+        if expr.failSafe:
+            result = nodes.Type(expr.staticType)
+                
+        if result is None:
             # This expression has a generic type whose dynamic form
             # must be resolved later by the mapper.
             #
             # FIXME: Consider using another node type here instead of
             # DynType (MapperDynType?)
             result = nodes.DynType(expr)
+            
         result.staticType = resourceType
         return result
 
@@ -89,15 +88,13 @@ class SelectTypeCheckTransformer(rewrite.ExpressionTransformer):
         
         return nodes.Select(rel, pred)
         
-    
-def dynTypeCheckTranslate(expr):
 
-    # Replace DynType nodes where possible
+# Replace DynType nodes where possible
+def dynTypeTranslate(expr):
     dynTypeTrans = DynTypeTransl()
-    expr = dynTypeTrans.process(expr)
-    
-    # Insert type checks into predicates
-    typeCheckTrans = SelectTypeCheckTransformer()
-    expr = typeCheckTrans.process(expr)
+    return dynTypeTrans.process(expr)
 
-    return expr
+# Insert type checks into predicates
+def typeCheckTranslate(expr):
+    typeCheckTrans = SelectTypeCheckTransformer()
+    return typeCheckTrans.process(expr)

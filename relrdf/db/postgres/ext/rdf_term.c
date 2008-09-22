@@ -559,42 +559,6 @@ rdf_term_get_type_id(PG_FUNCTION_ARGS)
 	PG_RETURN_UINT32(term->type_id);
 }
 
-PG_FUNCTION_INFO_V1(rdf_term_is_num_type_t);
-Datum
-rdf_term_is_num_type_t(PG_FUNCTION_ARGS)
-{
-	RdfTerm *term = PG_GETARG_RDF_TERM(0);
-
-	PG_RETURN_BOOL(is_num_type(term->type_id));
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_is_num_type_i);
-Datum
-rdf_term_is_num_type_i(PG_FUNCTION_ARGS)
-{
-	uint32_t type_id = PG_GETARG_UINT32(0);
-
-	PG_RETURN_BOOL(is_num_type(type_id));
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_is_text_type_t);
-Datum
-rdf_term_is_text_type_t(PG_FUNCTION_ARGS)
-{
-	RdfTerm *term = PG_GETARG_RDF_TERM(0);
-
-	PG_RETURN_BOOL(is_text_type(term->type_id));
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_is_text_type_i);
-Datum
-rdf_term_is_text_type_i(PG_FUNCTION_ARGS)
-{
-	uint32_t type_id = PG_GETARG_UINT32(0);
-
-	PG_RETURN_BOOL(is_text_type(type_id));
-}
-
 PG_FUNCTION_INFO_V1(rdf_term_to_string);
 Datum
 rdf_term_to_string(PG_FUNCTION_ARGS)
@@ -618,9 +582,9 @@ rdf_term_to_string(PG_FUNCTION_ARGS)
 
 /* Comparison operators */
 
-PG_FUNCTION_INFO_V1(rdf_term_types_compatible_tt);
+PG_FUNCTION_INFO_V1(rdf_term_types_compatible);
 Datum
-rdf_term_types_compatible_tt(PG_FUNCTION_ARGS)
+rdf_term_types_compatible(PG_FUNCTION_ARGS)
 {
 	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
@@ -628,54 +592,14 @@ rdf_term_types_compatible_tt(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(types_compatible(term1->type_id, term2->type_id));
 }
 
-PG_FUNCTION_INFO_V1(rdf_term_types_incompatible_tt);
+PG_FUNCTION_INFO_V1(rdf_term_types_incompatible);
 Datum
-rdf_term_types_incompatible_tt(PG_FUNCTION_ARGS)
+rdf_term_types_incompatible(PG_FUNCTION_ARGS)
 {
 	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
 
 	PG_RETURN_BOOL(!types_compatible(term1->type_id, term2->type_id));
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_types_compatible_it);
-Datum
-rdf_term_types_compatible_it(PG_FUNCTION_ARGS)
-{
-	uint32_t type_id1 = PG_GETARG_UINT32(0);
-	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
-
-	PG_RETURN_BOOL(types_compatible(type_id1, term2->type_id));
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_types_incompatible_it);
-Datum
-rdf_term_types_incompatible_it(PG_FUNCTION_ARGS)
-{
-	uint32_t type_id1 = PG_GETARG_UINT32(0);
-	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
-
-	PG_RETURN_BOOL(!types_compatible(type_id1, term2->type_id));
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_types_compatible_ti);
-Datum
-rdf_term_types_compatible_ti(PG_FUNCTION_ARGS)
-{
-	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
-	uint32_t type_id2 = PG_GETARG_UINT32(1);
-
-	PG_RETURN_BOOL(types_compatible(term1->type_id, type_id2));
-}
-
-PG_FUNCTION_INFO_V1(rdf_term_types_incompatible_ti);
-Datum
-rdf_term_types_incompatible_ti(PG_FUNCTION_ARGS)
-{
-	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
-	uint32_t type_id2 = PG_GETARG_UINT32(1);
-
-	PG_RETURN_BOOL(!types_compatible(term1->type_id, type_id2));
 }
 
 PG_FUNCTION_INFO_V1(rdf_term_compare);

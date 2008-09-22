@@ -45,32 +45,11 @@ CREATE FUNCTION rdf_term_cast(int, rdf_term)
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
 
-
 CREATE FUNCTION rdf_term_get_type_id(rdf_term)
   RETURNS int4
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
   
-CREATE FUNCTION rdf_term_is_num_type(rdf_term)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_is_num_type_t'
-  LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION rdf_term_is_num_type(int4)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_is_num_type_i'
-  LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION rdf_term_is_text_type(rdf_term)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_is_text_type_t'
-  LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION rdf_term_is_text_type(int4)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_is_text_type_i'
-  LANGUAGE C IMMUTABLE STRICT;
-
 CREATE FUNCTION rdf_term_to_string(rdf_term)
   RETURNS cstring
   AS 'rdf_term'
@@ -80,39 +59,19 @@ CREATE FUNCTION rdf_term_to_string(rdf_term)
 
 CREATE FUNCTION rdf_term_types_compatible(rdf_term, rdf_term)
   RETURNS bool
-  AS 'rdf_term', 'rdf_term_types_compatible_tt'
+  AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
 
 CREATE FUNCTION rdf_term_types_incompatible(rdf_term, rdf_term)
   RETURNS bool
-  AS 'rdf_term', 'rdf_term_types_incompatible_tt'
-  LANGUAGE C IMMUTABLE STRICT;
-  
-CREATE FUNCTION rdf_term_types_compatible(int4, rdf_term)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_types_compatible_it'
-  LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION rdf_term_types_incompatible(int4, rdf_term)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_types_incompatible_it'
-  LANGUAGE C IMMUTABLE STRICT;
-  
-CREATE FUNCTION rdf_term_types_compatible(rdf_term, int4)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_types_compatible_ti'
-  LANGUAGE C IMMUTABLE STRICT;
-
-CREATE FUNCTION rdf_term_types_incompatible(rdf_term, int4)
-  RETURNS bool
-  AS 'rdf_term', 'rdf_term_types_incompatible_ti'
+  AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
   
 CREATE FUNCTION rdf_term_compare(rdf_term, rdf_term)
   RETURNS int4
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
-  
+
 CREATE FUNCTION rdf_term_less(rdf_term, rdf_term)
   RETURNS bool
   AS 'rdf_term'
@@ -225,47 +184,6 @@ CREATE OPERATOR === (
 	merges
 );
 
-CREATE OPERATOR !== (
-	procedure = rdf_term_types_incompatible,
-	leftarg = rdf_term,
-	rightarg = int4,
-	commutator = !==,
-	negator = ===,
-	restrict = neqsel,
-	join = neqjoinsel
-);
-
-CREATE OPERATOR === (
-	procedure = rdf_term_types_compatible,
-	leftarg = rdf_term,
-	rightarg = int4,
-	commutator = ===,
-	negator = !==,
-	restrict = eqsel,
-	join = eqjoinsel,
-	merges
-);
-
-CREATE OPERATOR !== (
-	procedure = rdf_term_types_incompatible,
-	leftarg = int4,
-	rightarg = rdf_term,
-	commutator = !==,
-	negator = ===,
-	restrict = neqsel,
-	join = neqjoinsel
-);
-
-CREATE OPERATOR === (
-	procedure = rdf_term_types_compatible,
-	leftarg = int4,
-	rightarg = rdf_term,
-	commutator = ===,
-	negator = !==,
-	restrict = eqsel,
-	join = eqjoinsel,
-	merges
-);
 
 /* Boolean operations and predicates */
 

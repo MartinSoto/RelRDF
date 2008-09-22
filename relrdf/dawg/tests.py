@@ -136,8 +136,8 @@ class QueryEvaluationTest(object):
             log.testEntry("Data", dataText, pre=True, src=self.data)
 
             # Create parser
-            from relrdf.modelimport.rdflibparse import RdfLibParser
-            parser = RdfLibParser("n3")
+            from relrdf.modelimport.redlandparse import RedlandParser
+            parser = RedlandParser("turtle")
                         
             # Copy data into database (no commit!)
             try:

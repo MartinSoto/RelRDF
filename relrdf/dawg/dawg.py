@@ -145,7 +145,7 @@ class TestLogFile(object):
         if not isinstance(value, unicode):
             value = unicode(value, errors='ignore')
         if pre:
-            text = value.encode('latin-1').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            text = value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             value = "<pre>%s</pre>" % self._wrap(text)
         if not src is None:
             value += '<p>(<a href="%s">%s</a>)</p>' % (src, src)

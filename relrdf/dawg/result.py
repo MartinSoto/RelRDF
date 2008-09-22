@@ -3,7 +3,7 @@ import ns
 
 from relrdf.expression import uri, literal
 
-from relrdf.modelimport.rdflibparse import RdfLibParser
+from relrdf.modelimport.redlandparse import RedlandParser
 from relrdf.modelimport.rdfxmlparse import RdfXmlParser
 
 from relrdf.basesinks import ListSink, DictSink
@@ -129,7 +129,7 @@ class SelectQueryResult:
         if ext == 'srx':
             self.parseXML(file)
         elif ext == 'ttl':
-            self.parseTriples(file, RdfLibParser(format='n3'))
+            self.parseTriples(file, RedlandParser(format='turtle'))
         elif ext == 'rdf':
             self.parseTriples(file, RdfXmlParser())
         else:
@@ -253,7 +253,7 @@ class ConstructQueryResult:
         # Create praser by extension
         ext = getFileExtension(file)
         if ext == 'ttl':
-            parser = RdfLibParser(format='n3')
+            parser = RedlandParser(format='turtle')
         elif ext == 'rdf':
             parser = RdfXmlParser()
         else:

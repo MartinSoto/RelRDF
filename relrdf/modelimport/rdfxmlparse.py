@@ -39,7 +39,7 @@ from xml.sax.handler import ErrorHandler
 
 from relrdf.expression import uri, literal
 
-from RDFXMLHandler import RDFXMLHandler
+from rdflib_mod.RDFXMLHandler import RDFXMLHandler
 
 
 class SinkToStore(object):

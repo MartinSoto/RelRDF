@@ -221,6 +221,12 @@ class SingleVersionRdfSink(object):
                 """ % int(self.versionId)) 
             
             # Insert the statements into the statements table.
+            # Note: The rdf_term constructor used in the creation of
+            #       the statements_temp2 above might fail leading to
+            #       NULL values to appear. These are filtered out here.
+            #       Maybe we might want to raise an error here? The
+            #       DAWG test cases seem to expect us to keep going, so
+            #       that's what we do...
             if self.verbose:
                 print "Inserting statements..."
             self.cursor.execute(
@@ -233,6 +239,9 @@ class SingleVersionRdfSink(object):
                              ss.predicate = s.predicate AND
                              ss.object = s.object
                     WHERE ss.id IS NULL
+                      AND s.subject IS NOT NULL
+                      AND s.predicate IS NOT NULL
+                      AND s.object IS NOT NULL                      
                   RETURNING id
                 """)
                     

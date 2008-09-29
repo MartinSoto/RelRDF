@@ -57,12 +57,12 @@ CREATE FUNCTION rdf_term_to_string(rdf_term)
 
 /* Comparisons */  
 
-CREATE FUNCTION rdf_term_types_compatible(rdf_term, rdf_term)
+CREATE FUNCTION rdf_term_types_check_compatible(rdf_term, rdf_term)
   RETURNS bool
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION rdf_term_types_incompatible(rdf_term, rdf_term)
+CREATE FUNCTION rdf_term_types_check_incompatible(rdf_term, rdf_term)
   RETURNS bool
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
@@ -164,7 +164,7 @@ CREATE OPERATOR = (
 );
 
 CREATE OPERATOR !== (
-	procedure = rdf_term_types_incompatible,
+	procedure = rdf_term_types_check_incompatible,
 	leftarg = rdf_term,
 	rightarg = rdf_term,
 	commutator = !==,
@@ -174,7 +174,7 @@ CREATE OPERATOR !== (
 );
 
 CREATE OPERATOR === (
-	procedure = rdf_term_types_compatible,
+	procedure = rdf_term_types_check_compatible,
 	leftarg = rdf_term,
 	rightarg = rdf_term,
 	commutator = ===,
@@ -223,7 +223,7 @@ CREATE OPERATOR ! (
 	procedure = rdf_term_not_raw,
 	rightarg = rdf_term,
 	negator = !!
-);
+);	
 
 CREATE OPERATOR ^! (
 	procedure = rdf_term_not,
@@ -252,13 +252,4 @@ CREATE OPERATOR CLASS rdf_term_hash
 	DEFAULT FOR TYPE rdf_term USING hash AS
 		OPERATOR 1 = RECHECK,
 		FUNCTION 1 rdf_term_hash(rdf_term);
-		
-CREATE OPERATOR CLASS rdf_term_compatible
-	FOR TYPE rdf_term USING btree AS
-		OPERATOR 1 <,
-		OPERATOR 2 <=,
-		OPERATOR 3 === RECHECK,
-		OPERATOR 4 >=,
-		OPERATOR 5 >,
-		FUNCTION 1 rdf_term_compare(rdf_term, rdf_term);
 

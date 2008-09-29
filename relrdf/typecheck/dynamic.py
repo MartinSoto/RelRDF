@@ -38,36 +38,131 @@ class DynTypeTransl(rewrite.ExpressionTransformer):
         result.staticType = resourceType
         return result
 
-class TypeCheckCollector(rewrite.ExpressionProcessor):
-    """An expression processor that collects needed type compatibility checks
-    for an expression."""
-
-    __slots__ = ('typechecks', )
-
-    def __init__(self):
-        self.typechecks = []
-        
-        super(TypeCheckCollector, self).__init__(prePrefix='pre')
+class TypeCheckTranslator(rewrite.ExpressionTransformer):
+    """An expression transformer that adds needed type compatibility checks
+    to an expression."""
     
-    def _addTypecheck(self, expr, *transfSubexprs):
+    __slots__ = ('positive', 'negative')
+
+    def __init__(self, positive, negative):
+        super(TypeCheckTranslator, self).__init__(prePrefix='pre')
         
-        # Dynamically check wether the two values are type-compatible
-        # (provided both actually are some sort of RDF node)
+        # Which values of the expression are actually interesting?
+        # (in some cases, we are only interested in "positive" result,
+        #  so no addition check is needed to distinguish "false" and
+        #  "error" expression results - we're essentially working with
+        #  a three-state-logic here)
+        self.positive = positive
+        self.negative = negative
+        
+        # The semantics are as follows: Let P(a) and N(a) be predicates
+        # that are true iff a is true, but give false (P) or true (N) in
+        # case of "a" being errornous. Then, the following holds:
+        #
+        # P(!a) = !N(a)                N(!a) = !P(a)
+        # P(a & b) = P(a) & P(b)       N(a & b) = N(a) & N(b)
+        # P(a | b) = P(a) | P(b)       N(a | b) = N(a) | N(b)
+        
+                
+    # Only special nodes are interested only in either positive or negative
+    # results, so everything is interesting by default
+    def preDefault(self, expr):
+        
+        # Save old state, both results are interesting for the subtree
+        (positive, self.positive) = (self.positive, True)
+        (negative, self.negative) = (self.negative, True)
+        
+        # Recurse
+        result = self._recurse(expr)
+        
+        # Restore old state
+        self.positive = positive
+        self.negative = negative
+        
+        # Go on
+        return result
+    
+    def preNot(self, expr):
+        
+        # Swap, recurse, swap back
+        (self.positive, self.negative) = (self.negative, self.positive)
+        result = self._recurse(expr)
+        (self.positive, self.negative) = (self.negative, self.positive)
+
+        # Continue
+        return result
+    
+    # These don't need adjustments before recursion
+    def preOr(self, expr):
+        return self._recurse(expr)
+    def preAnd(self, expr):
+        return self._recurse(expr)
+    
+    # For expressions that are false for non-compatible operands
+    def _addTypecheckP(self, expr, *sexpr):
+                
+        # Check can be skipped where difference between "false" and
+        # "error" isn't intersting,
+        if not self.negative:
+            expr[:] = sexpr
+            return expr
+        
+        # Only do dynamic type check if both arguments are some sort of RDF node
         common = commonType(*expr)
-        if isinstance(common, RdfNodeType):
-            subexprCopies = [e.copy() for e in expr];
-            self.typechecks.append(nodes.TypeCompatible(*subexprCopies))
+        if not isinstance(common, RdfNodeType):
+            return expr        
+        
+        # Add type check
+        subexprCopies = [e.copy() for e in expr];
+        return nodes.Or(expr, nodes.Not(nodes.TypeCompatible(*subexprCopies)))
+    
+    # For expressions that are true for non-compatible operands
+    def _addTypecheckN(self, expr, *sexpr):
+        
+        # Check can be skipped where difference between "true" and
+        # "error" isn't intersting,
+        if not self.positive:
+            expr[:] = sexpr
+            return expr
+        
+        # Only do dynamic type check if both arguments are some sort of RDF node
+        common = commonType(*expr)
+        if not isinstance(common, RdfNodeType):
+            return expr
+        
+        # Add type check
+        subexprCopies = [e.copy() for e in expr];
+        return nodes.And(expr, nodes.TypeCompatible(*subexprCopies))
+    
+    # For expressions that can return anything for non-compatible operands
+    def _addTypecheckB(self, expr, *sexpr):
+        
+        # Parts of the check can be skipped if only one case is interesting
+        if not self.positive:
+            return self._addTypecheckP(expr, sexpr)
+        if not self.negative:
+            return self._addTypecheckN(expr, sexpr)
+                
+        # Only do dynamic type check if both arguments are some sort of RDF node
+        common = commonType(*expr)
+        if not isinstance(common, RdfNodeType):
+            return expr
+                
+        # Add both type checks (TODO: could use "expr XOr typecheck" instead)
+        subexprCopies = [e.copy() for e in expr];
+        subexprCopies2 = [e.copy() for e in expr];
+        return nodes.And(nodes.Or(expr,
+                                  nodes.Not(nodes.TypeCompatible(*subexprCopies))),
+                         nodes.TypeCompatible(*subexprCopies2))
 
     # TODO: Only checking comparisons. Should be expanded in future.
-    Equal = _addTypecheck
-    LessThan = _addTypecheck
-    LessThanOrEqual = _addTypecheck
-    GreaterThan = _addTypecheck
-    GreaterThanOrEqual = _addTypecheck
-    Different = _addTypecheck
+    Equal = _addTypecheckP
+    Different = _addTypecheckN
     
-    def Default(self, expr, *sexpr):
-        pass
+    LessThan = _addTypecheckB
+    LessThanOrEqual = _addTypecheckB
+    GreaterThan = _addTypecheckB
+    GreaterThanOrEqual = _addTypecheckB
     
 class SelectTypeCheckTransformer(rewrite.ExpressionTransformer):
     """An expression transformer that adds dynamic type checks to
@@ -78,16 +173,11 @@ class SelectTypeCheckTransformer(rewrite.ExpressionTransformer):
     
     def Select(self, expr, rel, pred):
         
-        # Collect type checks
-        collector = TypeCheckCollector();
-        collector.process(pred)
+        # Add type checks, only positive cases are interesting
+        translator = TypeCheckTranslator(True, False);
+        pred = translator.process(pred)
         
-        # Add dynamic type checks
-        if collector.typechecks != []:
-            pred = nodes.And(pred, *collector.typechecks)
-        
-        return nodes.Select(rel, pred)
-        
+        return nodes.Select(rel, pred)        
 
 # Replace DynType nodes where possible
 def dynTypeTranslate(expr):

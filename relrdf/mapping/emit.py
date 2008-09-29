@@ -306,7 +306,7 @@ def emit(expr):
 
     # Simplify the expression first.
     # -- deactivated, as it might have to deal with SQL-specific stuff by this point
-    expr = simplify.simplify(expr)
+    #expr = simplify.simplify(expr)
 
     # Reduce constant expressions.
     # -- deactivated until type informations are properly preserved

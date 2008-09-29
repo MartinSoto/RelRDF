@@ -586,9 +586,9 @@ rdf_term_to_string(PG_FUNCTION_ARGS)
 
 /* Comparison operators */
 
-PG_FUNCTION_INFO_V1(rdf_term_types_compatible);
+PG_FUNCTION_INFO_V1(rdf_term_types_check_compatible);
 Datum
-rdf_term_types_compatible(PG_FUNCTION_ARGS)
+rdf_term_types_check_compatible(PG_FUNCTION_ARGS)
 {
 	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
@@ -599,14 +599,17 @@ rdf_term_types_compatible(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 }
 
-PG_FUNCTION_INFO_V1(rdf_term_types_incompatible);
+PG_FUNCTION_INFO_V1(rdf_term_types_check_incompatible);
 Datum
-rdf_term_types_incompatible(PG_FUNCTION_ARGS)
+rdf_term_types_check_incompatible(PG_FUNCTION_ARGS)
 {
 	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
 
-	PG_RETURN_BOOL(!types_compatible(term1->type_id, term2->type_id));
+	if(types_compatible(term1->type_id, term2->type_id))
+		PG_RETURN_BOOL(false);
+	else
+		PG_RETURN_NULL();
 }
 
 PG_FUNCTION_INFO_V1(rdf_term_compare);

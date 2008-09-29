@@ -302,7 +302,8 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         # Note this will produce the same blank node in all result rows, so the
         # blank nodes will have to be reinstantiated afterwards.
         blank = uri.newBlankFromName(expr.name)
-        return "'%s#reinst'" % unicode(blank)
+        return "rdf_term(%s, '%s#reinst')" % \
+            (self._typeIdFromURI(rdfs.Resource),unicode(blank))
 
 def emit(expr):
     emitter = SqlEmitter()

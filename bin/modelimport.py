@@ -49,7 +49,7 @@ elif fileType == 'xmi':
     parser = xmiparse.XmiParser()
     parser.parse(fileName, sink)
 elif fileType == 'turtle':
-    from relrdf.modelimport import librdfparse
+    from relrdf.modelimport import redlandparse
 
     parser = redlandparse.RedlandParser(format='turtle')
     parser.parse(fileName, sink)

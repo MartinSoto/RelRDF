@@ -149,9 +149,13 @@ RdfTerm *
 create_term_num(uint32_t type_id, char *text, size_t len)
 {
 	RdfTerm *term; size_t num_len;
+	double num; char buf[12+1];
+
+	/* Do not accept numbers that are too long */
+	if(len > 12)
+		return NULL;
 	
 	/* Parse the number */
-	double num; char buf[12+1];
 	strncpy(buf, text, len); buf[len] = '\0';
 	if(sscanf(buf, "%lg%n", &num, &num_len) < 1 || num_len != len)
 		return NULL;
@@ -589,7 +593,10 @@ rdf_term_types_compatible(PG_FUNCTION_ARGS)
 	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
 
-	PG_RETURN_BOOL(types_compatible(term1->type_id, term2->type_id));
+	if(types_compatible(term1->type_id, term2->type_id))
+		PG_RETURN_BOOL(true);
+	else
+		PG_RETURN_NULL();
 }
 
 PG_FUNCTION_INFO_V1(rdf_term_types_incompatible);

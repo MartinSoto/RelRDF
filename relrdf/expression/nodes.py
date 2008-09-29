@@ -664,18 +664,20 @@ class Plus(ArithmeticOperation):
 
     __slots__ = ()
 
+class UPlus(ArithmeticOperation, UnaryOperation):
+    """An arithmetic unary plus."""
+
+    __slots__ = ()
 
 class Minus(ArithmeticOperation, BinaryOperation):
     """An arithmetic subtraction."""
 
     __slots__ = ()
 
-    
 class UMinus(ArithmeticOperation, UnaryOperation):
     """An arithmetic unary minus."""
 
     __slots__ = ()
-
     
 class Times(ArithmeticOperation):
     """An arithmetic multiplication."""

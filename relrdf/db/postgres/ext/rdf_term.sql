@@ -253,3 +253,72 @@ CREATE OPERATOR CLASS rdf_term_hash
 		OPERATOR 1 = RECHECK,
 		FUNCTION 1 rdf_term_hash(rdf_term);
 
+/* Arithmetic operators */
+
+CREATE FUNCTION rdf_term_mul(rdf_term, rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_div(rdf_term, rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_add(rdf_term, rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_sub(rdf_term, rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_unary_plus(rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION rdf_term_unary_minus(rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+
+
+CREATE OPERATOR * (
+	procedure = rdf_term_mul,
+	leftarg = rdf_term,
+	rightarg = rdf_term
+);
+
+CREATE OPERATOR / (
+	procedure = rdf_term_div,
+	leftarg = rdf_term,
+	rightarg = rdf_term
+);
+
+CREATE OPERATOR + (
+	procedure = rdf_term_add,
+	leftarg = rdf_term,
+	rightarg = rdf_term
+);
+
+CREATE OPERATOR - (
+	procedure = rdf_term_sub,
+	leftarg = rdf_term,
+	rightarg = rdf_term
+);
+
+CREATE OPERATOR + (
+	procedure = rdf_term_unary_plus,
+	rightarg = rdf_term
+);
+
+CREATE OPERATOR - (
+	procedure = rdf_term_unary_minus,
+	rightarg = rdf_term
+);
+
+
+

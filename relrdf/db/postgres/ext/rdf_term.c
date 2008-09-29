@@ -293,6 +293,24 @@ create_term_by_id(uint32_t type_id, char *text, size_t len)
 		return create_term_text(type_id, text, len);
 }
 
+RdfTerm *
+create_term_from_num(uint32_t type_id, double num)
+{
+	RdfTerm *term;
+  char text[12+1];
+
+	/* Format number */
+	size_t len = snprintf(text, 12, "%lg", num);
+	if(len >= 12)
+		return NULL;
+	
+	/* Create the term */
+	term = create_term(type_id, text, len);
+	term->num = num;
+	
+	return term;
+}
+
 /* == Compare == */
 
 inline int
@@ -791,5 +809,109 @@ rdf_term_hash(PG_FUNCTION_ARGS)
 	return hash;
 }
 
+/* Arithmetic operators */
+
+inline uint32_t
+arith_result_type(uint32_t type_id1, uint32_t type_id2)
+{
+
+	/* Must be compatible */
+	if(!types_compatible(type_id1, type_id2))
+		return 0;
+	
+	/* Most both be numeric types */
+	if(!is_num_type(type_id1) || !is_num_type(type_id2))
+		return 0;	
+
+	/* Very rough approximation of type promotion: assume
+	   lower number means higher priority */
+	if(type_id1 < type_id2)
+		return type_id1;
+	else
+		return type_id2;
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_mul);
+Datum
+rdf_term_mul(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
+	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
+
+	uint32_t type_id = arith_result_type(term1->type_id, term2->type_id);
+	if(!type_id)
+		PG_RETURN_NULL();
+		
+	PG_RETURN_RDF_TERM(create_term_from_num(type_id, term1->num * term2->num));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_div);
+Datum
+rdf_term_div(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
+	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
+
+	uint32_t type_id = arith_result_type(term1->type_id, term2->type_id);
+	if(!type_id)
+		PG_RETURN_NULL();
+	
+	/* TODO: Per SPARQL standard we should make an exception here for the case
+	         where both operands are of type xsd:integer... */
+	
+	PG_RETURN_RDF_TERM(create_term_from_num(type_id, term1->num / term2->num));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_add);
+Datum
+rdf_term_add(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
+	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
+
+	uint32_t type_id = arith_result_type(term1->type_id, term2->type_id);
+	if(!type_id)
+		PG_RETURN_NULL();
+		
+	PG_RETURN_RDF_TERM(create_term_from_num(type_id, term1->num + term2->num));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_sub);
+Datum
+rdf_term_sub(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
+	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
+
+	uint32_t type_id = arith_result_type(term1->type_id, term2->type_id);
+	if(!type_id)
+		PG_RETURN_NULL();
+		
+	PG_RETURN_RDF_TERM(create_term_from_num(type_id, term1->num - term2->num));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_unary_plus);
+Datum
+rdf_term_unary_plus(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+
+	if(!is_num_type(term->type_id))		
+		PG_RETURN_NULL();
+		
+	PG_RETURN_RDF_TERM(term);
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_unary_minus);
+Datum
+rdf_term_unary_minus(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+
+	if(!is_num_type(term->type_id))		
+		PG_RETURN_NULL();
+		
+	PG_RETURN_RDF_TERM(create_term_from_num(term->type_id, -term->num));
+}
 
 

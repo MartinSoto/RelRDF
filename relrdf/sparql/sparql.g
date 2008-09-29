@@ -186,7 +186,7 @@ orderCondition[expr] returns [expr=expr]
 	    		)
 	    		orderBy=brackettedExpression
 	    	)
-	    |	( orderBy=functionCall | orderBy=var | orderBy=brackettedExpression )
+	    |	( orderBy=functionCall | orderBy=var | orderBy=brackettedExpression | orderBy=builtInCall)
 	    )
 		{
             expr = nodes.Sort(expr, orderBy)
@@ -473,7 +473,7 @@ unaryExpression returns [expr]
         { expr = nodes.Not(prim); \
           expr.setExtentsStartFromToken(on, self); }
     |   plus:PLUS prim=primaryExpression
-        { expr = nodes.NotSupported(prim); \
+        { expr = nodes.UPlus(prim); \
           expr.setExtentsStartFromToken(plus, self); }
     |   minus:MINUS prim=primaryExpression
         { expr = nodes.UMinus(prim); \

@@ -87,6 +87,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def Plus(self, expr, *operands):
         return '(' + ') + ('.join(operands) + ')'
 
+    def UPlus(self, expr, op):
+        return '+(%s)' % op
+
     def Minus(self, expr, op1, op2):
         return '(%s) - (%s)' % (op1, op2)
 

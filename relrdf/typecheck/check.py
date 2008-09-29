@@ -165,6 +165,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, '+')
         expr.staticType = genericLiteralType
 
+    def UPlus(self, expr, *operands):
+        self._checkScalarOperands(expr, '+')
+        expr.staticType = genericLiteralType
+        
     def Minus(self, expr, *operands):
         self._checkScalarOperands(expr, '-')
         expr.staticType = genericLiteralType

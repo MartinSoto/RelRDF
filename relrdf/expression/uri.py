@@ -1,6 +1,8 @@
 
 from uuid import uuid3, uuid4
 
+from urlparse import urljoin
+
 # Prefix to use for blank nodes
 BLANK_NODE_NS = "bnode:"
 BLANK_NODE_NS_UUID = uuid4()
@@ -45,10 +47,7 @@ class Namespace(Uri):
         return self + localPart
 
     def getLocal(self, uri):
-        if uri.startswith(self):
-            return uri[len(self):]
-        else:
-            return None
+        return urljoin(self, uri)
 
 if __name__ == '__main__':
     n1 = Namespace(u'http://www.v-modell-xt.de/schema/1#')

@@ -37,12 +37,13 @@ prolog
     ;
 
 baseDecl
-    :   BASE Q_IRI_REF
+    :   BASE iri:Q_IRI_REF
+    	{ self.baseUri = uri.Namespace(iri.getText()) }
     ;
 
 prefixDecl
-    :   PREFIX qn:QNAME uri:Q_IRI_REF
-        { self.defineLocalPrefix(qn, uri) }
+    :   PREFIX qn:QNAME iri:Q_IRI_REF
+        { self.defineLocalPrefix(qn, iri) }
     ;
 
 selectQuery returns [expr]
@@ -596,7 +597,8 @@ string returns [expr]
 
 iriRef returns [expr]
     :   iri:Q_IRI_REF
-        { expr = nodes.Uri(iri.getText()); \
+        { absUri = self.baseUri.getLocal(iri.getText()); \
+          expr = nodes.Uri(absUri); \
           expr.setExtentsFromToken(iri, self) }
     |   expr=qname
     ;

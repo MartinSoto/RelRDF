@@ -50,7 +50,7 @@ class ParseEnvironment(object):
         lexer = SparqlLexer.Lexer() 
         lexer.setInput(stream)
 
-        parser = SparqlParser.Parser(lexer, prefixes=self.prefixes)
+        parser = SparqlParser.Parser(lexer, prefixes=self.prefixes, baseUri=fileName)
         parser.setFilename(fileName)
 
         try:

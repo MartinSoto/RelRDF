@@ -11,6 +11,7 @@ class Parser(antlr.LLkParser):
     __slots__ = ('basePrefixes',
                  'externalPrefixes',
                  'localPrefixes',
+                 'baseUri',
                  'variables',
                  'blankNodes')
 
@@ -37,6 +38,9 @@ class Parser(antlr.LLkParser):
 
         'noBasePrefixes': If `True`, do not define any base namespace
         prefixes.
+        
+        'baseUri': The base URI to use for resolution of relative URIs
+        (query might override)
         """
         super(Parser, self).__init__(*args, **kwargs)
 
@@ -49,7 +53,12 @@ class Parser(antlr.LLkParser):
             self.externalPrefixes = kwargs['prefixes']
         except KeyError:
             self.externalPrefixes = {}
-
+            
+        try:
+            self.baseUri = uri.Namespace(kwargs.get('baseUri'))
+        except KeyError:
+            self.baseUri = uri.Namespace('')
+            
         # The set of locally defined namespace prefixes (prefixes
         # defined by the query itself through PREFIX clauses.)
         self.localPrefixes = {}
@@ -95,8 +104,9 @@ class Parser(antlr.LLkParser):
                                           qname),
                                     extents=extents)
 
+        absUri = self.baseUri.getLocal(uriToken.getText());
         self.localPrefixes[qname[:-1]] = \
-            uri.Namespace(uriToken.getText())
+            uri.Namespace(absUri)
 
     def getPrefixUri(self, prefix):
         """Return the uri.Namespace object associated to namespace

@@ -16,30 +16,52 @@ PG_MODULE_MAGIC;
 /*
 	== Type classification ==
 	
-	Types whose IDs only differ in the least-significant byte
-	are considered to be	comparable, see also type_compatible()
-	below.
+	There's a lot of information and "magic" in type IDs. The
+	following must be understood before assigning type IDs:
+	* The type ID must differentiate the following literal types:
+	  -> resources (here: IRIs and blank nodes)
+	  -> simple literals
+	  -> plain literals (by language tag)
+	  -> generic literals (by data type URI)
+	* It must be clear which type IDs are compatible
+	  (comparison is not a type error)
+	* There needs to be a difined order in which the types should
+	  appear when an ORDER BY clause is used (see section 9.1 of
+	  the SPARQL standard).
 
-	The type IDs are ordered this way to ensure we get the right
-	order when using rdf_term values in ORDER BY clauses.
+  This leads to the following partition of the type ID space:
+  * 0x0000        -> resources (IRI + blank nodes)
+  * 0x0001        -> simple literals
+  * 0x0002-0x0fff -> plain literals
+  * 0x1000-0x1fff -> numeric types
+  * 0x2000        -> boolean type
+  * 0x3000-0x3fff -> date/time types
+  * >= 0x4000     -> unsupported types
+	
+	Note that all type IDs greater or equal to 0x1000 can be considered
+	comparable iff everything but the last 12 bits is equal (so there can
+	be a maximum of 4096 comparable types in this system).
+
+	Also note that all type IDs greater or equal to 0x1000 must have an
+	associated type URI, while all type IDs from 0x0002 to 0x0fff must
+	have a language tag. This mapping isn't done here, though.
 */
 
-#define TYPE_COMPATIBLE_MASK ((uint32_t) 0xFFFFFF00)
-
-#define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFFF000)
-#define STORAGE_TYPE_IRI     ((uint32_t) 0x00000000)
-#define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
-#define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
-
-/* 
-	== Hardcoded type IDs == 
-*/
+#define TYPE_ID_IRI          ((uint32_t) 0x00000000)
+#define TYPE_ID_PLAIN_LIT    ((uint32_t) 0x00000001)
 
 #define TYPE_ID_BOOL         ((uint32_t) 0x00002000)
 
 #define TYPE_ID_DATETIME     ((uint32_t) 0x00003000)
 #define TYPE_ID_DATE         ((uint32_t) 0x00003100)
 #define TYPE_ID_TIME         ((uint32_t) 0x00003200)
+
+#define TYPE_COMPATIBLE_MASK ((uint32_t) 0xFFFFFF00)
+
+#define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFFF000)
+#define STORAGE_TYPE_INTERAL ((uint32_t) 0x00000000)
+#define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
+#define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
 
 /* RDF term structure */
 typedef struct {
@@ -49,9 +71,6 @@ typedef struct {
 	
 	/* Type IDs, see below */
 	uint32_t type_id;
-	
-	/* Language ID (future) */
-	/* uint32_t lang_id; */
 	
 	/* Value representation */
 	union {		
@@ -577,6 +596,35 @@ Datum
 rdf_term_get_type_id(PG_FUNCTION_ARGS)
 {
 	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+
+	PG_RETURN_UINT32(term->type_id);
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_get_data_type_id);
+Datum
+rdf_term_get_data_type_id(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	
+	/* Only return type ID if it's a data type ID
+	   (= should have an associated data type URI) */
+	if(term->type_id <= ~STORAGE_TYPE_MASK)
+		PG_RETURN_NULL();
+
+	PG_RETURN_UINT32(term->type_id);
+}
+
+
+PG_FUNCTION_INFO_V1(rdf_term_get_language_id);
+Datum
+rdf_term_get_language_id(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	
+	/* Only return type ID if it's a plain literal ID
+	   (= should have an associated language tag) */
+	if(term->type_id <= 1 || term->type_id > ~STORAGE_TYPE_MASK)
+		PG_RETURN_NULL();
 
 	PG_RETURN_UINT32(term->type_id);
 }

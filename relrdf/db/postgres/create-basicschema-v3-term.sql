@@ -44,9 +44,6 @@ DROP TABLE IF EXISTS language_tags;
 
 INSERT INTO data_types (id, uri) VALUES
 
-  (0, 'http://www.w3.org/2000/01/rdf-schema#Resource'),
-  (1, 'http://www.w3.org/2000/01/rdf-schema#Literal'),
-
   (1*4096+0, 'http://www.w3.org/2001/XMLSchema#integer'),
   (1*4096+1, 'http://www.w3.org/2001/XMLSchema#decimal'),
   (1*4096+2, 'http://www.w3.org/2001/XMLSchema#float'),
@@ -210,14 +207,18 @@ CREATE OR REPLACE FUNCTION rdf_term_language_tag_to_id(lang_tag text) RETURNS in
   END
 $$ LANGUAGE 'plpgsql' VOLATILE STRICT;
 
-CREATE OR REPLACE FUNCTION rdf_term_create(val text, type_uri text, lang_tag text) RETURNS rdf_term AS $$
+CREATE OR REPLACE FUNCTION rdf_term_create(val text, is_res int, type_uri text, lang_tag text) RETURNS rdf_term AS $$
   DECLARE
     type_id int4;
   BEGIN
-    IF type_uri <> '' THEN
+    IF is_res != 0 THEN
+      type_id = 0
+    ELSIF type_uri <> '' THEN
       type_id = rdf_term_type_uri_to_id(type_uri);
     ELSIF lang_tag <> '' THEN   
       type_id = rdf_term_language_tag_to_id(lang_tag);
+    ELSE
+      type_id = 1
     END IF;
     RETURN rdf_term(type_id, val);
   END

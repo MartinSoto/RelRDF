@@ -45,8 +45,9 @@ class SingleVersionRdfSink(object):
            function to create the appropriate term"""
         
         lang = typeUri = ''
+        isResource = 0
         if isinstance(term, uri.Uri):
-            typeUri = commonns.rdfs.Resource
+            isResource = 1
         elif isinstance(term, literal.Literal):
             if not term.typeUri is None:
                 typeUri = term.typeUri
@@ -62,7 +63,7 @@ class SingleVersionRdfSink(object):
         typeUri = unicode(typeUri).encode('utf-8')
         lang = unicode(lang).encode('utf-8')
 
-        return (val, typeUri, lang)
+        return (val, isResource, typeUri, lang)
 
     def triple(self, subject, pred, object):
         
@@ -83,9 +84,9 @@ class SingleVersionRdfSink(object):
         self.cursor.executemany(
             """
             INSERT INTO statements_temp1 VALUES (
-              rdf_term_create(%s, %s, %s),
-              rdf_term_create(%s, %s, %s),
-              rdf_term_create(%s, %s, %s))""",
+              rdf_term_create(%s, %d, %s, %s),
+              rdf_term_create(%s, %d, %s, %s),
+              rdf_term_create(%s, %d, %s, %s))""",
             self.pendingRows)
         
         self.pendingRows = []

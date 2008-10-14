@@ -520,15 +520,15 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(bd, self); \
           expr.setExtentsEndFromToken(rp5); }
     |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
-        { expr = self.makeIsResource(param, False); \
+        { expr = nodes.IsURI(param); \
           expr.setExtentsStartFromToken(ii, self); \
           expr.setExtentsEndFromToken(rp6); }
     |   iu:IS_URI LPAREN param=expression rp7:RPAREN
-        { expr = self.makeIsResource(param, False); \
+        { expr = nodes.IsURI(param); \
           expr.setExtentsStartFromToken(iu, self); \
           expr.setExtentsEndFromToken(rp7); }
     |   ib:IS_BLANK LPAREN param=expression rp8:RPAREN
-        { expr = self.makeIsResource(param, True); \
+        { expr = self.IsBlank(param); \
           expr.setExtentsStartFromToken(ib, self); \
           expr.setExtentsEndFromToken(rp8); }
     |   il:IS_LITERAL LPAREN param=expression rp9:RPAREN

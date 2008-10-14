@@ -158,7 +158,7 @@ class QueryEvaluationTest(object):
                 log.testEntry("SQL", sql, pre=True)
                 
                 # Try to execute the query
-                result = model.query('SPARQL', query, self.query)
+                result = model.query('SPARQL', query, self.query)                
                 
             finally:
                 

@@ -63,6 +63,9 @@ PG_MODULE_MAGIC;
 #define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
 #define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
 
+/* Prefix used for blank node resources */
+#define BLANK_NODE_PREFIX    "bnode:"
+
 /* RDF term structure */
 typedef struct {
 
@@ -105,7 +108,6 @@ is_text_type(uint32_t type_id)
 	return !is_num_type(type_id) && !is_date_time_type(type_id);
 }
 
-
 inline bool
 types_compatible(uint32_t type_id1, uint32_t type_id2)
 {
@@ -120,6 +122,23 @@ inline int32_t
 get_text_len(RdfTerm *term)
 {
 	return VARSIZE(term) - RDF_TERM_HEADER_SIZE - sizeof(char);
+}
+
+/* Tests wether a node is some type of resource */
+inline bool
+is_resource(RdfTerm *term, bool uri, bool bnode)
+{
+	int len = strlen(BLANK_NODE_PREFIX);	
+
+  /* All resources have a type ID of 0 */
+  if(term->type_id)
+    return false;
+    
+	/* Compare prefix */
+	if(get_text_len(term) >= len)
+		if(strncmp(term->text, BLANK_NODE_PREFIX, len) == 0)
+			return bnode;
+  return uri;
 }
 
 /* == Constructors == */
@@ -809,21 +828,22 @@ rdf_term_bound(PG_FUNCTION_ARGS)
 	PG_RETURN_RDF_TERM(create_term_bool(!PG_ARGISNULL(0)));
 }
 
-
-PG_FUNCTION_INFO_V1(rdf_term_starts_with);
+PG_FUNCTION_INFO_V1(rdf_term_is_uri);
 Datum
-rdf_term_starts_with(PG_FUNCTION_ARGS)
+rdf_term_is_uri(PG_FUNCTION_ARGS)
 {
 	RdfTerm *term = PG_GETARG_RDF_TERM(0);
-	text *data = PG_GETARG_TEXT_PP(1);
-	char *text = VARDATA_ANY(data);
-	size_t len = VARSIZE_ANY_EXHDR(data);
+	bool result = is_resource(term, true, false);
 	
-	/* Check length and compare */
-	bool result = false;
-	if(get_text_len(term) >= len)
-		if(strncmp(term->text, text, len) == 0)
-			result = true;
+	PG_RETURN_RDF_TERM(create_term_bool(result));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_is_bnode);
+Datum
+rdf_term_is_bnode(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	bool result = is_resource(term, false, true);
 	
 	PG_RETURN_RDF_TERM(create_term_bool(result));
 }

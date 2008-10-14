@@ -1,4 +1,4 @@
-
+t
 DROP TABLE IF EXISTS relrdf_schema_version;
 
 CREATE TABLE relrdf_schema_version (
@@ -30,59 +30,55 @@ CREATE INDEX statements_predicate_hash_index
 CREATE INDEX statements_object_hash_index
   ON statements USING hash (object);
   
+DROP TABLE IF EXISTS types;
 DROP TABLE IF EXISTS data_types;
 
-CREATE TABLE data_types (
-  id SERIAL PRIMARY KEY,
-  uri varchar(255) NOT NULL
+CREATE TABLE types (
+  id int PRIMARY KEY,
+  type_uri varchar(255),
+  lang_tag varchar(255)
 );
 
-CREATE UNIQUE INDEX data_types_unique
-  ON data_types (uri);
+CREATE UNIQUE INDEX types_type_uri_index
+  ON types (type_uri);
+CREATE UNIQUE INDEX types_lang_tag_index
+  ON types (lang_tag);
 
-DROP TABLE IF EXISTS language_tags;
+INSERT INTO types VALUES
 
-INSERT INTO data_types (id, uri) VALUES
+  (1*4096+0, 'http://www.w3.org/2001/XMLSchema#integer', NULL),
+  (1*4096+1, 'http://www.w3.org/2001/XMLSchema#decimal', NULL),
+  (1*4096+2, 'http://www.w3.org/2001/XMLSchema#float', NULL),
+  (1*4096+3, 'http://www.w3.org/2001/XMLSchema#double', NULL),
+  (1*4096+4, 'http://www.w3.org/2001/XMLSchema#positiveInteger', NULL),
+  (1*4096+5, 'http://www.w3.org/2001/XMLSchema#negativeInteger', NULL),
+  (1*4096+6, 'http://www.w3.org/2001/XMLSchema#nonPositiveInteger', NULL),
+  (1*4096+7, 'http://www.w3.org/2001/XMLSchema#nonNegativeInteger', NULL),
+  (1*4096+8, 'http://www.w3.org/2001/XMLSchema#long', NULL),
+  (1*4096+9, 'http://www.w3.org/2001/XMLSchema#int', NULL),
+  (1*4096+10, 'http://www.w3.org/2001/XMLSchema#short', NULL),
+  (1*4096+11, 'http://www.w3.org/2001/XMLSchema#byte', NULL),
+  (1*4096+12, 'http://www.w3.org/2001/XMLSchema#unsignedLong', NULL),
+  (1*4096+13, 'http://www.w3.org/2001/XMLSchema#unsignedInt', NULL),
+  (1*4096+14, 'http://www.w3.org/2001/XMLSchema#unsignedShort', NULL),
+  (1*4096+15, 'http://www.w3.org/2001/XMLSchema#unsignedByte', NULL),
 
-  (1*4096+0, 'http://www.w3.org/2001/XMLSchema#integer'),
-  (1*4096+1, 'http://www.w3.org/2001/XMLSchema#decimal'),
-  (1*4096+2, 'http://www.w3.org/2001/XMLSchema#float'),
-  (1*4096+3, 'http://www.w3.org/2001/XMLSchema#double'),
-  (1*4096+4, 'http://www.w3.org/2001/XMLSchema#positiveInteger'),
-  (1*4096+5, 'http://www.w3.org/2001/XMLSchema#negativeInteger'),
-  (1*4096+6, 'http://www.w3.org/2001/XMLSchema#nonPositiveInteger'),
-  (1*4096+7, 'http://www.w3.org/2001/XMLSchema#nonNegativeInteger'),
-  (1*4096+8, 'http://www.w3.org/2001/XMLSchema#long'),
-  (1*4096+9, 'http://www.w3.org/2001/XMLSchema#int'),
-  (1*4096+10, 'http://www.w3.org/2001/XMLSchema#short'),
-  (1*4096+11, 'http://www.w3.org/2001/XMLSchema#byte'),
-  (1*4096+12, 'http://www.w3.org/2001/XMLSchema#unsignedLong'),
-  (1*4096+13, 'http://www.w3.org/2001/XMLSchema#unsignedInt'),
-  (1*4096+14, 'http://www.w3.org/2001/XMLSchema#unsignedShort'),
-  (1*4096+15, 'http://www.w3.org/2001/XMLSchema#unsignedByte'),
+  (2*4096+0, 'http://www.w3.org/2001/XMLSchema#boolean', NULL),
 
-  (2*4096+0, 'http://www.w3.org/2001/XMLSchema#boolean'),
+  (3*4096+0, 'http://www.w3.org/2001/XMLSchema#dateTime', NULL),
+  (3*4096+1, 'http://www.w3.org/2001/XMLSchema#date', NULL),
+  (3*4096+2, 'http://www.w3.org/2001/XMLSchema#time', NULL),
 
-  (3*4096+0, 'http://www.w3.org/2001/XMLSchema#dateTime'),
-  (3*4096+1, 'http://www.w3.org/2001/XMLSchema#date'),
-  (3*4096+2, 'http://www.w3.org/2001/XMLSchema#time'),
+  (4*4096+0, 'http://www.w3.org/2001/XMLSchema#string', NULL);
 
-  (4*4096+0, 'http://www.w3.org/2001/XMLSchema#string');
-
-ALTER SEQUENCE data_types_id_seq
+DROP SEQUENCE IF EXISTS data_types_id_seq;
+CREATE SEQUENCE data_types_id_seq
   INCREMENT BY 256
   START WITH 17152
   NO CYCLE;
-  
-CREATE TABLE language_tags (
-  id SERIAL PRIMARY KEY,
-  tag varchar(255) NOT NULL
-);
 
-CREATE UNIQUE INDEX language_tags_unique
-  ON language_tags (tag);
-  
-ALTER SEQUENCE language_tags_id_seq
+DROP SEQUENCE IF EXISTS language_tags_id_seq;
+CREATE SEQUENCE language_tags_id_seq
   INCREMENT BY 1
   START WITH 2
   NO CYCLE;
@@ -170,38 +166,24 @@ CREATE TABLE prefixes (
 INSERT INTO prefixes (prefix, namespace)
   VALUES ('vmxt', 'http://www.v-modell-xt.de/schema/1#'), ('vmxti', 'http://www.v-modell-xt.de/model/1#');
   
-GRANT ALL ON data_types, data_types_id_seq, language_tags, language_tags_id_seq, prefixes, relrdf_schema_version, statements, statements_id_seq, twoway, twoway_conns, twoway_use_time, threeway, threeway_conns, threeway_use_time, version_statement TO vmodell;
+GRANT ALL ON types, data_types_id_seq, language_tags_id_seq, prefixes, relrdf_schema_version, statements, statements_id_seq, twoway, twoway_conns, twoway_use_time, threeway, threeway_conns, threeway_use_time, version_statement TO vmodell;
 
 /* Stored utility procedures */
 
-CREATE OR REPLACE FUNCTION format_rdf_term(t rdf_term) RETURNS text AS $$
-  SELECT '(' || rdf_term_to_string($1) || ',' || d.uri || ')'
-   FROM data_types d WHERE d.id = rdf_term_get_type_id($1);
-$$ LANGUAGE SQL STABLE STRICT;
-
 CREATE LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION rdf_term_type_uri_to_id(type_uri text) RETURNS int4 AS $$
+CREATE OR REPLACE FUNCTION rdf_term_literal_type_to_id(uri text, tag text) RETURNS int4 AS $$
   DECLARE
     type_id int4;
   BEGIN
-    SELECT INTO type_id id FROM data_types WHERE uri = type_uri;
+    SELECT INTO type_id id FROM types WHERE type_uri = uri OR lang_tag = tag;
     IF NOT FOUND THEN
-      type_id := nextval('data_types_id_seq');
-      INSERT INTO data_types (id, uri) VALUES (type_id, type_uri);
-    END IF;
-    RETURN type_id;
-  END
-$$ LANGUAGE 'plpgsql' VOLATILE STRICT;
-
-CREATE OR REPLACE FUNCTION rdf_term_language_tag_to_id(lang_tag text) RETURNS int4 AS $$
-  DECLARE
-    type_id int4;
-  BEGIN
-    SELECT INTO type_id id FROM language_tags WHERE tag = lang_tag;
-    IF NOT FOUND THEN
-      type_id := nextval('language_tags_id_seq');
-      INSERT INTO language_tags (id, tag) VALUES (type_id, lang_tag);
+      IF uri != '' THEN
+        type_id := nextval('data_types_id_seq');
+      ELSE
+        type_id := nextval('language_tags_id_seq');
+      END IF;
+      INSERT INTO types VALUES (type_id, uri, tag);
     END IF;
     RETURN type_id;
   END
@@ -212,15 +194,17 @@ CREATE OR REPLACE FUNCTION rdf_term_create(val text, is_res int, type_uri text, 
     type_id int4;
   BEGIN
     IF is_res != 0 THEN
-      type_id = 0
-    ELSIF type_uri <> '' THEN
-      type_id = rdf_term_type_uri_to_id(type_uri);
-    ELSIF lang_tag <> '' THEN   
-      type_id = rdf_term_language_tag_to_id(lang_tag);
+      type_id = 0;
+    ELSIF type_uri = '' AND lang_tag = '' THEN
+      type_id = 1;
     ELSE
-      type_id = 1
+      type_id = rdf_term_literal_type_to_id(type_uri, lang_tag);
     END IF;
     RETURN rdf_term(type_id, val);
   END
 $$ LANGUAGE 'plpgsql' VOLATILE STRICT;
+
+CREATE OR REPLACE FUNCTION rdf_term_resource(uri text) RETURNS rdf_term AS $$
+  BEGIN RETURN rdf_term(0, uri); END
+$$ LANGUAGE 'plpgsql' IMMUTABLE STRICT;
 

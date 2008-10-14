@@ -81,7 +81,7 @@ class ChecksumValueMapping(valueref.ValueMapping):
 
 class TypeUriMapping(valueref.ValueMapping):
     """A value mapping that uses type IDs as listed in the
-    data_types SQL table instead of the full type URIs used
+    types SQL table instead of the full type URIs used
     by RDF"""
     
     __slots__ = ()
@@ -91,16 +91,16 @@ class TypeUriMapping(valueref.ValueMapping):
           sqlnodes.SqlFunctionCall('rdf_term',
             nodes.MapValue(
                 nodes.Select(
-                     sqlnodes.SqlRelation(1, 'data_types'),
+                     sqlnodes.SqlRelation(1, 'types'),
                      nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, 'uri'),
+                          sqlnodes.SqlFieldRef(1, 'type_uri'),
                           sqlnodes.SqlString(rdfs.Resource)
                      )
                 ),
                 sqlnodes.SqlFieldRef(1, 'id')),
             nodes.MapValue(
                 nodes.Select(
-                     sqlnodes.SqlRelation(1, 'data_types'),
+                     sqlnodes.SqlRelation(1, 'types'),
                      nodes.Equal(
                           sqlnodes.SqlFieldRef(1, 'id'),
                           nodes.Null()
@@ -116,9 +116,9 @@ class TypeUriMapping(valueref.ValueMapping):
     def extToInt(self, external):
         (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
                 nodes.Select(
-                     sqlnodes.SqlRelation(1, 'data_types'),
+                     sqlnodes.SqlRelation(1, 'types'),
                      nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, 'uri'),
+                          sqlnodes.SqlFieldRef(1, 'type_uri'),
                           sqlnodes.SqlFunctionCall('text',
                           sqlnodes.SqlFunctionCall('rdf_term_to_string',
                             nodes.Null()
@@ -908,10 +908,13 @@ class ThreeWayComparisonMapper(BasicMapper,
 
 
 class BaseResults(object):
-    __slots__ = ('cursor',
-                 'length',)
+    __slots__ = ('connection',
+                 'cursor',
+                 'length',
+                 'types',)
 
     def __init__(self, connection, sqlText):
+        self.connection = connection
         self.cursor = connection.cursor()
 
         # Send the query to the database (iterating on this object
@@ -919,12 +922,34 @@ class BaseResults(object):
         self.cursor.execute(sqlText)
 
         self.length = self.cursor.rowcount
+        
+        self.types = {}
 
     def resultType(self):
         return NotImplemented
 
     def __len__(self):
         return self.length
+    
+    def _typeLookup(self, typeId):
+        
+        # Try cache lookup first
+        try:
+            return self.types[typeId]
+        except KeyError:
+            pass
+
+        # Query database for information about type ID
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT type_uri, lang_tag FROM types WHERE id = %d" % typeId);
+        result = cursor.fetchone()
+        
+        # Not in database? (Should not happen)
+        assert not result is None, "Database result uses unknown type ID %d!" % typeId
+        
+        # Save back, continue
+        self.types[typeId] = result
+        return result        
 
     def _convertResult(self, rawValue, typeId, blankMap):
         if isinstance(rawValue, str):
@@ -935,7 +960,9 @@ class BaseResults(object):
 
         if rawValue is None:
             value = None
-        elif typeId == commonns.rdfs.Resource:
+            
+        # Resource
+        elif typeId == 0:
             value = uri.Uri(rawValue)
             
             # Needs reinstantiation?
@@ -944,27 +971,35 @@ class BaseResults(object):
                     value = blankMap[rawValue]
                 except KeyError:
                     value = blankMap[rawValue] = uri.newBlank()
-            
-        elif typeId == commonns.rdfs.Literal:
+        
+        # Plain literal
+        elif typeId == 1:
             value = literal.Literal(rawValue)
+            
+        # Literal
         else:
+            
+            # Get type URI and language tag
+            (typeUri, langTag) = self._typeLookup(typeId)        
+            
             # Expect everything that's not a resource to be some
             # sort of literal
-            value = literal.Literal(rawValue, typeId)
+            value = literal.Literal(rawValue, typeUri, langTag)
         
         return value
     
     def _splitPair(self, pair):
         
-        # Split the string representation of a value/name pair
+        # Split the string representation of a value/type-id pair
         # as it's coming from the database into both components
+        # (Note the first part is enclosed in quotes and the second
+        #  one is a hexadecimal number)
         
         if pair is None:
             return (None, None)
         else:
-            (val, _, type) = pair.rpartition(',')
-            return (val.lstrip('('), type.rstrip(')'))
-        
+            (val, _, typeId) = pair.rpartition('^^')
+            return (val[1:-1], int(typeId, 16))
 
     def close(self):
         if self.cursor is not None:
@@ -1029,7 +1064,7 @@ class StmtResults(BaseResults):
             for i in range(self.stmtsPerRow):
                 result = []
                 for pair in row[i*3 : i*3+3]:
-                    (val, type) = self._splitPair(pair)                    
+                    (val, type) = self._splitPair(pair)
                     result.append(self._convertResult(val, type, blankMap))
                 yield tuple(result)
 
@@ -1072,10 +1107,6 @@ class BasicModel(object):
         self._connection = self.modelBase.createConnection()
 
     def _exprToSql(self, expr):
-        
-        # Apply result value formatting
-        transf = transform.ResultMappingTransformer(sqlnodes.SqlFunctionCall('format_rdf_term'))
-        expr = transf.process(expr)
         
         # Insert known type information
         expr = dynamic.dynTypeTranslate(expr)

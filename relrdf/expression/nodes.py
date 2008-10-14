@@ -695,13 +695,15 @@ class IsBound(UnaryOperation):
     
     __slots__ = ()
 
-class IsBlankNode(UnaryOperation):
-    """Determines wether a resource expression is a blank node
+class IsURI(UnaryOperation):
+    """Determines wether some value is an URI"""
     
-    Note: Won't check the type of the expression, this must be done
-          seperately!"""
+    __slots__ = ()    
+
+class IsBlank(UnaryOperation):
+    """Determines wether some value is a blank node"""
     
-    __slots__ = ()
+    __slots__ = ()    
 
 class Cast(Operation):
      """Converts the given value to another datatype, if possible"""

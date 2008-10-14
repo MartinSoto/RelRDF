@@ -12,14 +12,14 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         super(SqlEmitter, self).__init__(prePrefix='pre')
 
         self.distinct = 0
-    
-    _hardcodedTypeIDs = { rdfs.Resource: 0 }
-    
-    def _typeIdFromURI(self, uri):
-        try:
-            return "%s" % self._hardcodedTypeIDs[uri]
-        except KeyError:
-            return "(SELECT id FROM data_types WHERE uri='%s')" % uri
+
+    def _lookupTypeId(self, uri, tag):
+        if uri is not None:
+            return "(SELECT id FROM types WHERE type_uri='%s')" % uri
+        elif tag is not None:
+            return "(SELECT id FROM types WHERE lang_tag='%s')" % tag
+        else:
+            return "1"
         
     def Null(self, expr):
         return 'NULL'
@@ -28,16 +28,13 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '%d' % expr.val
 
     def Uri(self, expr):
-        return "rdf_term(%s, '%s')" \
-            % (self._typeIdFromURI(rdfs.Resource), expr.uri)
+        return "rdf_term_resource('%s')" % expr.uri
 
     def Literal(self, expr):
         
         # Type ID lookup
-        typeUri = expr.literal.typeUri
-        if typeUri is None:
-            typeUri = rdfs.Literal
-        typeIdExpr = self._typeIdFromURI(typeUri)
+        typeIdExpr = self._lookupTypeId(expr.literal.typeUri,
+                                        expr.literal.lang)
         
         return "rdf_term(%s, '%s')" % (typeIdExpr, unicode(expr.literal))
 
@@ -105,11 +102,14 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def IsBound(self, expr, var):
         return 'rdf_term_bound(%s)' % var
 
-    def IsBlankNode(self, expr, sexpr):
-        return 'rdf_term_starts_with(%s, \'%s\')' % (sexpr, uri.BLANK_NODE_NS)
-
+    def IsURI(self, expr, sexpr):
+        return 'rdf_term_is_uri(%s)' % sexpr
+    
+    def IsBlank(self, expr, sexpr):
+        return 'rdf_term_is_bnode(%s)' % sexpr
+    
     def Cast(self, expr, sexpr):
-        return 'rdf_term_cast(%s, %s)' % (self._typeIdFromURI(expr.type), sexpr)
+        return 'rdf_term_cast(%s, %s)' % (self._lookupTypeId(expr.type, None), sexpr)
     
     def preMapValue(self, expr):
         if isinstance(expr[0], nodes.Select):
@@ -205,7 +205,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         
         # Check that we have some kind of SELECT expression in subexpr
         allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
-        assert expr[0].__class__ in allowed,  \
+        assert expr[0].__class__ in allowed, \
             'OffsetLimit can only be used with the result of MapResult, Select, ' \
             'Distinct or Sort!'
         
@@ -227,7 +227,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         
         # Check that we have some kind of SELECT expression in subexpr
         allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
-        assert expr[0].__class__ in allowed,  \
+        assert expr[0].__class__ in allowed, \
             'Sort can only be used directly with the result of MapResult, Distinct or Select!'
                     
         # Compose with order direction
@@ -302,8 +302,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         # Note this will produce the same blank node in all result rows, so the
         # blank nodes will have to be reinstantiated afterwards.
         blank = uri.newBlankFromName(expr.name)
-        return "rdf_term(%s, '%s#reinst')" % \
-            (self._typeIdFromURI(rdfs.Resource),unicode(blank))
+        return "rdf_term_resource('%s#reinst')" % unicode(blank)
 
 def emit(expr):
     emitter = SqlEmitter()

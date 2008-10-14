@@ -217,11 +217,16 @@ CREATE FUNCTION rdf_term_bound(rdf_term)
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE;
 
-CREATE FUNCTION rdf_term_starts_with(rdf_term, text)
+CREATE FUNCTION rdf_term_is_uri(rdf_term)
   RETURNS rdf_term
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
 
+CREATE FUNCTION rdf_term_is_bnode(rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+  
 
 CREATE OPERATOR !! (
 	procedure = rdf_term_to_bool,

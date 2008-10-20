@@ -151,19 +151,12 @@ class QueryEvaluationTest(object):
         # Execute the query
         try:
             
-            try:
-                
-                # Parse query, log SQL
-                sql = model.querySQL('SPARQL', query, self.query)
-                log.testEntry("SQL", sql, pre=True)
-                
-                # Try to execute the query
-                result = model.query('SPARQL', query, self.query)                
-                
-            finally:
-                
-                # Always rollback immediately
-                sink.rollback()
+            # Parse query, log SQL
+            sql = model.querySQL('SPARQL', query, self.query)
+            log.testEntry("SQL", sql, pre=True)
+            
+            # Try to execute the query
+            result = model.query('SPARQL', query, self.query)                
                 
         except Exception, detail:
             log.testFailExc(ref, "Failed to run query")
@@ -194,19 +187,25 @@ class SelectQueryEvaluationTest(QueryEvaluationTest):
             print "Failed to read expected result (%s)" % detail
             return False
         
-        # Evaluate the query
         try:
-            result = self.evaluate(model, sink, ref, log)
-        except QueryException, detail:
-            print "%s (%s)" % (detail.msg, detail.nested)
-            return False
-    
-        # Compare result
-        (success, msg) = expectedResult.compare(result, log)
-        if not success:
-            log.testFail(ref, "Failed result match (%s)" % msg)
-            print "Failed result match (%s)" % msg
-            return False
+            
+            # Evaluate the query
+            try:
+                result = self.evaluate(model, sink, ref, log)
+            except QueryException, detail:
+                print "%s (%s)" % (detail.msg, detail.nested)
+                return False
+        
+            # Compare result
+            (success, msg) = expectedResult.compare(result, log)
+            if not success:
+                log.testFail(ref, "Failed result match (%s)" % msg)
+                print "Failed result match (%s)" % msg
+                return False
+        
+        finally:                            
+            # Rollback any changes
+            sink.rollback()
         
         log.testOk(ref)        
         print "Ok"
@@ -233,19 +232,25 @@ class ConstructQueryEvaluationTest(QueryEvaluationTest):
             print "Failed to read expected result (%s)" % detail
             return False        
         
-        # Evaluate the query
         try:
-            result = self.evaluate(model, sink, ref, log)
-        except QueryException, detail:
-            print "%s (%s)" % (detail.msg, detail.nested)
-            return False
-    
-        # Compare result
-        (success, msg) = expectedResult.compare(result)
-        if not success:
-            log.testFail(ref, "Failed result match (%s)" % msg)
-            print "Failed result match (%s)" % msg
-            return False
+                        
+            # Evaluate the query
+            try:
+                result = self.evaluate(model, sink, ref, log)
+            except QueryException, detail:
+                print "%s (%s)" % (detail.msg, detail.nested)
+                return False
+        
+            # Compare result
+            (success, msg) = expectedResult.compare(result)
+            if not success:
+                log.testFail(ref, "Failed result match (%s)" % msg)
+                print "Failed result match (%s)" % msg
+                return False
+        
+        finally:                            
+            # Rollback any changes
+            sink.rollback()
         
         log.testOk(ref)
         print "Ok"

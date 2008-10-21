@@ -389,7 +389,11 @@ compare_terms(RdfTerm *term1, RdfTerm *term2)
 	}
 	
 	/* Otherwise: textual type */
-	return strcoll(term1->text, term2->text);	
+  if(term1->type_id < term2->type_id)
+    return -1;
+  else if(term1->type_id > term2->type_id)
+    return 1;	    
+	return strcoll(term1->text, term2->text);
 }
 
 /* == Boolean operations == */

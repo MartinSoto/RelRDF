@@ -44,24 +44,20 @@ class SingleVersionRdfSink(object):
         """Returns argument triple to pass to the rdf_term_create
            function to create the appropriate term"""
         
-        lang = typeUri = ''
+        lang = typeUri = None
         isResource = 0
         if isinstance(term, uri.Uri):
             isResource = 1
         elif isinstance(term, literal.Literal):
             if not term.typeUri is None:
-                typeUri = term.typeUri
+                typeUri = unicode(term.typeUri).encode('utf-8')
             elif not term.lang is None:
-                lang = term.lang.lower()
-            else:
-                typeUri = commonns.rdfs.Literal
+                lang = unicode(term.lang.lower()).encode('utf-8')
         else:
             assert False, "Unexpected object type '%d'" \
                    % object.__class__.__name__
 
         val = unicode(term).encode('utf-8')
-        typeUri = unicode(typeUri).encode('utf-8')
-        lang = unicode(lang).encode('utf-8')
 
         return (val, isResource, typeUri, lang)
 

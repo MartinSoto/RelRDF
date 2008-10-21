@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION rdf_term_literal_type_to_id(uri text, tag text) RETUR
   BEGIN
     SELECT INTO type_id id FROM types WHERE type_uri = uri OR lang_tag = tag;
     IF NOT FOUND THEN
-      IF uri != '' THEN
+      IF uri IS NOT NULL THEN
         type_id := nextval('data_types_id_seq');
       ELSE
         type_id := nextval('language_tags_id_seq');
@@ -187,7 +187,7 @@ CREATE OR REPLACE FUNCTION rdf_term_literal_type_to_id(uri text, tag text) RETUR
     END IF;
     RETURN type_id;
   END
-$$ LANGUAGE 'plpgsql' VOLATILE STRICT;
+$$ LANGUAGE 'plpgsql' VOLATILE;
 
 CREATE OR REPLACE FUNCTION rdf_term_create(val text, is_res int, type_uri text, lang_tag text) RETURNS rdf_term AS $$
   DECLARE
@@ -195,14 +195,14 @@ CREATE OR REPLACE FUNCTION rdf_term_create(val text, is_res int, type_uri text, 
   BEGIN
     IF is_res != 0 THEN
       type_id = 0;
-    ELSIF type_uri = '' AND lang_tag = '' THEN
+    ELSIF type_uri IS NULL AND lang_tag IS NULL THEN
       type_id = 1;
     ELSE
       type_id = rdf_term_literal_type_to_id(type_uri, lang_tag);
     END IF;
     RETURN rdf_term(type_id, val);
   END
-$$ LANGUAGE 'plpgsql' VOLATILE STRICT;
+$$ LANGUAGE 'plpgsql' VOLATILE;
 
 CREATE OR REPLACE FUNCTION rdf_term_resource(uri text) RETURNS rdf_term AS $$
   BEGIN RETURN rdf_term(0, uri); END

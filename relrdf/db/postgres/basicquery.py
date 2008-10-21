@@ -1108,6 +1108,9 @@ class BasicModel(object):
 
     def _exprToSql(self, expr):
         
+        # Transform occurences of StatementResult
+        expr = transform.StatementResultTransformer().process(expr)
+        
         # Insert known type information
         expr = dynamic.dynTypeTranslate(expr)
         

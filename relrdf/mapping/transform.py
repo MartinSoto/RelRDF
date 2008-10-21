@@ -10,7 +10,30 @@ from relrdf.typecheck.typeexpr import resourceType
 
 import sqlnodes
 
+class StatementResultTransformer(rewrite.ExpressionTransformer):
+    """Transforms StatementResult into MapResult."""
 
+    __slots__ = ()
+
+    def StatementResult(self, expr, relExpr, *stmtTmpls):
+        expr = nodes.MapResult([], relExpr)
+        for i, stmtTmpl in enumerate(stmtTmpls):
+            for colName, mappingExpr in zip(('subject', 'predicate', 'object'),
+                                            stmtTmpl):
+                expr.columnNames.append('%s%d' % (colName, i + 1))
+                expr.append(mappingExpr)
+        print expr
+        return expr
+
+    def _setOperation(self, expr, *operands):
+        expr.columnNames = list(operands[0].columnNames)
+        expr[:] = operands
+        return expr
+
+    Union = _setOperation
+    SetDifference = _setOperation
+    Intersection = _setOperation
+    
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions
     corresponding to the dynamic data type of each one of the

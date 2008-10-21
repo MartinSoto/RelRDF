@@ -1,4 +1,4 @@
-t
+
 DROP TABLE IF EXISTS relrdf_schema_version;
 
 CREATE TABLE relrdf_schema_version (
@@ -66,8 +66,8 @@ INSERT INTO types VALUES
   (2*4096+0, 'http://www.w3.org/2001/XMLSchema#boolean', NULL),
 
   (3*4096+0, 'http://www.w3.org/2001/XMLSchema#dateTime', NULL),
-  (3*4096+1, 'http://www.w3.org/2001/XMLSchema#date', NULL),
-  (3*4096+2, 'http://www.w3.org/2001/XMLSchema#time', NULL),
+  (3*4096+256, 'http://www.w3.org/2001/XMLSchema#date', NULL),
+  (3*4096+2*256, 'http://www.w3.org/2001/XMLSchema#time', NULL),
 
   (4*4096+0, 'http://www.w3.org/2001/XMLSchema#string', NULL);
 

@@ -557,7 +557,7 @@ iriRefOrFunction returns [expr]
 rdfLiteral returns [expr]
     :   expr=string
         (   lt:LANGTAG
-            { expr.literal.lang = lt.getText() }
+            { expr.literal.lang = lt.getText().lower() }
         |   ( DCARET uriNode=iriRef )
             { expr.literal.typeUri = uriNode.uri }
         )?
@@ -1052,7 +1052,7 @@ OP_OR_Q_IRI_REF
     ;
 
 LANGTAG
-    :   '@' ('a'..'z' | 'A'..'Z')+ ('-' ('a'..'z' | 'A'..'Z' | DIGIT)+)*
+    :   '@'! ('a'..'z' | 'A'..'Z')+ ('-' ('a'..'z' | 'A'..'Z' | DIGIT)+)*
     ;
 
 

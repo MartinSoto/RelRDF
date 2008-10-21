@@ -79,12 +79,16 @@ class ChecksumValueMapping(valueref.ValueMapping):
 #    return valueref.ValueRef(ChecksumValueMapping(),
 #                             sqlnodes.SqlFieldRef(incarnation, fieldId))
 
-class TypeUriMapping(valueref.ValueMapping):
+class TypeMapping(valueref.ValueMapping):
     """A value mapping that uses type IDs as listed in the
     types SQL table instead of the full type URIs used
     by RDF"""
     
-    __slots__ = ()
+    __slots__ = ('property')
+    
+    def __init__(self, property):
+        self.property = property        
+        super(TypeMapping, self).__init__()
     
     def intToExt(self, internal):
         (expr,) = transform.Incarnator.reincarnate(
@@ -93,7 +97,7 @@ class TypeUriMapping(valueref.ValueMapping):
                 nodes.Select(
                      sqlnodes.SqlRelation(1, 'types'),
                      nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, 'type_uri'),
+                          sqlnodes.SqlFieldRef(1, self.property),
                           sqlnodes.SqlString(rdfs.Resource)
                      )
                 ),
@@ -118,7 +122,7 @@ class TypeUriMapping(valueref.ValueMapping):
                 nodes.Select(
                      sqlnodes.SqlRelation(1, 'types'),
                      nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, 'type_uri'),
+                          sqlnodes.SqlFieldRef(1, self.property),
                           sqlnodes.SqlFunctionCall('text',
                           sqlnodes.SqlFunctionCall('rdf_term_to_string',
                             nodes.Null()
@@ -137,7 +141,7 @@ def typeValueRef(incarnation, fieldId):
     valueExpr = sqlnodes.SqlFieldRef(incarnation, fieldId);
     typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', valueExpr)    
     
-    return valueref.ValueRef(TypeUriMapping(), typeIdExpr)
+    return valueref.ValueRef(TypeMapping('type_uri'), typeIdExpr)
 
 class TextIdMapping(valueref.ValueMapping):
     
@@ -181,17 +185,15 @@ def checksumValueRef(incarnation, fieldId):
 #                             sqlnodes.SqlFieldRef(incarnation, fieldId))
     
 class BasicMapper(transform.PureRelationalTransformer):
-    """A base mapper for the MySQL basic schema. It handles the
+    """A base mapper for the Postgres basic schema. It handles the
     mapping of type expressions."""
 
     __slots__ = ()
                 
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
-            if typeExpr.typeUri is None:
-                return nodes.Uri(commonns.rdfs.Literal)
-            else:
-                return nodes.Uri(typeExpr.typeUri)
+            assert not typeExpr.typeUri is None
+            return nodes.Uri(typeExpr.typeUri)
         elif isinstance(typeExpr, ResourceType):
             return resourceTypeExpr()
         else:
@@ -208,9 +210,13 @@ class BasicMapper(transform.PureRelationalTransformer):
         """Delete the statements returned by `stmtQuery` from the model."""
         raise NotImplementedError
     
-    def _makeDynType(self, subexpr):
+    def DynType(self, expr, subexpr):
         typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', subexpr)
-        return valueref.ValueRef(TypeUriMapping(), typeIdExpr)
+        return valueref.ValueRef(TypeMapping('type_uri'), typeIdExpr)
+    
+    def Lang(self, expr, subexpr):
+        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', subexpr)
+        return valueref.ValueRef(TypeMapping('lang_tag'), typeIdExpr)
 
 class BasicSingleVersionMapper(BasicMapper):
     """Abstract class that targets an abstract query to a context set

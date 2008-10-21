@@ -338,6 +338,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def DynType(self, expr, *subexprs):
         expr.staticType = resourceType
 
+    def Lang(self, expr, *subexprs):
+        expr.staticType = genericLiteralType
+
 def typeCheck(expr):
     """Type check `expr`. This function sets the ``staticType`` and
     ``failSafe`` fields in all nodes in `expr`. `expr` will be

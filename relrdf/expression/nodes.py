@@ -1028,4 +1028,9 @@ class Type(ValueNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.typeExpr)
+ 
+class Lang(UnaryOperation):
+    """An expression node representing the language tag of a literal."""
+
+    __slots = ()   
     

@@ -246,9 +246,6 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         # Don't process the subexpressions.
         return expr
 
-    def DynType(self, expr, subexpr):
-        return self._makeDynType(subexpr)
-
     def Type(self, expr):
         repl = self.mapTypeExpr(expr.typeExpr)
         if repl is not None:
@@ -258,10 +255,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
                 assert False, "Cannot determine type from [[%s]]" % expr.id
             else:
                 assert False, "Cannot determine type"
-                
-    # Can be overridden by child classes
-    def _makeDynType(self, value):
-        return nodes.DynType(value)
+
 
 class MatchReifTransformer(PureRelationalTransformer):
     """A `PureRelationalTransformer` extension to match reified

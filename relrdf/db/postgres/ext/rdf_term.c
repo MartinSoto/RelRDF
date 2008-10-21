@@ -59,7 +59,7 @@ PG_MODULE_MAGIC;
 #define TYPE_COMPATIBLE_MASK ((uint32_t) 0xFFFFFF00)
 
 #define STORAGE_TYPE_MASK    ((uint32_t) 0xFFFFF000)
-#define STORAGE_TYPE_INTERAL ((uint32_t) 0x00000000)
+#define STORAGE_TYPE_INTERNAL ((uint32_t) 0x00000000)
 #define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
 #define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
 
@@ -133,6 +133,8 @@ is_resource(RdfTerm *term, bool uri, bool bnode)
   /* All resources have a type ID of 0 */
   if(term->type_id)
     return false;
+  if(uri == bnode)
+    return true;
     
 	/* Compare prefix */
 	if(get_text_len(term) >= len)
@@ -844,6 +846,16 @@ rdf_term_is_bnode(PG_FUNCTION_ARGS)
 {
 	RdfTerm *term = PG_GETARG_RDF_TERM(0);
 	bool result = is_resource(term, false, true);
+	
+	PG_RETURN_RDF_TERM(create_term_bool(result));
+}
+
+PG_FUNCTION_INFO_V1(rdf_term_is_literal);
+Datum
+rdf_term_is_literal(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term = PG_GETARG_RDF_TERM(0);
+	bool result = !is_resource(term, true, true);
 	
 	PG_RETURN_RDF_TERM(create_term_bool(result));
 }

@@ -705,8 +705,14 @@ class IsBlank(UnaryOperation):
     
     __slots__ = ()    
 
+class IsLiteral(UnaryOperation):
+    """Determines wether some value is a literal"""
+    
+    __slots__ = ()    
+
 class Cast(Operation):
-     """Converts the given value to another datatype, if possible"""
+     """Converts the given literal to another datatype, if possible.
+        Note that type might be None, which means a cast to a plain literal"""
     
      __slots__ = ('type')
      

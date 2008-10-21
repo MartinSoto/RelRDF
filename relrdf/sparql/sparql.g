@@ -499,7 +499,7 @@ brackettedExpression returns [expr]
 
 builtInCall returns [expr]
     :   str:STR LPAREN param=expression rp15:RPAREN
-        { expr = nodes.Cast(commonns.rdfs.Literal, param); \
+        { expr = nodes.Cast(None, param); \
           expr.setExtentsStartFromToken(str, self); \
           expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN
@@ -528,11 +528,11 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(iu, self); \
           expr.setExtentsEndFromToken(rp7); }
     |   ib:IS_BLANK LPAREN param=expression rp8:RPAREN
-        { expr = self.IsBlank(param); \
+        { expr = nodes.IsBlank(param); \
           expr.setExtentsStartFromToken(ib, self); \
           expr.setExtentsEndFromToken(rp8); }
     |   il:IS_LITERAL LPAREN param=expression rp9:RPAREN
-        { expr = nodes.Different(nodes.DynType(param), nodes.Uri(commonns.rdfs.Resource)); \
+        { expr = nodes.IsLiteral(param); \
           expr.setExtentsStartFromToken(il, self); \
           expr.setExtentsEndFromToken(rp9); }
     |   expr=regexExpression

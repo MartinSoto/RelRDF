@@ -197,6 +197,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, 'IS_BLANK')
         expr.staticType = booleanLiteralType
 
+    def IsLiteral(self, expr, var):
+        self._checkScalarOperands(expr, 'IS_LITERAL')
+        expr.staticType = booleanLiteralType
+
     def Cast(self, expr, sexpr):
         self._checkScalarOperands(expr, 'CAST')
         expr.staticType = LiteralType(expr.type)

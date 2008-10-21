@@ -227,6 +227,11 @@ CREATE FUNCTION rdf_term_is_bnode(rdf_term)
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
   
+CREATE FUNCTION rdf_term_is_literal(rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
+  
 
 CREATE OPERATOR !! (
 	procedure = rdf_term_to_bool,

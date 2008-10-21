@@ -108,6 +108,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def IsBlank(self, expr, sexpr):
         return 'rdf_term_is_bnode(%s)' % sexpr
     
+    def IsLiteral(self, expr, sexpr):
+        return 'rdf_term_is_literal(%s)' % sexpr
+    
     def Cast(self, expr, sexpr):
         return 'rdf_term_cast(%s, %s)' % (self._lookupTypeId(expr.type, None), sexpr)
     

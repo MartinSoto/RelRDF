@@ -62,6 +62,7 @@ PG_MODULE_MAGIC;
 #define STORAGE_TYPE_INTERNAL ((uint32_t) 0x00000000)
 #define STORAGE_TYPE_NUM     ((uint32_t) 0x00001000)
 #define STORAGE_TYPE_DT      ((uint32_t) 0x00003000)
+#define STORAGE_TYPE_UNKNOWN ((uint32_t) 0x00004000)
 
 /* Prefix used for blank node resources */
 #define BLANK_NODE_PREFIX    "bnode:"
@@ -684,10 +685,15 @@ rdf_term_types_check_compatible(PG_FUNCTION_ARGS)
 	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
 
-	if(types_compatible(term1->type_id, term2->type_id))
-		PG_RETURN_BOOL(true);
-	else
-		PG_RETURN_NULL();
+	if(!types_compatible(term1->type_id, term2->type_id))
+	  PG_RETURN_NULL();
+	/* It's a type error to compare values of unknown
+	   type that are not equal */
+  if(term1->type_id >= STORAGE_TYPE_UNKNOWN)
+    if(compare_terms(term1, term2) != 0)
+      PG_RETURN_NULL();
+	    
+	PG_RETURN_BOOL(true);
 }
 
 PG_FUNCTION_INFO_V1(rdf_term_types_check_incompatible);
@@ -697,10 +703,13 @@ rdf_term_types_check_incompatible(PG_FUNCTION_ARGS)
 	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
 	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
 
-	if(types_compatible(term1->type_id, term2->type_id))
-		PG_RETURN_BOOL(false);
-	else
-		PG_RETURN_NULL();
+	if(!types_compatible(term1->type_id, term2->type_id))
+	  PG_RETURN_NULL();	  
+  if(term1->type_id >= STORAGE_TYPE_UNKNOWN)
+    if(compare_terms(term1, term2) != 0)
+      PG_RETURN_NULL();
+	    
+	PG_RETURN_BOOL(false);
 }
 
 PG_FUNCTION_INFO_V1(rdf_term_compare);

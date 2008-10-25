@@ -1,5 +1,4 @@
 import re
-import pprint
 
 from relrdf.commonns import xsd, rdf, rdfs, relrdf
 from relrdf.expression import nodes
@@ -22,7 +21,6 @@ class StatementResultTransformer(rewrite.ExpressionTransformer):
                                             stmtTmpl):
                 expr.columnNames.append('%s%d' % (colName, i + 1))
                 expr.append(mappingExpr)
-        print expr
         return expr
 
     def _setOperation(self, expr, *operands):

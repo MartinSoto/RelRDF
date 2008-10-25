@@ -14,10 +14,12 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#spoo-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-nested-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-10
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/open-world/manifest#date-3
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/open-world/manifest#date-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-str-1
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-str-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#nested-opt-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-datatype-1
@@ -45,6 +47,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/triple-match/manifest#dawg-tr
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/triple-match/manifest#dawg-triple-pattern-004
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#unminus-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-5
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#le-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#var-1
@@ -63,9 +66,10 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/open-world/manifest#open-eq-0
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/open-world/manifest#open-eq-02
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/bound/manifest#dawg-bound-query-001
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-4
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#base-prefix-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/open-world/manifest#open-eq-09
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-3
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-2
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#base-prefix-5
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#base-prefix-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-boolean-literal
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-8
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#unplus-1
@@ -82,10 +86,13 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#plus-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/cast/manifest#cast-dbl
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-numbers
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-9
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#no-distinct-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#no-distinct-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#no-distinct-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-lang-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-09
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-builtin
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-04
@@ -110,6 +117,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-place-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-place-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-place-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#offset-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#offset-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#offset-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#offset-1
@@ -135,4 +143,3 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#mul-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-graph-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-isIRI-1
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-3

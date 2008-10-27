@@ -46,6 +46,8 @@ CREATE UNIQUE INDEX types_lang_tag_index
 
 INSERT INTO types VALUES
 
+  (2, 'http://www.w3.org/2001/XMLSchema#string', NULL),
+
   (1*4096+0, 'http://www.w3.org/2001/XMLSchema#integer', NULL),
   (1*4096+1, 'http://www.w3.org/2001/XMLSchema#decimal', NULL),
   (1*4096+2, 'http://www.w3.org/2001/XMLSchema#float', NULL),
@@ -67,9 +69,7 @@ INSERT INTO types VALUES
 
   (3*4096+0, 'http://www.w3.org/2001/XMLSchema#dateTime', NULL),
   (3*4096+256, 'http://www.w3.org/2001/XMLSchema#date', NULL),
-  (3*4096+2*256, 'http://www.w3.org/2001/XMLSchema#time', NULL),
-
-  (4*4096+0, 'http://www.w3.org/2001/XMLSchema#string', NULL);
+  (3*4096+2*256, 'http://www.w3.org/2001/XMLSchema#time', NULL);
 
 DROP SEQUENCE IF EXISTS data_types_id_seq;
 CREATE SEQUENCE data_types_id_seq
@@ -80,7 +80,7 @@ CREATE SEQUENCE data_types_id_seq
 DROP SEQUENCE IF EXISTS language_tags_id_seq;
 CREATE SEQUENCE language_tags_id_seq
   INCREMENT BY 1
-  START WITH 2
+  START WITH 3
   NO CYCLE;
   
 DROP TABLE IF EXISTS version_statement;

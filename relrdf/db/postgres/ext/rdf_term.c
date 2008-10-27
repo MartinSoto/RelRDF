@@ -48,7 +48,8 @@ PG_MODULE_MAGIC;
 */
 
 #define TYPE_ID_IRI          ((uint32_t) 0x00000000)
-#define TYPE_ID_PLAIN_LIT    ((uint32_t) 0x00000001)
+#define TYPE_ID_SIMPLE_LIT   ((uint32_t) 0x00000001)
+#define TYPE_ID_STRING       ((uint32_t) 0x00000002)
 
 #define TYPE_ID_BOOL         ((uint32_t) 0x00002000)
 
@@ -389,11 +390,20 @@ compare_terms(RdfTerm *term1, RdfTerm *term2)
 			return 1;
 	}
 	
-	/* Otherwise: textual type */
+	/* Internal type? All these are compatible, but unqual,
+	  /except/ for xsd:string and simple literals */
   if(term1->type_id < term2->type_id)
-    return -1;
+  {
+    if(term1->type_id != TYPE_ID_SIMPLE_LIT || term2->type_id != TYPE_ID_STRING)
+      return -1;
+  }
   else if(term1->type_id > term2->type_id)
-    return 1;	    
+  {
+    if(term1->type_id != TYPE_ID_STRING || term2->type_id != TYPE_ID_SIMPLE_LIT)
+      return 1;
+  }
+  
+	/* Compare textual */
 	return strcoll(term1->text, term2->text);
 }
 
@@ -649,7 +659,7 @@ rdf_term_get_language_id(PG_FUNCTION_ARGS)
 	
 	/* Only return type ID if it's a plain literal ID
 	   (= should have an associated language tag) */
-	if(term->type_id <= 1 || term->type_id > ~STORAGE_TYPE_MASK)
+	if(term->type_id <= TYPE_ID_STRING || term->type_id > ~STORAGE_TYPE_MASK)
 		PG_RETURN_NULL();
 
 	PG_RETURN_UINT32(term->type_id);

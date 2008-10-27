@@ -120,6 +120,11 @@ class Manifesto:
             
         return cnt
     
+    def filter(self, f):        
+        self.entries = filter(f, self.entries)
+        for manifest in self.manifests:
+            manifest.filter(f)        
+    
 class TestLogFile(object):
     
     __slots__ = ('file')

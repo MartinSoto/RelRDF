@@ -508,7 +508,7 @@ builtInCall returns [expr]
           expr.setExtentsEndFromToken(rp2); }
     |   lm:LANGMATCHES
         LPAREN param1=expression COMMA param2=expression rp3:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.LangMatches(param1, param2); \
           expr.setExtentsStartFromToken(lm, self); \
           expr.setExtentsEndFromToken(rp3); }
     |   dt:DATATYPE LPAREN param=expression rp4:RPAREN

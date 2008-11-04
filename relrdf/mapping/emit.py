@@ -306,6 +306,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         # blank nodes will have to be reinstantiated afterwards.
         blank = uri.newBlankFromName(expr.name)
         return "rdf_term_resource('%s#reinst')" % unicode(blank)
+    
+    def LangMatches(self, expr, sexpr1, sexpr2):
+        return "rdf_term_lang_matches(%s, %s)" % (sexpr1, sexpr2)
 
 def emit(expr):
     emitter = SqlEmitter()

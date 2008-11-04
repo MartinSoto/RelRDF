@@ -29,14 +29,15 @@ PG_MODULE_MAGIC;
 	  appear when an ORDER BY clause is used (see section 9.1 of
 	  the SPARQL standard).
 
-  This leads to the following partition of the type ID space:
-  * 0x0000        -> resources (IRI + blank nodes)
-  * 0x0001        -> simple literals
-  * 0x0002-0x0fff -> plain literals
-  * 0x1000-0x1fff -> numeric types
-  * 0x2000        -> boolean type
-  * 0x3000-0x3fff -> date/time types
-  * >= 0x4000     -> unsupported types
+	This leads to the following partition of the type ID space:
+	* 0x0000        -> resources (IRI + blank nodes)
+	* 0x0001        -> simple literals
+	* 0x0002        -> literals of type xsd:string
+	* 0x0003-0x0fff -> plain literals
+	* 0x1000-0x1fff -> numeric types
+	* 0x2000        -> boolean type
+	* 0x3000-0x3fff -> date/time types
+	* >= 0x4000     -> unsupported types
 	
 	Note that all type IDs greater or equal to 0x1000 can be considered
 	comparable iff everything but the last 12 bits is equal (so there can
@@ -132,11 +133,11 @@ is_resource(RdfTerm *term, bool uri, bool bnode)
 {
 	int len = strlen(BLANK_NODE_PREFIX);	
 
-  /* All resources have a type ID of 0 */
-  if(term->type_id)
-    return false;
-  if(uri == bnode)
-    return true;
+	/* All resources have a type ID of 0 */
+	if(term->type_id)
+		return false;
+	if(uri == bnode)
+		return true;
     
 	/* Compare prefix */
 	if(get_text_len(term) >= len)
@@ -339,7 +340,7 @@ RdfTerm *
 create_term_from_num(uint32_t type_id, double num)
 {
 	RdfTerm *term;
-  char text[12+1];
+	char text[12+1];
 
 	/* Format number */
 	size_t len = snprintf(text, 12, "%lg", num);
@@ -392,16 +393,16 @@ compare_terms(RdfTerm *term1, RdfTerm *term2)
 	
 	/* Internal type? All these are compatible, but unequal,
 	  /except/ for xsd:string and simple literals */
-  if(term1->type_id < term2->type_id)
-  {
-    if(term1->type_id != TYPE_ID_SIMPLE_LIT || term2->type_id != TYPE_ID_STRING)
-      return -1;
-  }
-  else if(term1->type_id > term2->type_id)
-  {
-    if(term1->type_id != TYPE_ID_STRING || term2->type_id != TYPE_ID_SIMPLE_LIT)
-      return 1;
-  }
+	if(term1->type_id < term2->type_id)
+	{
+		if(term1->type_id != TYPE_ID_SIMPLE_LIT || term2->type_id != TYPE_ID_STRING)
+			return -1;
+	}
+	else if(term1->type_id > term2->type_id)
+	{
+		if(term1->type_id != TYPE_ID_STRING || term2->type_id != TYPE_ID_SIMPLE_LIT)
+			return 1;
+	}
   
 	/* Compare textual */
 	return strcoll(term1->text, term2->text);
@@ -1017,4 +1018,26 @@ rdf_term_unary_minus(PG_FUNCTION_ARGS)
 	PG_RETURN_RDF_TERM(create_term_from_num(term->type_id, -term->num));
 }
 
+/* Misc */
+
+PG_FUNCTION_INFO_V1(rdf_term_lang_matches);
+Datum
+rdf_term_lang_matches(PG_FUNCTION_ARGS)
+{
+	RdfTerm *term1 = PG_GETARG_RDF_TERM(0);
+	RdfTerm *term2 = PG_GETARG_RDF_TERM(1);
+	bool result;
+	
+	// Must both be simple literals
+	if(term1->type_id != 1 || term2->type_id != 1)
+		PG_RETURN_NULL();
+	  
+	// '*' matches everything that's non-empty
+	if(!strcmp(term2->text, "*"))
+		PG_RETURN_RDF_TERM(create_term_bool(*term1->text));
+  
+	// Prefix test
+	result = !strncasecmp(term1->text, term2->text, get_text_len(term2));
+	PG_RETURN_RDF_TERM(create_term_bool(result));
+}
 

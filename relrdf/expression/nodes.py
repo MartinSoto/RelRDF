@@ -725,6 +725,11 @@ class MapValue(BinaryOperation):
     
     __slots__ = ()
 
+class LangMatches(BinaryOperation):
+    """Tests wether a language tag matches a language pattern"""
+    
+    __slots__ = ()
+    
 #
 # Pattern Nodes
 #

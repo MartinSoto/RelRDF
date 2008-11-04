@@ -340,5 +340,10 @@ CREATE OPERATOR - (
 	rightarg = rdf_term
 );
 
+/* Misc */
 
+CREATE FUNCTION rdf_term_lang_matches(rdf_term, rdf_term)
+  RETURNS rdf_term
+  AS 'rdf_term'
+  LANGUAGE C IMMUTABLE STRICT;
 

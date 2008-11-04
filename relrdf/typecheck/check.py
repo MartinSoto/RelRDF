@@ -340,6 +340,11 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
     def Lang(self, expr, *subexprs):
         expr.staticType = genericLiteralType
+        
+    def LangMatches(self, expr, sexpr1, sexpr2):
+        self._checkScalarOperands(expr, 'LANG_MATCHES')
+        expr.staticType = booleanLiteralType
+        
 
 def typeCheck(expr):
     """Type check `expr`. This function sets the ``staticType`` and

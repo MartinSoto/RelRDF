@@ -100,6 +100,7 @@ class QueryEvaluationTest(object):
     
     __slots__ = ('uri',
                  'name',
+                 'comment',
                  'type',
                  'query',
                  'data',
@@ -110,6 +111,7 @@ class QueryEvaluationTest(object):
         
         self.uri = uri
         self.name = triples.get((uri, ns.mf.name))
+        self.comment = triples.get((uri, ns.rdfs.comment))
         self.type = triples.get((uri, ns.rdf.type))        
         
         action = triples.get((uri, ns.mf.action))
@@ -173,6 +175,8 @@ class SelectQueryEvaluationTest(QueryEvaluationTest):
         
         print "Running %s..." % self.name,
         log.testStart(self.name, "Select query test")
+        if not self.comment is None:
+            log.testEntry("Comment", self.comment)
         
         # Read the expected result
         try:
@@ -219,6 +223,8 @@ class ConstructQueryEvaluationTest(QueryEvaluationTest):
     def execute(self, model, sink, ref, log):
         print "Running %s..." % self.name,
         log.testStart(self.name, "Construct query test")
+        if not self.comment is None:
+            log.testEntry("Comment", self.comment)
         
         # Read the expected result
         try:

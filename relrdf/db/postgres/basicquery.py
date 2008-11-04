@@ -91,55 +91,15 @@ class TypeMapping(valueref.ValueMapping):
         super(TypeMapping, self).__init__()
     
     def intToExt(self, internal):
-        (expr,) = transform.Incarnator.reincarnate(
-          sqlnodes.SqlFunctionCall('rdf_term',
-            nodes.MapValue(
-                nodes.Select(
-                     sqlnodes.SqlRelation(1, 'types'),
-                     nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, self.property),
-                          sqlnodes.SqlString(rdfs.Resource)
-                     )
-                ),
-                sqlnodes.SqlFieldRef(1, 'id')),
-            nodes.MapValue(
-                nodes.Select(
-                     sqlnodes.SqlRelation(1, 'types'),
-                     nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, 'id'),
-                          nodes.Null()
-                     )
-                ),
-                sqlnodes.SqlFieldRef(1, 'uri')
-            )))
-        # Replace null by actual ID (done late so it won't reincarnate)
-        assert isinstance(expr[1][0][1][1], nodes.Null)
-        expr[1][0][1][1] = internal
-        return expr
+        return sqlnodes.SqlFunctionCall('rdf_term_%s_by_id' % self.property, internal)
     
     def extToInt(self, external):
-        (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
-                nodes.Select(
-                     sqlnodes.SqlRelation(1, 'types'),
-                     nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, self.property),
-                          sqlnodes.SqlFunctionCall('text',
-                          sqlnodes.SqlFunctionCall('rdf_term_to_string',
-                            nodes.Null()
-                          ))
-                     )
-                ),
-                sqlnodes.SqlFieldRef(1, 'id')
-            ))
-        # Replace null by actual URI (done late so it won't reincarnate)
-        assert isinstance(expr[0][1][1][0][0], nodes.Null)
-        expr[0][1][1][0][0] = external
-        return expr
-
+        return sqlnodes.SqlFunctionCall('rdf_term_%s_to_id' % self.property, external)
+    
 def typeValueRef(incarnation, fieldId):
     
     valueExpr = sqlnodes.SqlFieldRef(incarnation, fieldId);
-    typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', valueExpr)    
+    typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_data_type_id', valueExpr)    
     
     return valueref.ValueRef(TypeMapping('type_uri'), typeIdExpr)
 
@@ -211,11 +171,11 @@ class BasicMapper(transform.PureRelationalTransformer):
         raise NotImplementedError
     
     def DynType(self, expr, subexpr):
-        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', subexpr)
+        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_data_type_id', subexpr)
         return valueref.ValueRef(TypeMapping('type_uri'), typeIdExpr)
     
     def Lang(self, expr, subexpr):
-        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_type_id', subexpr)
+        typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_lang_type_id', subexpr)
         return valueref.ValueRef(TypeMapping('lang_tag'), typeIdExpr)
 
 class BasicSingleVersionMapper(BasicMapper):

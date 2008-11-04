@@ -168,10 +168,11 @@ INSERT INTO prefixes (prefix, namespace)
   
 GRANT ALL ON types, data_types_id_seq, language_tags_id_seq, prefixes, relrdf_schema_version, statements, statements_id_seq, twoway, twoway_conns, twoway_use_time, threeway, threeway_conns, threeway_use_time, version_statement TO vmodell;
 
-/* Stored utility procedures */
+/* Stored procedures handling type lookups */
 
 CREATE LANGUAGE 'plpgsql';
 
+-- Looks up or creates type entry for given type URI / language tag
 CREATE OR REPLACE FUNCTION rdf_term_literal_type_to_id(uri text, tag text) RETURNS int4 AS $$
   DECLARE
     type_id int4;
@@ -189,13 +190,12 @@ CREATE OR REPLACE FUNCTION rdf_term_literal_type_to_id(uri text, tag text) RETUR
   END
 $$ LANGUAGE 'plpgsql' VOLATILE;
 
-CREATE OR REPLACE FUNCTION rdf_term_create(val text, is_res int, type_uri text, lang_tag text) RETURNS rdf_term AS $$
+-- Creates a literal with given type and data
+CREATE OR REPLACE FUNCTION rdf_term_literal(val text, type_uri text, lang_tag text) RETURNS rdf_term AS $$
   DECLARE
     type_id int4;
   BEGIN
-    IF is_res != 0 THEN
-      type_id = 0;
-    ELSIF type_uri IS NULL AND lang_tag IS NULL THEN
+    IF type_uri IS NULL AND lang_tag IS NULL THEN
       type_id = 1;
     ELSE
       type_id = rdf_term_literal_type_to_id(type_uri, lang_tag);
@@ -204,7 +204,84 @@ CREATE OR REPLACE FUNCTION rdf_term_create(val text, is_res int, type_uri text, 
   END
 $$ LANGUAGE 'plpgsql' VOLATILE;
 
+-- Creates a resource object with given data
 CREATE OR REPLACE FUNCTION rdf_term_resource(uri text) RETURNS rdf_term AS $$
-  BEGIN RETURN rdf_term(0, uri); END
+  SELECT rdf_term(0, $1);
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+-- Creates a resource or a literal (used by model import)
+CREATE OR REPLACE FUNCTION rdf_term_create(val text, is_res int, type_uri text, lang_tag text) RETURNS rdf_term AS $$
+  SELECT CASE WHEN $2 <> 0 THEN rdf_term_resource($1) ELSE rdf_term_literal($1, $3, $4) END;
+$$ LANGUAGE SQL VOLATILE;
+
+
+-- Looks up the language tag for a given type id (returns an empty literal if it doesn't exist)
+CREATE OR REPLACE FUNCTION rdf_term_lang_tag_by_id(type_id int4) RETURNS rdf_term AS $$
+  BEGIN
+    RETURN rdf_term(1, COALESCE((SELECT lang_tag FROM types WHERE id = type_id), ''));
+  END
+$$ LANGUAGE 'plpgsql' IMMUTABLE STRICT;
+
+-- Looks up the data type URI for a given term (returns empty URI if id doesn't exist)
+CREATE OR REPLACE FUNCTION rdf_term_type_uri_by_id(type_id int4) RETURNS rdf_term AS $$
+  BEGIN
+    RETURN rdf_term(0, COALESCE((SELECT type_uri FROM types WHERE id = type_id), ''));
+  END
+$$ LANGUAGE 'plpgsql' IMMUTABLE STRICT;
+
+
+-- Returns the ID for a language tag given as simple literal.
+-- Gives -1 for an empty literal and -2 for an unknown language tag (so they are unequal to both)
+CREATE OR REPLACE FUNCTION rdf_term_lang_tag_to_id(tag rdf_term) RETURNS int4 AS $$
+  BEGIN
+    -- Type check
+    IF rdf_term_get_type_id(tag) <> 1 THEN RETURN NULL; END IF;
+    -- Empty?
+    IF text(rdf_term_to_string(tag)) = '' THEN RETURN -1; END IF;
+    -- Lookup type id
+    RETURN COALESCE((SELECT id FROM types WHERE lang_tag = text(rdf_term_to_string(tag))), -2);
+  END
+$$ LANGUAGE 'plpgsql' IMMUTABLE STRICT;
+
+-- Returns the ID for a data type IRI.
+-- Gives -1 for an empty IRI and -2 for an unknown data type IRI (so they are unequal to both)
+CREATE OR REPLACE FUNCTION rdf_term_type_uri_to_id(uri rdf_term) RETURNS int4 AS $$
+  BEGIN
+    -- Type check
+    IF rdf_term_get_type_id(uri) <> 0 THEN RETURN NULL; END IF;
+    -- Empty?
+    IF text(rdf_term_to_string(uri)) = '' THEN RETURN -1; END IF;
+    -- Lookup type id
+    RETURN COALESCE((SELECT id FROM types WHERE type_uri = text(rdf_term_to_string(uri))), -2);
+  END
+$$ LANGUAGE 'plpgsql' IMMUTABLE STRICT;
+
+
+-- Returns type id only if it's a valid language type id
+-- Gives NULL if it's actually a resource and -1 otherwise.
+CREATE OR REPLACE FUNCTION rdf_term_get_lang_type_id(term rdf_term) RETURNS int4 AS $$
+  DECLARE
+    type_id int4;
+  BEGIN
+    type_id := rdf_term_get_type_id(term);
+    RETURN (CASE 
+      WHEN type_id = 0 THEN NULL
+      WHEN type_id >= 3 AND type_id < 4096 THEN type_id
+      ELSE -1 END);
+  END
+$$ LANGUAGE 'plpgsql' IMMUTABLE STRICT;
+
+-- Returns type id only if it's a valid data type id (-1 otherwise)
+CREATE OR REPLACE FUNCTION rdf_term_get_data_type_id(term rdf_term) RETURNS int4 AS $$
+  DECLARE
+    type_id int4;
+  BEGIN
+    type_id := rdf_term_get_type_id(term);
+    RETURN (CASE 
+      WHEN type_id = 1 THEN 2 -- simple literals actually have a data type uri of xsd:string
+      WHEN type_id = 2 THEN 2
+      WHEN type_id >= 4096 THEN type_id
+      ELSE NULL END);
+  END
 $$ LANGUAGE 'plpgsql' IMMUTABLE STRICT;
 

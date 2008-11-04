@@ -503,7 +503,7 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(str, self); \
           expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.Lang(param); \
           expr.setExtentsStartFromToken(lang, self); \
           expr.setExtentsEndFromToken(rp2); }
     |   lm:LANGMATCHES

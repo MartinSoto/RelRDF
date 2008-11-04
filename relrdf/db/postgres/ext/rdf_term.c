@@ -390,7 +390,7 @@ compare_terms(RdfTerm *term1, RdfTerm *term2)
 			return 1;
 	}
 	
-	/* Internal type? All these are compatible, but unqual,
+	/* Internal type? All these are compatible, but unequal,
 	  /except/ for xsd:string and simple literals */
   if(term1->type_id < term2->type_id)
   {

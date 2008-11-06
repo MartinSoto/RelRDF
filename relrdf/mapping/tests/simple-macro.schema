@@ -1,8 +1,0 @@
-def comp($a, $b) $a = $b;
-
-mapping testMapping ()
-  match (., $subj, ., .) on ( comp($subj, "http://xxx1") )
-    tab1
-
-  default
-    tabDefault;

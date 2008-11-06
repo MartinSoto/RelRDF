@@ -1,7 +1,7 @@
 import re
 
 from relrdf.commonns import xsd, fn, sql, rdfs
-from relrdf.expression import uri, rewrite, nodes, simplify, evaluate
+from relrdf.expression import uri, rewrite, nodes
 
 class SqlEmitter(rewrite.ExpressionProcessor):
     """Generate SQL code from a relational expression."""
@@ -312,14 +312,5 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
 def emit(expr):
     emitter = SqlEmitter()
-
-    # Simplify the expression first.
-    # -- deactivated, as it might have to deal with SQL-specific stuff by this point
-    #expr = simplify.simplify(expr)
-
-    # Reduce constant expressions.
-    # -- deactivated until type informations are properly preserved
-    # expr = evaluate.reduceConst(expr)
-    
     return emitter.process(expr)
 

@@ -1312,21 +1312,13 @@ _modelFactories = {
 def getModel(modelBase, modelType, schema=None, **modelArgs):
     modelTypeNorm = modelType.lower()
 
-    if schema is not None:
-        # Try to load the schema.
-        schema = mapping.loadSchema(schema)
-        if schema is None:
-            raise InstantiationError(_("Schema '%s' not found") % schema)
-
-        transf = schema.getMapper(modelType, **modelArgs)
-    else:
-        try:
-            modelCls, transfCls = _modelFactories[modelTypeNorm]
-        except KeyError:
-            raise InstantiationError(_("Invalid model type '%s'") % modelType)
-        except TypeError, e:
-            raise InstantiationError(_("Missing or invalid model "
-                                       "arguments: %s") % e)
+    try:
+        modelCls, transfCls = _modelFactories[modelTypeNorm]
+    except KeyError:
+        raise InstantiationError(_("Invalid model type '%s'") % modelType)
+    except TypeError, e:
+        raise InstantiationError(_("Missing or invalid model "
+                                   "arguments: %s") % e)
 
     return modelCls(modelBase, transfCls(**modelArgs), **modelArgs)
 

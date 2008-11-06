@@ -39,27 +39,6 @@ class ValueMapping(nodes.ExpressionNode):
         representation of a value, construct an expression
         corresponding to its internal representation."""
 
-
-class MacroValueMapping(ValueMapping):
-    """A value mapping based on schema macro expressions.
-
-    The mapping is a expression node with two subexpressions. The
-    subexpressions must be macro closures, and correspond in order to
-    the internal-to-external, and to the external-to-internal value
-    conversions."""
-
-    __slots__ = ()
-
-    def __init__(self, intToExtCls, extToIntCls):
-        super(MacroValueMapping, self).__init__(intToExtCls, extToIntCls)
-
-    def intToExt(self, internal):
-        return self[0].expand(internal)
-
-    def extToInt(self, external):
-        return self[1].expand(external)
-
-
 class ValueRef(nodes.ExpressionNode):
     """An expression node packaging an internal value.
 

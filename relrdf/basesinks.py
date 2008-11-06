@@ -1,6 +1,8 @@
+
+from relrdf.localization import _
+from relrdf.error import InstantiationError
 from relrdf.expression import uri, literal
 from relrdf.commonns import rdf
-
 
 class NullSink(object):
     """An RDF sink that ignores triples passed to it."""
@@ -70,3 +72,30 @@ class DictSink(dict):
             # Add, continue with next element
             list.append(first)
             base = rest
+
+class DebugModelBase(object):
+    """An incomplete model base to instantiate and serve the debugging
+    sinks in this class."""
+
+    __slots__ = ()
+
+    def getSink(self, sinkType, **sinkArgs):
+        sinkTypeNorm = sinkType.lower()
+
+        try:
+            if sinkTypeNorm == 'null':
+                return NullSink(**sinkArgs)
+            elif sinkTypeNorm == 'print':
+                return PrintSink(**sinkArgs)
+            else:
+                raise InstantiationError(_("Invalid sink type '%s'") % sinkType)
+        except TypeError, e:
+            raise InstantiationError(_("Missing or invalid sink arguments: %s")
+                                     % e)
+
+    def close(self):
+        pass
+
+def getModelBase(**modelBaseArgs):
+    return DebugModelBase(**modelBaseArgs)
+

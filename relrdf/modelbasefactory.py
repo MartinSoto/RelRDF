@@ -14,6 +14,9 @@ def getModelBase(modelBaseType, **modelBaseArgs):
     elif modelBaseTypeNorm == "postgres":
         from db import postgres
         module = postgres
+    elif modelBaseTypeNorm == "debug":
+        import basesinks
+        module = basesinks
     else:
         raise InstantiationError("invalid model base type '%s'"
                                  % modelBaseType)

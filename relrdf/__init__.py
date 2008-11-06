@@ -13,6 +13,9 @@ from relrdf.expression.literal import Literal
 # Common namespaces.
 import commonns as ns
 
+# URI shortener service.
+from relrdf.util.nsshortener import NamespaceUriShortener 
+
 # Factory function to create model bases. Indirectly, this gives access
 # to queryable model objects.
 from modelbasefactory import getModelBase

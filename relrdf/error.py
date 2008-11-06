@@ -47,6 +47,12 @@ class TemplateError(Error):
     pass
 
 
+class SerializationError(Error):
+    """Exception class for errors related to model serialization.
+    """
+    pass
+
+
 class PositionError(Error):
     """Base class for exceptions containing an error position."""
 

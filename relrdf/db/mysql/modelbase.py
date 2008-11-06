@@ -181,7 +181,7 @@ class ModelBase(SyncMethodsMixin):
 
     _connTwoWay = string.Template(
         """
-        INSERT INTO twoway_conns (version_a, version_b, connection)
+        INSERT INTO twoway_conns (version_a, version_b, `connection`)
         VALUES ($versionA, $versionB, connection_id())
         """)
 
@@ -225,12 +225,28 @@ class ModelBase(SyncMethodsMixin):
         self._connection.commit()
         cursor.close()
 
+    _releaseConnTwoWay = string.Template(
+        """
+        DELETE FROM twoway_conns
+        WHERE twoway_conns.connection = connection_id() and
+              twoway_conns.version_a = $versionA and
+              twoway_conns.version_b = $versionB
+        """)
+
     @synchronized
     def releaseTwoWay(self, versionA, versionB):
         count = self._twoWayUsers[(versionA, versionB)]
         assert count > 0
         count -= 1
         self._twoWayUsers[(versionA, versionB)] = count
+        if count == 0:
+            # Remove the control connection as a user of this comparison.
+            cursor = self._connection.cursor()
+            cursor.execute(self._releaseConnTwoWay. \
+                               substitute(versionA=versionA,
+                                          versionB=versionB))
+            self._connection.commit()
+            cursor.close()
 
     _updateTimeThreeWay = string.Template(
         """
@@ -329,12 +345,31 @@ class ModelBase(SyncMethodsMixin):
         self._connection.commit()
         cursor.close()
 
+
+    _releaseConnThreeWay = string.Template(
+        """
+        DELETE FROM threeway_conns
+        WHERE threeway_conns.connection = connection_id() and
+              threeway_conns.version_a = $versionA and
+              threeway_conns.version_b = $versionB and
+              threeway_conns.version_c = $versionC
+        """)
+
     @synchronized
     def releaseThreeWay(self, versionA, versionB, versionC):
         count = self._threeWayUsers[(versionA, versionB, versionC)]
         assert count > 0
         count -= 1
         self._threeWayUsers[(versionA, versionB, versionC)] = count
+        if count == 0:
+            # Remove the control connection as a user of this comparison.
+            cursor = self._connection.cursor()
+            cursor.execute(self._releaseConnThreeWay. \
+                               substitute(versionA=versionA,
+                                          versionB=versionB,
+                                          versionC=versionC))
+            self._connection.commit()
+            cursor.close()
 
     @synchronized
     def cleanUpCaches(self):
@@ -365,13 +400,13 @@ class ModelBase(SyncMethodsMixin):
 
         # Delete those use times not in use by a current connection.
         cursor.execute("""
-            DELETE FROM twoway_use_time ut
+            DELETE FROM ut
             USING twoway_use_time ut LEFT JOIN twoway_conns c
             ON ut.version_a = c.version_a AND ut.version_b = c.version_b
             WHERE c.version_a is null
             """)
         cursor.execute("""
-            DELETE FROM threeway_use_time ut
+            DELETE FROM ut
             USING threeway_use_time ut LEFT JOIN threeway_conns c
             ON ut.version_a = c.version_a AND ut.version_b = c.version_b
                AND ut.version_c = c.version_c
@@ -380,13 +415,13 @@ class ModelBase(SyncMethodsMixin):
 
         # Delete the comparison models not in use currently.
         cursor.execute("""
-            DELETE FROM twoway t
+            DELETE FROM t
             USING twoway t LEFT JOIN twoway_use_time ut
             ON t.version_a = ut.version_a AND t.version_b = ut.version_b
             WHERE ut.version_a is null
             """)
         cursor.execute("""
-            DELETE FROM threeway t
+            DELETE FROM t
             USING threeway t LEFT JOIN threeway_use_time ut
             ON t.version_a = ut.version_a AND t.version_b = ut.version_b
                AND t.version_c = ut.version_c

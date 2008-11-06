@@ -653,7 +653,7 @@ class Results(object):
 
         # Send the query to the database (iterating on this object
         # will produce the actual results.)
-        print sqlText
+        #print sqlText
         self.cursor.execute(sqlText)
 
         self.length = self.cursor.rowcount

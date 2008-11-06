@@ -52,33 +52,6 @@ def uriValueRef(incarnation, fieldId, mapping):
     return valueref.ValueRef(mapping.copy(),
                              sqlnodes.SqlFieldRef(incarnation, fieldId))
 
-class ChecksumValueMapping(valueref.ValueMapping):
-    """A value mapping that uses a checksum column as internal
-    representation, and a parallel text column as external
-    representation. The checksum column is expected to contain a
-    robust checksum (i.e., MD5) of the corresponding text value, so
-    that it is possible to compare checksums instead of values, and
-    still have a very low probability of false possitives.
-    The internal expression must be a field reference pointing to the
-    checksum field. The corresponding text field must be named by
-    appending '_text' to the name of the checksum field."""
-
-    __slots__ = ()
-
-    def intToExt(self, internal):
-        assert isinstance(internal, sqlnodes.SqlFieldRef)
-        return sqlnodes.SqlFieldRef(internal.incarnation,
-                                    internal.fieldId + '_text')
-
-    def extToInt(self, expr):
-        return sqlnodes.SqlScalarExpr('unhex(md5(convert($0$ using utf8)))',
-                                      expr)
-
-
-#def checksumValueRef(incarnation, fieldId):
-#    return valueref.ValueRef(ChecksumValueMapping(),
-#                             sqlnodes.SqlFieldRef(incarnation, fieldId))
-
 class TypeMapping(valueref.ValueMapping):
     """A value mapping that uses type IDs as listed in the
     types SQL table instead of the full type URIs used
@@ -103,46 +76,8 @@ def typeValueRef(incarnation, fieldId):
     
     return valueref.ValueRef(TypeMapping('type_uri'), typeIdExpr)
 
-class TextIdMapping(valueref.ValueMapping):
-    
-    __slots__ = ()
-    
-    def intToExt(self, internal):
-        (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
-                nodes.Select(
-                     sqlnodes.SqlRelation(1, 'statement_text'),
-                     nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, 'id'),
-                          nodes.Null()
-                     )
-                ),
-                sqlnodes.SqlFieldRef(1, 'txt')
-            ))    
-        # Replace null by actual ID (done late so it won't reincarnate)
-        assert isinstance(expr[0][1][1], nodes.Null)
-        expr[0][1][1] = internal
-        return expr
-    
-    def extToInt(self, external):
-        (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
-                nodes.Select(
-                     sqlnodes.SqlRelation(1, 'statement_text'),
-                     nodes.Equal(
-                          sqlnodes.SqlFieldRef(1, 'txt'),
-                          nodes.Null()
-                     )
-                ),
-                sqlnodes.SqlFieldRef(1, 'id')
-            ))
-        # Replace null by actual URI (done late so it won't reincarnate)
-        assert isinstance(expr[0][1][1], nodes.Null)
-        expr[0][1][1] = external
-        return expr
-
-def checksumValueRef(incarnation, fieldId):
+def valueRef(incarnation, fieldId):
     return sqlnodes.SqlTypedFieldRef(incarnation, fieldId)
-#    return valueref.ValueRef(TextIdMapping(),
-#                             sqlnodes.SqlFieldRef(incarnation, fieldId))
     
 class BasicMapper(transform.PureRelationalTransformer):
     """A base mapper for the Postgres basic schema. It handles the
@@ -237,9 +172,9 @@ class BasicSingleVersionMapper(BasicMapper):
                            'object'],
                           rel,
                           nodes.Uri(self.versionUri + str(self.versionId)),
-                          checksumValueRef(2, 'subject'),
-                          checksumValueRef(2, 'predicate'),
-                          checksumValueRef(2, 'object'))
+                          valueRef(2, 'subject'),
+                          valueRef(2, 'predicate'),
+                          valueRef(2, 'object'))
 
         self.stmtRepl = (replExpr,
                          ('context', 'subject', 'predicate', 'object'))
@@ -442,11 +377,11 @@ class AllVersionsMapper(BasicMapper,
                           rel,
                           uriValueRef(1, 'version_id', self.versionMapping),
                           resourceTypeExpr(),
-                          checksumValueRef(2, 'subject'),
+                          valueRef(2, 'subject'),
                           resourceTypeExpr(),
-                          checksumValueRef(2, 'predicate'),
+                          valueRef(2, 'predicate'),
                           resourceTypeExpr(),
-                          checksumValueRef(2, 'object'),
+                          valueRef(2, 'object'),
                           typeValueRef(2, 'object'))
 
         self.stmtRepl = (replExpr,
@@ -485,11 +420,11 @@ class AllStmtsMapper(BasicMapper,
                           rel,
                           nodes.Uri(commonns.relrdf.stmts),
                           resourceTypeExpr(),
-                          checksumValueRef(1, 'subject'),
+                          valueRef(1, 'subject'),
                           resourceTypeExpr(),
-                          checksumValueRef(1, 'predicate'),
+                          valueRef(1, 'predicate'),
                           resourceTypeExpr(),
-                          checksumValueRef(1, 'object'),
+                          valueRef(1, 'object'),
                           typeValueRef(1, 'object'))
 
         self.stmtRepl = (replExpr,
@@ -581,7 +516,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               resourceTypeExpr(),
                               nodes.Literal(commonns.rdf.subject),
                               resourceTypeExpr(),
-                              checksumValueRef(1, 'subject'),
+                              valueRef(1, 'subject'),
                               resourceTypeExpr())
         elif isinstance(expr[2], nodes.Uri) and \
              expr[2].uri == commonns.rdf.predicate:
@@ -598,7 +533,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               resourceTypeExpr(),
                               nodes.Literal(commonns.rdf.predicate),
                               resourceTypeExpr(),
-                              checksumValueRef(1, 'predicate'),
+                              valueRef(1, 'predicate'),
                               resourceTypeExpr())
         elif isinstance(expr[2], nodes.Uri) and \
              expr[2].uri == commonns.rdf.object:
@@ -615,7 +550,7 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                               resourceTypeExpr(),
                               nodes.Literal(commonns.rdf.object),
                               resourceTypeExpr(),
-                              checksumValueRef(1, 'object'),
+                              valueRef(1, 'object'),
                               typeValueRef(1, 'object'))
 
         if replExpr is not None:
@@ -641,11 +576,11 @@ class MetaVersionMapper(BasicSingleVersionMapper,
                           resourceTypeExpr(),
                           uriValueRef(1, 'id', self.stmtMapping),
                           resourceTypeExpr(),
-                          checksumValueRef(1, 'subject'),
+                          valueRef(1, 'subject'),
                           resourceTypeExpr(),
-                          checksumValueRef(1, 'predicate'),
+                          valueRef(1, 'predicate'),
                           resourceTypeExpr(),
-                          checksumValueRef(1, 'object'),
+                          valueRef(1, 'object'),
                           typeValueReff(1, 'object'))
 
         self.reifStmtRepl = (replExpr,
@@ -719,11 +654,11 @@ class TwoWayComparisonMapper(BasicMapper,
                               rel,
                               nodes.Uri(commonns.relrdf.model + modelLetter),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'subject'),
+                              valueRef(2, 'subject'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'predicate'),
+                              valueRef(2, 'predicate'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'object'),
+                              valueRef(2, 'object'),
                               typeValueRef(2, 'object'))
         else:
             rel = build.buildExpression(
@@ -751,11 +686,11 @@ class TwoWayComparisonMapper(BasicMapper,
                               rel,
                               uriValueRef(1, 'context', compMapping),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'subject'),
+                              valueRef(2, 'subject'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'predicate'),
+                              valueRef(2, 'predicate'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'object'),
+                              valueRef(2, 'object'),
                               typeValueRef(2, 'object'))
 
         return (replExpr,
@@ -827,11 +762,11 @@ class ThreeWayComparisonMapper(BasicMapper,
                               rel,
                               nodes.Uri(commonns.relrdf.model + modelLetter),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'subject'),
+                              valueRef(2, 'subject'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'predicate'),
+                              valueRef(2, 'predicate'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'object'),
+                              valueRef(2, 'object'),
                               typeValueRef(2, 'object'))
         else:
             rel = build.buildExpression(
@@ -862,11 +797,11 @@ class ThreeWayComparisonMapper(BasicMapper,
                               rel,
                               uriValueRef(1, 'context', compMapping),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'subject'),
+                              valueRef(2, 'subject'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'predicate'),
+                              valueRef(2, 'predicate'),
                               resourceTypeExpr(),
-                              checksumValueRef(2, 'object'),
+                              valueRef(2, 'object'),
                               typeValueRef(2, 'object'))
 
         return (replExpr,

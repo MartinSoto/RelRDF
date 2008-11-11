@@ -10,18 +10,22 @@ class SingleVersionRdfSink(object):
                  'cursor',
                  'versionId',
                  'verbose',
+                 'delete',
 
-                 'pendingRows')
+                 'pendingRows',
+                 'rowsAffected')
 
     # Maximum number of rows per insert query.
     ROWS_PER_QUERY = 10000
 
-    def __init__(self, connection, versionId, verbose=False):
+    def __init__(self, connection, versionId, verbose=False, delete=False):
         self.connection = connection
         self.versionId = versionId
-        self.verbose = verbose
+        self.verbose = True
+        self.delete = delete
 
         self.pendingRows = []
+        self.rowsAffected = 0
 
         self.cursor = self.connection.cursor()
         
@@ -69,6 +73,32 @@ class SingleVersionRdfSink(object):
         
         if len(self.pendingRows) >= self.ROWS_PER_QUERY:
             self._writePendingRows()
+            
+    def insertByQuery(self, stmtQuery, stmtsPerRow):
+
+        # Collect needed columns
+        columns = ["col_%d" % i for i in range(3*stmtsPerRow)]
+        colDecls = ["%s rdf_term" % c for c in columns]
+        
+        # Create temporary table to receive the results
+        self.cursor.execute(
+            """
+            CREATE TEMPORARY TABLE statements_temp_qry (%s) ON COMMIT DROP;
+            """ % ','.join(colDecls))
+        
+        # Insert data
+        self.cursor.execute("INSERT INTO statements_temp_qry (%s);" % stmtQuery)  
+            
+        # Move data into main data table
+        for i in range(stmtsPerRow):
+            self.cursor.execute(
+                """
+                INSERT INTO statements_temp1 SELECT col_%s, col_%s, col_%s FROM statements_temp_qry;
+                """ % (i*3+0, i*3+1, i*3+2))
+        
+        # Drop intermediate table
+        self.cursor.execute("DROP TABLE statements_temp_qry;")
+        
                                 
     def _writePendingRows(self):
         if len(self.pendingRows) == 0:
@@ -89,9 +119,6 @@ class SingleVersionRdfSink(object):
 
     def finish(self):
         self._writePendingRows()
-        
-        # Write RDF term values
-        writeFormat = 2;
         
         # Create temporary table to hold statement IDs
         self.cursor.execute(
@@ -118,51 +145,83 @@ class SingleVersionRdfSink(object):
                          ss.object = s.object
             """ % int(self.versionId)) 
         
-        # Insert the statements into the statements table.
-        # Note: The rdf_term_create constructor used in the creation of
-        #       the statements_temp2 above might fail leading to
-        #       NULL values to appear. These are filtered out here.
-        #       Maybe we might want to raise an error here? The
-        #       DAWG test cases seem to expect us to keep going, so
-        #       that's what we do...
-        if self.verbose:
-            print "Inserting statements..."
-        self.cursor.execute(
-            """
-            INSERT INTO statements (subject, predicate, object)
-              SELECT DISTINCT s.subject, s.predicate, s.object
-                FROM statements_temp1 s
-                  LEFT JOIN statements ss
-                      ON ss.subject = s.subject AND
-                         ss.predicate = s.predicate AND
-                         ss.object = s.object
-                WHERE ss.id IS NULL
-                  AND s.subject IS NOT NULL
-                  AND s.predicate IS NOT NULL
-                  AND s.object IS NOT NULL                      
-              RETURNING id
-            """)
-                    
-        # Get IDs of newly inserted rows
-        ids = self.cursor.fetchall()
-        ids = [(int(self.versionId), x.pop()) for x in ids]
-        self.cursor.executemany(
-            """
-            INSERT INTO version_statement_temp1 (version_id, stmt_id)
-                VALUES (%d, %d)
-            """, ids)
-        
-        # Add the statement numbers to the version.
-        if self.verbose:
-            print "Saving version information..."        
-        self.cursor.execute(
-            """
-            INSERT INTO version_statement (version_id, stmt_id)
-                SELECT vt.version_id, vt.stmt_id
-                  FROM version_statement_temp1 vt
-                    LEFT JOIN version_statement v ON v.version_id = vt.version_id AND v.stmt_id = vt.stmt_id
-                WHERE v.stmt_id IS NULL
-            """)
+        # Delete?
+        if self.delete:
+            
+            if self.verbose:
+                print "Removing statements from version..."
+            
+            self.cursor.execute(
+                """
+                DELETE FROM version_statement vs
+                  WHERE version_id = %d AND stmt_id IN 
+                    (SELECT stmt_id FROM version_statement_temp1)
+                """ % int(self.versionId))
+            
+            if self.verbose:
+                print "Removing unused statements..."
+            self.cursor.execute(
+                """
+                DELETE FROM statements ss
+                  WHERE NOT id IN (SELECT stmt_id FROM version_statement)
+                """)            
+                
+        else:
+            
+            # Insert the statements into the statements table.
+            # Note: The rdf_term_create constructor used in the creation of
+            #       the statements_temp2 above might fail leading to
+            #       NULL values to appear. These are filtered out here.
+            #       Maybe we might want to raise an error here? The
+            #       DAWG test cases seem to expect us to keep going, so
+            #       that's what we do...
+            # Note 2: Seems what the DAWG test cases actually want us
+            #         to accept invalid terms into the data base.
+            #         The rules to use for these terms aren't properly
+            #         defined though, so we leave it like this for now.
+            if self.verbose:
+                print "Inserting statements..."
+            self.cursor.execute(
+                """
+                INSERT INTO statements (subject, predicate, object)
+                  SELECT DISTINCT s.subject, s.predicate, s.object
+                    FROM statements_temp1 s
+                      LEFT JOIN statements ss
+                          ON ss.subject = s.subject AND
+                             ss.predicate = s.predicate AND
+                             ss.object = s.object
+                    WHERE ss.id IS NULL
+                      AND s.subject IS NOT NULL
+                      AND s.predicate IS NOT NULL
+                      AND s.object IS NOT NULL                      
+                  RETURNING id
+                """)
+                        
+            # Get IDs of newly inserted rows
+            ids = self.cursor.fetchall()
+            ids = [(int(self.versionId), x.pop()) for x in ids]
+            self.cursor.executemany(
+                """
+                INSERT INTO version_statement_temp1 (version_id, stmt_id)
+                    VALUES (%d, %d)
+                """, ids)
+            
+            # Add the statement numbers to the version.
+            if self.verbose:
+                print "Saving version information..."        
+            self.cursor.execute(
+                """
+                INSERT INTO version_statement (version_id, stmt_id)
+                    SELECT vt.version_id, vt.stmt_id
+                      FROM version_statement_temp1 vt
+                        LEFT JOIN version_statement v ON v.version_id = vt.version_id AND v.stmt_id = vt.stmt_id
+                    WHERE v.stmt_id IS NULL
+                """)
+            
+        # Query row count
+        self.cursor.execute("SELECT COUNT(*) FROM statements_temp1")
+        count = self.cursor.fetchone()[0]
+        self.rowsAffected += count
         
         # Drop temporary table contents
         self.cursor.execute(

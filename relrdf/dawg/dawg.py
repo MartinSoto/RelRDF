@@ -225,14 +225,9 @@ if __name__ == '__main__':
         baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
         modelBase = relrdf.getModelBase(baseType, **baseArgs)
         
-        sinkType, sinkArgs = parseCmdLineArgs(argv, 'sink')
-        sink = modelBase.getSink(sinkType, **sinkArgs)
-    
         modelType, modelArgs = parseCmdLineArgs(argv, 'model')
         model = modelBase.getModel(modelType, **modelArgs)
-        
-        # Hack!
-        model._connection = sink.connection
+        sink = model.getSink()
             
     except InstantiationError, e:
         print >> sys.stderr, ("error: %s") % e

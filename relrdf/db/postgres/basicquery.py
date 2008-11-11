@@ -14,6 +14,8 @@ from relrdf.mapping import transform, valueref, sqlnodes, emit, sqltranslate
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
      ResourceType, RdfNodeType, resourceType, rdfNodeType
 
+from basicsinks import SingleVersionRdfSink
+
 def resourceTypeExpr():
     return nodes.Uri(commonns.rdfs.Resource)
 
@@ -94,15 +96,8 @@ class BasicMapper(transform.PureRelationalTransformer):
         else:
             assert False, "Cannot determine type"
 
-    canWrite = False
-    """True iff this sink is able to write."""
-
-    def insert(self, cursor, stmtQuery, stmtsPerRow):
-        """Insert the statements returned by `stmtQuery` into the model."""
-        raise NotImplementedError
-
-    def delete(self, cursor, stmtQuery, stmtsPerRow):
-        """Delete the statements returned by `stmtQuery` from the model."""
+    def getModifGraphId(self):
+        """Returns the version ID that should receive modifications."""
         raise NotImplementedError
     
     def DynType(self, expr, subexpr):
@@ -138,20 +133,6 @@ class BasicSingleVersionMapper(BasicMapper):
     def replStatementPattern(self, expr):
         if self.stmtRepl is not None:
             return self.stmtRepl
-
-#        rel = build.buildExpression(
-#            (nodes.Select,
-#             (nodes.Product,
-#              (sqlnodes.SqlRelation, 1, 'version_statement'),
-#              (sqlnodes.SqlRelation, 2, 'statements')),
-#             (nodes.And,
-#              (nodes.Equal,
-#               (sqlnodes.SqlFieldRef, 1, 'version_id'),
-#               (sqlnodes.SqlInt, self.versionId)),
-#              (nodes.Equal,
-#               (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-#               (sqlnodes.SqlFieldRef, 2, 'id'))))
-#            )
 
         rel = nodes.Select(
             sqlnodes.SqlRelation(2, 'statements'),
@@ -197,143 +178,9 @@ class SingleVersionMapper(BasicSingleVersionMapper,
     def __init__(self, versionId, versionUri=commonns.relrdf.version):
         super(SingleVersionMapper, self).__init__(versionId,
                                                   versionUri)
-
-    canWrite = True
-
-    _stmtColsTmpl = string.Template(
-        """
-        hash$num binary(16),
-        subject_text$num longtext NOT NULL,
-        predicate_text$num longtext NOT NULL,
-        object_type$num mediumint NOT NULL,
-        object_text$num longtext NOT NULL
-        """)
-
-    _destColsTmpl = string.Template(
-        """
-        hash$num,
-        subject_text$num,
-        predicate_text$num,
-        object_type$num,
-        object_text$num
-        """)
-
-    _srcColsTmpl = string.Template(
-        """
-        unhex(md5(concat(sq.subject$num,
-                         sq.predicate$num,
-                         sq.object$num))),
-        sq.subject$num,
-        sq.predicate$num,
-        sq.type__object$num,
-        sq.object$num
-        """)
-
-    def _storeModifResults(self, cursor, stmtQuery, stmtsPerRow):
-        """Run `stmtQuery` and store its results in a temporary
-        table.
-        """
-        # FIXME: A bug/limitation in MySQL causes an automatic commit
-        # whenever a table is dropped. To work around it, we use a
-        # different table for each required width and reuse them as
-        # needed.
-
-        # Create (if it doesn't exist already) a temporary table to
-        # hold the results.
-        cursor.execute(
-            """
-            CREATE TEMPORARY TABLE IF NOT EXISTS statements_temp%d (%s)
-              ENGINE=InnoDB DEFAULT CHARSET=utf8;
-            """ %
-            (stmtsPerRow,
-             ', '.join((self._stmtColsTmpl.substitute(num=i+1)
-                        for i in range(stmtsPerRow)))))
-
-        # Clean up the table contents in case the table was already
-        # there.
-        cursor.execute(
-            """
-            DELETE FROM statements_temp%d
-            """ % stmtsPerRow)
-
-        # Write the statements into the table.
-        cursor.execute(
-            """
-            INSERT INTO statements_temp%d (%s)
-              SELECT %s FROM (%s) AS sq""" %
-            (stmtsPerRow,
-             ', '.join((self._destColsTmpl.substitute(num=i+1)
-                        for i in range(stmtsPerRow))),
-             ', '.join((self._srcColsTmpl.substitute(num=i+1)
-                        for i in range(stmtsPerRow))),
-             stmtQuery))
-
-    _insertCreateStmts = string.Template(
-        """
-        INSERT INTO statements (hash, subject, predicate, object,
-                                subject_text, predicate_text, object_type,
-                                object_text)
-          SELECT s.hash$num, unhex(md5(subject_text$num)),
-                 unhex(md5(predicate_text$num)), unhex(md5(object_text$num)),
-                 s.subject_text$num, s.predicate_text$num,
-                 s.object_type$num, s.object_text$num
-          FROM statements_temp$stmtsPerRow s
-        ON DUPLICATE KEY UPDATE statements.subject = statements.subject;
-        """)
-
-    _insertAddToVersion = string.Template(
-        """
-        INSERT INTO version_statement (version_id, stmt_id)
-          SELECT $versionId AS v_id, s.id
-          FROM statements s, statements_temp$stmtsPerRow st
-          WHERE s.hash = st.hash$num
-        ON DUPLICATE KEY UPDATE version_id = $versionId;
-        """)
-
-    def insert(self, cursor, stmtQuery, stmtsPerRow):
-        self._storeModifResults(cursor, stmtQuery, stmtsPerRow)
-
-        count = 0
-        for i in range(stmtsPerRow):
-            # Put the statements into the table, without repetitions.
-            cursor.execute(
-                self._insertCreateStmts.substitute(num=i+1,
-                                                   stmtsPerRow=stmtsPerRow))
-
-            # Add the statement numbers to the version.
-            cursor.execute(
-                self._insertAddToVersion.substitute(versionId=self.versionId,
-                                                    num=i+1,
-                                                    stmtsPerRow=stmtsPerRow))
-            count += cursor.rowcount
-
-        return count
-
-    _deleteRemoveFromVersion = string.Template(
-        """
-        DELETE FROM version_statement v
-        USING version_statement v, statements s,
-              statements_temp$stmtsPerRow st
-        WHERE
-          v.version_id = $versionId AND v.stmt_id = s.id AND
-          s.hash = st.hash$num;
-        """)
-
-    def delete(self, cursor, stmtQuery, stmtsPerRow):
-        self._storeModifResults(cursor, stmtQuery, stmtsPerRow)
-
-        count = 0
-        for i in range(stmtsPerRow):
-            # Delete the statement numbers from the version.
-            cursor.execute(
-                self._deleteRemoveFromVersion.substitute(
-                    versionId=self.versionId,
-                    num=i+1,
-                    stmtsPerRow=stmtsPerRow))
-            count += cursor.rowcount
-
-        return count
-
+    
+    def getModifGraphId(self):
+        return self.versionId
 
 class AllVersionsMapper(BasicMapper,
                         transform.StandardReifTransformer):
@@ -1036,52 +883,51 @@ class BasicModel(object):
 
     _versionIdPattern = re.compile('[0-9]')
 
-    def _processModifOp(self, expr):
-        if expr.graphUri is None:
-            mappingTransf = self.mappingTransf
-        else:
-            # FIXME: This should probably be done through the model
-            # factory.
+    
+    def getSink(self, graphUri = None, delete=False):
+        
+        if graphUri is None:
             
-            # Find a suitable version URI.
-            if hasattr(self.mappingTransf, 'versionUri'):
-                versionUri = self.mappingTransf.versionUri
-            else:
-                versionUri = commonns.relrdf.version
+            # Get from mapping transform
+            try:
+                graphId = self.mappingTransf.getModifGraphId()
+            except NotImplementedError:
+                raise ModifyError(_("Destination model is read-only"))
+            
+        elif not versionId is None:
+            
+            # TODO:Lookup/Add URI....?
+            pass
+        
+        # Build connection, if neccessary
+        if self._connection is None:
+            self._startTransaction()
+        
+        # Return the appropriate sink
+        return SingleVersionRdfSink(self._connection, graphId, delete=delete)
 
-            if not expr.graphUri.startswith(versionUri):
-                raise ModifyError(_("%s is not a valid model URI") %
-                                  expr.graphUri)
-
-            versionId = expr.graphUri[len(versionUri):]
-            if self._versionIdPattern.match(versionId) is None:
-                raise ModifyError(_("'%s' is not a valid version identifier") %
-                                  versionId)
-
-            mappingTransf = SingleVersionMapper(int(versionId), versionUri)
-
-        if not mappingTransf.canWrite:
-            raise ModifyError(_("Destination model is read-only"))
+    def _processModifOp(self, expr):
 
         # Get the statement per row count before transforming to SQL.
         stmtsPerRow = len(expr[0]) - 1
-
+        
         try:
-            if self._changeCursor is None:
-                self._changeCursor = self._connection.cursor()
-
+            
+            # Get a sink
             if isinstance(expr, nodes.Insert):
-                return results.ModifResults(
-                    mappingTransf.insert(self._changeCursor,
-                                         self._exprToSql(expr[0]),
-                                         stmtsPerRow))
+                sink = self.getSink(expr.graphUri, delete=False)
             elif isinstance(expr, nodes.Delete):
-                return results.ModifResults(
-                    mappingTransf.delete(self._changeCursor,
-                                         self._exprToSql(expr[0]),
-                                         stmtsPerRow))
+                sink = self.getSink(expr.graphUri, delete=True)
             else:
                 assert False, "Unexpected expression type"
+
+            # Insert data
+            sink.insertByQuery(self._exprToSql(expr[0]), stmtsPerRow)
+            sink.finish()
+            
+            # Return count of affected rows            
+            return results.ModifResults(sink.rowsAffected)
+                
         except:
             self.rollback()
             raise

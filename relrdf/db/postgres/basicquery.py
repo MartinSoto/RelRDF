@@ -14,44 +14,57 @@ from relrdf.mapping import transform, valueref, sqlnodes, emit, sqltranslate
 from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
      ResourceType, RdfNodeType, resourceType, rdfNodeType
 
-from basicsinks import SingleVersionRdfSink
+from basicsinks import SingleGraphRdfSink
 
 def resourceTypeExpr():
     return nodes.Uri(commonns.rdfs.Resource)
 
-class UriValueMapping(valueref.ValueMapping):
-    """A value mapping capable of converting from arbitrary internal
-    values to an external representation formed by prepending a base
-    URI to the canonical string representation of the internal value."""
+class GraphUriMapping(valueref.ValueMapping):
+    """A value mapping converting graph IDs into graph URIs and back."""
 
-    __slots__ = ('baseUri',
-                 'intToExtExpr',
-                 'extToIntExpr')
+    __slots__ = ()
 
     # Give this type of mapping priority in comparisons.
     weight = 80
-
-    def __init__(self, baseUri):
-        super(UriValueMapping, self).__init__()
-
-        self.baseUri = baseUri
-
-        self.intToExtExpr = 'CONCAT("%s", $0$)' % baseUri
-
-        l = len(baseUri.encode('utf-8'))
-        self.extToIntExpr = '''
-        IF(SUBSTRING($0$, 1, %d) = "%s",
-           SUBSTRING($0$, %d), "<<<NO VALUE>>>")''' % (l, baseUri, l + 1)
 
     def intToExt(self, internal):
         return sqlnodes.SqlScalarExpr(self.intToExtExpr, internal)
 
     def extToInt(self, expr):
         return sqlnodes.SqlScalarExpr(self.extToIntExpr, expr)
+    
+    def _subqueryGraph(self, field, value, resultField):
+        
+        # Build a nested query on the "graphs" table
+        (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
+                nodes.Select(
+                     sqlnodes.SqlRelation(1, 'graphs'),
+                     nodes.Equal(
+                          sqlnodes.SqlFieldRef(1, field),
+                          nodes.Null()
+                     )
+                ),
+                sqlnodes.SqlFieldRef(1, resultField)
+            ))
+        
+        # Replace null by actual ID (done late so it won't reincarnate)
+        assert isinstance(expr[0][1][1], nodes.Null)
+        expr[0][1][1] = value
+        
+        return expr        
+            
+    def intToExt(self, internal):
+        return sqlnodes.SqlFunctionCall('rdf_term_resource', 
+                                        self._subqueryGraph('graph_id', internal, 'graph_uri'))
+    
+    def extToInt(self, external):
+        return self._subqueryGraph('graph_uri',
+                                   sqlnodes.SqlFunctionCall('text',
+                                                            sqlnodes.SqlFunctionCall('rdf_term_to_string', external)),
+                                   'graph_id')
 
-
-def uriValueRef(incarnation, fieldId, mapping):
-    return valueref.ValueRef(mapping.copy(),
+def graphUriRef(incarnation, fieldId):
+    return valueref.ValueRef(GraphUriMapping(),
                              sqlnodes.SqlFieldRef(incarnation, fieldId))
 
 class TypeMapping(valueref.ValueMapping):
@@ -97,7 +110,7 @@ class BasicMapper(transform.PureRelationalTransformer):
             assert False, "Cannot determine type"
 
     def getModifGraphId(self):
-        """Returns the version ID that should receive modifications."""
+        """Returns the graph ID that should receive modifications."""
         raise NotImplementedError
     
     def DynType(self, expr, subexpr):
@@ -108,51 +121,39 @@ class BasicMapper(transform.PureRelationalTransformer):
         typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_lang_type_id', subexpr)
         return valueref.ValueRef(TypeMapping('lang_tag'), typeIdExpr)
 
-class BasicSingleVersionMapper(BasicMapper):
-    """Abstract class that targets an abstract query to a context set
-    with only one element corresponding to a single version of a
-    model. Reified patterns are not handled at all."""
+class BasicGraphMapper(BasicMapper):
     
-    __slots__ = ('versionId',
-                 'versionUri',
-
-                 'versionMapping',
+    __slots__ = ('defaultGraphId',
                  'stmtRepl')
 
-    def __init__(self, versionId, versionUri):
-        super(BasicSingleVersionMapper, self).__init__()
+    def __init__(self, defaultGraphId):
+        super(BasicGraphMapper, self).__init__()
 
-        self.versionId = int(versionId)
-        self.versionUri = versionUri
-
-        self.versionMapping = UriValueMapping(versionUri)
+        self.defaultGraphId = int(defaultGraphId)
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
+        
+    def _getDefaultGraph(self):
+        return valueref.ValueRef(GraphUriMapping(), 
+                                 sqlnodes.SqlInt(self.defaultGraphId));
 
     def replStatementPattern(self, expr):
         if self.stmtRepl is not None:
             return self.stmtRepl
 
         rel = nodes.Select(
-            sqlnodes.SqlRelation(2, 'statements'),
-            sqlnodes.SqlIn(
-              sqlnodes.SqlInt(self.versionId),
-              nodes.MapValue(
-                nodes.Select(
-                  sqlnodes.SqlRelation(1, 'version_statement'),
-                  sqlnodes.SqlEqual(
-                    sqlnodes.SqlFieldRef(1, 'stmt_id'),
-                    sqlnodes.SqlFieldRef(2, 'id'))),
-                sqlnodes.SqlFieldRef(1, 'version_id'))))
+             nodes.Product(
+              sqlnodes.SqlRelation(1, 'graph_statement'),
+              sqlnodes.SqlRelation(2, 'statements')),
+             nodes.Equal(
+              sqlnodes.SqlFieldRef(1, 'stmt_id'),
+              sqlnodes.SqlFieldRef(2, 'id')))
 
         replExpr = \
-          nodes.MapResult(['context',
-                           'subject',
-                           'predicate',
-                           'object'],
+          nodes.MapResult(['context', 'subject', 'predicate', 'object'],
                           rel,
-                          nodes.Uri(self.versionUri + str(self.versionId)),
+                          graphUriRef(1, 'graph_id'),
                           valueRef(2, 'subject'),
                           valueRef(2, 'predicate'),
                           valueRef(2, 'object'))
@@ -162,498 +163,18 @@ class BasicSingleVersionMapper(BasicMapper):
 
         return self.stmtRepl
 
-
-class SingleVersionMapper(BasicSingleVersionMapper,
-                          transform.StandardReifTransformer):
-    """Targets an abstract query to a context set with only one
-    element corresponding to a single version of a model. Reified
-    patterns are interpreted as four normal patterns in the standard
-    RDFS fashion."""
+class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):
 
     __slots__ = ()
 
-    name = "Single Version"
-    parameterInfo = ({"name":"versionId", "label":"Version ID", "tip":"Enter the ID of the version to be used", "assert":"versionId != ''", "asserterror":"Version ID must not be empty"},)
+    name = "Single Graph"
+    parameterInfo = ({"name":"graphId", "label":"Graph ID", "tip":"Enter the ID of the graph to be used", "assert":"graphId != ''", "asserterror":"Graph ID must not be empty"},)
 
-    def __init__(self, versionId, versionUri=commonns.relrdf.version):
-        super(SingleVersionMapper, self).__init__(versionId,
-                                                  versionUri)
+    def __init__(self, graphId, **args):
+        super(GraphMapper, self).__init__(graphId)
     
     def getModifGraphId(self):
-        return self.versionId
-
-class AllVersionsMapper(BasicMapper,
-                        transform.StandardReifTransformer):
-    """Targets an abstract query to a context set whose elements are
-    the versions of a model."""
-    
-    __slots__ = ('versionMapping',
-
-                 'stmtRepl')
-    name = "All Versions"
-    parameterInfo = ()
-
-    def __init__(self, versionUri=commonns.relrdf.version,
-                 stmtUri=commonns.relrdf.stmt, metaInfoVersion=1):
-        super(AllVersionsMapper, self).__init__()
-
-        self.versionMapping = UriValueMapping(versionUri)
-
-        # Cache for the statement pattern replacement expression.
-        self.stmtRepl = None
-
-    def replStatementPattern(self, expr):
-        if self.stmtRepl is not None:
-            return self.stmtRepl
-
-        rel = build.buildExpression(
-            (nodes.Select,
-             (nodes.Product,
-              (sqlnodes.SqlRelation, 1, 'version_statement'),
-              (sqlnodes.SqlRelation, 2, 'statements')),
-             (nodes.Equal,
-              (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-              (sqlnodes.SqlFieldRef, 2, 'id')))
-            )
-
-        replExpr = \
-          nodes.MapResult(['context', 'type__context',
-                           'subject', 'type__subject',
-                           'predicate', 'type__predicate',
-                           'object', 'type__object'],
-                          rel,
-                          uriValueRef(1, 'version_id', self.versionMapping),
-                          resourceTypeExpr(),
-                          valueRef(2, 'subject'),
-                          resourceTypeExpr(),
-                          valueRef(2, 'predicate'),
-                          resourceTypeExpr(),
-                          valueRef(2, 'object'),
-                          typeValueRef(2, 'object'))
-
-        self.stmtRepl = (replExpr,
-                         ('context', 'subject', 'predicate', 'object'))
-
-        return self.stmtRepl
-
-
-class AllStmtsMapper(BasicMapper,
-                        transform.StandardReifTransformer):
-    """Targets an abstract query to a context set with only one element
-    containing the statements present in all versions of a model."""
-
-    __slots__ = ('stmtRepl')
-
-    name = "All statements"
-    parameterInfo = ()
-
-    def __init__(self):
-        super(AllStmtsMapper, self).__init__()
-
-        # Cache for the statement pattern replacement expression.
-        self.stmtRepl = None
-
-    def replStatementPattern(self, expr):
-        if self.stmtRepl is not None:
-            return self.stmtRepl
-
-        rel = build.buildExpression((sqlnodes.SqlRelation, 1, 'statements'))
-
-        replExpr = \
-          nodes.MapResult(['context', 'type__context',
-                           'subject', 'type__subject',
-                           'predicate', 'type__predicate',
-                           'object', 'type__object'],
-                          rel,
-                          nodes.Uri(commonns.relrdf.stmts),
-                          resourceTypeExpr(),
-                          valueRef(1, 'subject'),
-                          resourceTypeExpr(),
-                          valueRef(1, 'predicate'),
-                          resourceTypeExpr(),
-                          valueRef(1, 'object'),
-                          typeValueRef(1, 'object'))
-
-        self.stmtRepl = (replExpr,
-                         ('context', 'subject', 'predicate', 'object'))
-
-        return self.stmtRepl
-
-
-class MetaVersionMapper(BasicSingleVersionMapper,
-                        transform.MatchReifTransformer):
-    """Targets an abstract query to a context with only one element
-    corresponding to version 1 of a model (the meta-information
-    version). Reified patterns will match statements present in all
-    model versions. A special relation relrdf:versionContainsStmt can
-    be used to determine which statements are in which version."""
-
-    __slots__ = ('stmtUri',
-
-                 'stmtMapping',
-                 'reifStmtRepl')
-                 
-    name = "Meta Version"
-    parameterInfo = ()
-
-    def __init__(self, versionUri=commonns.relrdf.version,
-                 stmtUri=commonns.relrdf.stmt):
-        super(MetaVersionMapper, self).__init__(1, versionUri)
-
-        self.stmtUri = stmtUri
-
-        self.stmtMapping = UriValueMapping(stmtUri)
-
-        # Cache for the reified statement pattern replacement expression.
-        self.reifStmtRepl = None
-
-    def replStatementPattern(self, expr):
-        replExpr = None
-
-        if isinstance(expr[2], nodes.Uri) and \
-           expr[2].uri == commonns.rdf.type and \
-           isinstance(expr[3], nodes.Uri) and \
-           expr[3].uri == commonns.rdf.Statement:
-            rel = sqlnodes.SqlRelation(1, 'statements')
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              nodes.Uri(self.versionUri + '1'),
-                              resourceTypeExpr(),
-                              uriValueRef(1, 'id', self.stmtMapping),
-                              resourceTypeExpr(),
-                              nodes.Literal(commonns.rdf.type),
-                              resourceTypeExpr(),
-                              nodes.Literal(commonns.rdf.Statement),
-                              resourceTypeExpr())
-        elif isinstance(expr[2], nodes.Uri) and \
-             expr[2].uri == commonns.relrdf.versionContainsStmt:
-            rel = sqlnodes.SqlRelation(1, 'version_statement')
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              nodes.Uri(self.versionUri + '1'),
-                              resourceTypeExpr(),
-                              uriValueRef(1, 'version_id',
-                                          self.versionMapping),
-                              resourceTypeExpr(),
-                              nodes.Literal(commonns.relrdf. \
-                                            versionContainsStmt),
-                              resourceTypeExpr(),
-                              uriValueRef(1, 'stmt_id', self.stmtMapping),
-                              resourceTypeExpr())
-        elif isinstance(expr[2], nodes.Uri) and \
-             expr[2].uri == commonns.rdf.subject:
-            rel = sqlnodes.SqlRelation(1, 'statements')
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              nodes.Uri(self.versionUri + '1'),
-                              resourceTypeExpr(),
-                              uriValueRef(1, 'id', self.stmtMapping),
-                              resourceTypeExpr(),
-                              nodes.Literal(commonns.rdf.subject),
-                              resourceTypeExpr(),
-                              valueRef(1, 'subject'),
-                              resourceTypeExpr())
-        elif isinstance(expr[2], nodes.Uri) and \
-             expr[2].uri == commonns.rdf.predicate:
-            rel = sqlnodes.SqlRelation(1, 'statements')
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              nodes.Uri(self.versionUri + '1'),
-                              resourceTypeExpr(),
-                              uriValueRef(1, 'id', self.stmtMapping),
-                              resourceTypeExpr(),
-                              nodes.Literal(commonns.rdf.predicate),
-                              resourceTypeExpr(),
-                              valueRef(1, 'predicate'),
-                              resourceTypeExpr())
-        elif isinstance(expr[2], nodes.Uri) and \
-             expr[2].uri == commonns.rdf.object:
-            rel = sqlnodes.SqlRelation(1, 'statements')
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              nodes.Uri(self.versionUri + '1'),
-                              resourceTypeExpr(),
-                              uriValueRef(1, 'id', self.stmtMapping),
-                              resourceTypeExpr(),
-                              nodes.Literal(commonns.rdf.object),
-                              resourceTypeExpr(),
-                              valueRef(1, 'object'),
-                              typeValueRef(1, 'object'))
-
-        if replExpr is not None:
-            return (replExpr,
-                    ('context', 'subject', 'predicate', 'object'))
-        else:
-            return super(MetaVersionMapper, self).replStatementPattern(expr)
-
-    def replReifStmtPattern(self, expr):
-        if self.reifStmtRepl is not None:
-            return self.reifStmtRepl
-
-        rel = sqlnodes.SqlRelation(1, 'statements')
-
-        replExpr = \
-          nodes.MapResult(['context', 'type__context',
-                           'stmt', 'type__stmt',
-                           'subject', 'type__subject',
-                           'predicate', 'type__predicate',
-                           'object', 'type__object'],
-                          rel,
-                          nodes.Uri(self.versionUri + '1'),
-                          resourceTypeExpr(),
-                          uriValueRef(1, 'id', self.stmtMapping),
-                          resourceTypeExpr(),
-                          valueRef(1, 'subject'),
-                          resourceTypeExpr(),
-                          valueRef(1, 'predicate'),
-                          resourceTypeExpr(),
-                          valueRef(1, 'object'),
-                          typeValueReff(1, 'object'))
-
-        self.reifStmtRepl = (replExpr,
-            ('context', 'stmt', 'subject', 'predicate', 'object'))
-
-        return self.reifStmtRepl
-
-
-compMapping = UriValueMapping(commonns.relrdf.comp)
-
-
-class TwoWayComparisonMapper(BasicMapper,
-                             transform.StandardReifTransformer):
-    """Targets an abstract query to a context set presenting two
-    versions (versions A and B) as three contexts: one containing the
-    statements only in A, one containing the statements only in B, and
-    one containing the statements common to both versions."""
-    
-    __slots__ = ('versionA',
-                 'versionB',
-                 'refreshComp',
-
-                 'stmtRepl',)
-
-    name = "Two Way Comparision"
-    parameterInfo = ({"name":"versionA", "label":"Version A", "tip":"Enter version 1 to compare", "assert":"versionA!=''", "asserterror":"Version must not be empty"},
-                     {"name":"versionB", "label":"Version B", "tip":"Enter version 2 to compare", "assert":"versionB!=''", "asserterror":"Version must not be empty"})
-
-    def __init__(self, versionA, versionB, refreshComp=0):
-
-        super(TwoWayComparisonMapper, self).__init__()
-
-        self.versionA = int(versionA)
-        self.versionB = int(versionB)
-        self.refreshComp = int(refreshComp) != 0
-
-        # Cache for the statement pattern replacement expression.
-        self.stmtRepl = None
-
-    def replStatementPattern(self, expr):
-        # Check for complete version matching.
-        if isinstance(expr[0], nodes.Uri) and \
-               expr[0].uri.startswith(commonns.relrdf.model) and \
-               len(expr[0].uri) == len(commonns.relrdf.model) + 1 and \
-               expr[0].uri[len(commonns.relrdf.model)] in ('A', 'B'):
-            modelLetter = expr[0].uri[len(commonns.relrdf.model)]
-            if modelLetter == 'A':
-                versionId = self.versionA
-            else:
-                versionId = self.versionB
-
-            rel = build.buildExpression(
-                (nodes.Select,
-                 (nodes.Product,
-                  (sqlnodes.SqlRelation, 1, 'version_statement'),
-                  (sqlnodes.SqlRelation, 2, 'statements')),
-                 (nodes.And,
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'version_id'),
-                   (nodes.Literal, versionId)),
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-                   (sqlnodes.SqlFieldRef, 2, 'id'))))
-                )
-
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              nodes.Uri(commonns.relrdf.model + modelLetter),
-                              resourceTypeExpr(),
-                              valueRef(2, 'subject'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'predicate'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'object'),
-                              typeValueRef(2, 'object'))
-        else:
-            rel = build.buildExpression(
-                (nodes.Select,
-                 (nodes.Product,
-                  (sqlnodes.SqlRelation, 1, 'twoway'),
-                  (sqlnodes.SqlRelation, 2, 'statements')),
-                 (nodes.And,
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'version_a'),
-                   (nodes.Literal, self.versionA)),
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'version_b'),
-                   (nodes.Literal, self.versionB)),
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-                   (sqlnodes.SqlFieldRef, 2, 'id'))))
-                )
-
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              uriValueRef(1, 'context', compMapping),
-                              resourceTypeExpr(),
-                              valueRef(2, 'subject'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'predicate'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'object'),
-                              typeValueRef(2, 'object'))
-
-        return (replExpr,
-                ('context', 'subject', 'predicate', 'object'))
-
-
-class ThreeWayComparisonMapper(BasicMapper,
-                               transform.StandardReifTransformer):
-    """Targets an abstract query to a context set presenting three
-    versions (versions A, B and C) as seven contexts, corresponding to
-    all combinations of being in A, B, and/or C."""
-    
-    __slots__ = ('versionA',
-                 'versionB',
-                 'versionC',
-                 'refreshComp',
-
-                 'stmtRepl',)
-
-    name = "Three Way Comparision"
-    parameterInfo = ({"name":"versionA", "label":"Version A", "tip":"Enter version 1 to compare", "assert":"versionA!=''", "asserterror":"Version must not be empty"},
-                     {"name":"versionB", "label":"Version B", "tip":"Enter version 2 to compare", "assert":"versionB!=''", "asserterror":"Version must not be empty"},
-                     {"name":"versionC", "label":"Version C", "tip":"Enter version 3 to compare", "assert":"versionC!=''", "asserterror":"Version must not be empty"})
-
-    def __init__(self, versionA, versionB, versionC, refreshComp=0):
-        super(ThreeWayComparisonMapper, self).__init__()
-
-        self.versionA = int(versionA)
-        self.versionB = int(versionB)
-        self.versionC = int(versionC)
-        self.refreshComp = int(refreshComp) != 0
-
-        # Cache for the statement pattern replacement expression.
-        self.stmtRepl = None
-
-    def replStatementPattern(self, expr):
-        # Check for complete version matching.
-        if isinstance(expr[0], nodes.Uri) and \
-               expr[0].uri.startswith(commonns.relrdf.model) and \
-               len(expr[0].uri) == len(commonns.relrdf.model) + 1 and \
-               expr[0].uri[len(commonns.relrdf.model)] in ('A', 'B', 'C'):
-            modelLetter = expr[0].uri[len(commonns.relrdf.model)]
-            if modelLetter == 'A':
-                versionId = self.versionA
-            elif modelLetter == 'B':
-                versionId = self.versionB
-            else:
-                versionId = self.versionC
-
-            rel = build.buildExpression(
-                (nodes.Select,
-                 (nodes.Product,
-                  (sqlnodes.SqlRelation, 1, 'version_statement'),
-                  (sqlnodes.SqlRelation, 2, 'statements')),
-                 (nodes.And,
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'version_id'),
-                   (nodes.Literal, versionId)),
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-                   (sqlnodes.SqlFieldRef, 2, 'id'))))
-                )
-
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              nodes.Uri(commonns.relrdf.model + modelLetter),
-                              resourceTypeExpr(),
-                              valueRef(2, 'subject'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'predicate'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'object'),
-                              typeValueRef(2, 'object'))
-        else:
-            rel = build.buildExpression(
-                (nodes.Select,
-                 (nodes.Product,
-                  (sqlnodes.SqlRelation, 1, 'threeway'),
-                  (sqlnodes.SqlRelation, 2, 'statements')),
-                 (nodes.And,
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'version_a'),
-                   (nodes.Literal, self.versionA)),
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'version_b'),
-                   (nodes.Literal, self.versionB)),
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'version_c'),
-                   (nodes.Literal, self.versionC)),
-                  (nodes.Equal,
-                   (sqlnodes.SqlFieldRef, 1, 'stmt_id'),
-                   (sqlnodes.SqlFieldRef, 2, 'id'))))
-                )
-
-            replExpr = \
-              nodes.MapResult(['context', 'type__context',
-                               'subject', 'type__subject',
-                               'predicate', 'type__predicate',
-                               'object', 'type__object'],
-                              rel,
-                              uriValueRef(1, 'context', compMapping),
-                              resourceTypeExpr(),
-                              valueRef(2, 'subject'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'predicate'),
-                              resourceTypeExpr(),
-                              valueRef(2, 'object'),
-                              typeValueRef(2, 'object'))
-
-        return (replExpr,
-                ('context', 'subject', 'predicate', 'object'))
-
+        return self.graphId
 
 class BaseResults(object):
     __slots__ = ('connection',
@@ -863,6 +384,8 @@ class BasicModel(object):
         expr = dynamic.dynTypeTranslate(expr)
         
         # Apply the selected mapping.
+        print self.mappingTransf
+        print expr
         expr = self.mappingTransf.process(expr)
        
         # Add dynamic type checks.
@@ -904,7 +427,7 @@ class BasicModel(object):
             self._startTransaction()
         
         # Return the appropriate sink
-        return SingleVersionRdfSink(self._connection, graphId, delete=delete)
+        return SingleGraphRdfSink(self._connection, graphId, delete=delete)
 
     def _processModifOp(self, expr):
 
@@ -1025,69 +548,18 @@ class BasicModel(object):
 
     def __del__(self):
         self.close()
-
-
+        
 class TwoWayModel(BasicModel):
-    __slots__ = ('versionA',
-                 'versionB',
-                 'refreshComp',)
-
-    def __init__(self, modelBase, mappingTransf, versionA, versionB,
-                 refreshComp=0):
-        super(TwoWayModel, self).__init__(modelBase, mappingTransf,
-                                          versionA=versionA,
-                                          versionB=versionB,
-                                          refreshComp=refreshComp)
-
-        self.versionA = int(versionA)
-        self.versionB = int(versionB)
-        self.refreshComp = int(refreshComp) != 0
-
-        self.modelBase.prepareTwoWay(self.versionA, self.versionB,
-                                     self.refreshComp)
-
-    def close(self):
-        self.modelBase.releaseTwoWay(self.versionA, self.versionB)
-
-        super(TwoWayModel, self).close()
 
 
-class ThreeWayModel(BasicModel):
-    __slots__ = ('versionA',
-                 'versionB',
-                 'versionC',
-                 'refreshComp',)
-
-    def __init__(self, modelBase, mappingTransf, versionA, versionB,
-                 versionC, refreshComp=0):
-        super(ThreeWayModel, self).__init__(modelBase, mappingTransf,
-                                            versionA=versionA,
-                                            versionB=versionB,
-                                            versionC=versionC,
-                                            refreshComp=refreshComp)
-
-        self.versionA = int(versionA)
-        self.versionB = int(versionB)
-        self.versionC = int(versionC)
-        self.refreshComp = int(refreshComp) != 0
-
-        self.modelBase.prepareThreeWay(self.versionA, self.versionB,
-                                       self.versionC, self.refreshComp)
-
-    def close(self):
-        self.modelBase.releaseThreeWay(self.versionA, self.versionB,
-                                       self.versionC)
-
-        super(ThreeWayModel, self).close()
-
+    def __init__(self, modelBase, mappingTransf, graphA, graphB, **modelArgs):        
+        super(TwoWayModel, self).__init__(modelBase, mappingTransf, **modelArgs)
+        
+        modelBase.prepareTwoWay(int(graphA), int(graphB))
 
 _modelFactories = {
-    'metaversion': (BasicModel, MetaVersionMapper),
-    'singleversion': (BasicModel, SingleVersionMapper),
-    'allversions': (BasicModel, AllVersionsMapper),
-    'allstatements': (BasicModel, AllStmtsMapper),
-    'twoway': (TwoWayModel, TwoWayComparisonMapper),
-    'threeway': (ThreeWayModel, ThreeWayComparisonMapper),
+    'plain': (BasicModel, GraphMapper),
+    'twoway': (TwoWayModel, GraphMapper)
     }
 
 def getModel(modelBase, modelType, schema=None, **modelArgs):

@@ -7,6 +7,7 @@ from relrdf.localization import _
 from relrdf.error import InstantiationError
 from relrdf.factory import parseCmdLineArgs
 
+from urlparse import urljoin
 
 def error(msg):
     print >> sys.stderr, _("error: %s") % msg
@@ -29,10 +30,12 @@ try:
     modelBase = relrdf.getModelBase(baseType, **baseArgs)
 
     sinkType, sinkArgs = parseCmdLineArgs(argv, 'sink')
+    if 'graphUri' not in sinkArgs:
+        sinkArgs['graphUri'] = urljoin('file:', fileName)
     sink = modelBase.getSink(sinkType, **sinkArgs)
 except InstantiationError, e:
     error(e)
-
+    
 fileType = fileType.lower() 
 if fileType == 'rdfxml':
     from relrdf.modelimport import rdfxmlparse

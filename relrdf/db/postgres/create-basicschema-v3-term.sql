@@ -23,15 +23,10 @@ CREATE INDEX statements_predicate_index
 CREATE INDEX statements_subject_predicate_index
   ON statements (subject, predicate);
 
-CREATE INDEX statements_subject_hash_index
-  ON statements USING hash (subject);
-CREATE INDEX statements_predicate_hash_index
-  ON statements USING hash (predicate);
 CREATE INDEX statements_object_hash_index
   ON statements USING hash (object);
   
 DROP TABLE IF EXISTS types;
-DROP TABLE IF EXISTS data_types;
 
 CREATE TABLE types (
   id int PRIMARY KEY,
@@ -82,82 +77,26 @@ CREATE SEQUENCE language_tags_id_seq
   INCREMENT BY 1
   START WITH 3
   NO CYCLE;
-  
-DROP TABLE IF EXISTS version_statement;
 
-CREATE TABLE version_statement (
-  version_id integer NOT NULL,
+DROP TABLE IF EXISTS graphs;
+CREATE TABLE graphs (
+  graph_id serial PRIMARY KEY,
+  graph_uri text NOT NULL,
+  timeout timestamp
+);
+
+CREATE UNIQUE INDEX graph_uri_index ON graphs (graph_uri);
+
+DROP TABLE IF EXISTS graph_statement;
+CREATE TABLE graph_statement (
+  graph_id integer NOT NULL,
   stmt_id integer NOT NULL,
-  PRIMARY KEY (version_id, stmt_id)
+  PRIMARY KEY (graph_id, stmt_id)
 );
 
-CREATE INDEX version_statement_stmt_id_index
-  ON version_statement (stmt_id);
-  
-DROP TABLE IF EXISTS twoway;
-
-CREATE TABLE twoway (
-  version_a integer NOT NULL,
-  version_b integer NOT NULL,
-  stmt_id integer NOT NULL,
-  context char(2) NOT NULL,
-  PRIMARY KEY (version_a, version_b, stmt_id)
-);
-
-
-DROP TABLE IF EXISTS twoway_use_time;
-
-CREATE TABLE twoway_use_time (
-  version_a integer NOT NULL,
-  version_b integer NOT NULL,
-  time timestamp NOT NULL,
-  PRIMARY KEY (version_a, version_b)
-);
-
-
-DROP TABLE IF EXISTS twoway_conns;
-
-CREATE TABLE twoway_conns (
-  version_a integer NOT NULL,
-  version_b integer NOT NULL,
-  connection integer NOT NULL
-);
-
-
-DROP TABLE IF EXISTS threeway;
-
-CREATE TABLE threeway (
-  version_a integer NOT NULL,
-  version_b integer NOT NULL,
-  version_c integer NOT NULL,
-  stmt_id integer NOT NULL,
-  context char(3) NOT NULL,
-  PRIMARY KEY (version_a, version_b, version_c, stmt_id)
-);
-
-
-DROP TABLE IF EXISTS threeway_use_time;
-
-CREATE TABLE threeway_use_time (
-  version_a integer NOT NULL,
-  version_b integer NOT NULL,
-  version_c integer NOT NULL,
-  time timestamp NOT NULL,
-  PRIMARY KEY (version_a, version_b, version_c)
-);
-
-
-DROP TABLE IF EXISTS threeway_conns;
-
-CREATE TABLE threeway_conns (
-  version_a integer NOT NULL,
-  version_b integer NOT NULL,
-  version_c integer NOT NULL,
-  connection integer NOT NULL
-);
+CREATE INDEX graph_statement_stmt_id_index ON graph_statement (stmt_id);
 
 DROP TABLE IF EXISTS prefixes;
-
 CREATE TABLE prefixes (
   prefix varchar(31) NOT NULL PRIMARY KEY,
   namespace varchar(255) NOT NULL
@@ -166,7 +105,11 @@ CREATE TABLE prefixes (
 INSERT INTO prefixes (prefix, namespace)
   VALUES ('vmxt', 'http://www.v-modell-xt.de/schema/1#'), ('vmxti', 'http://www.v-modell-xt.de/model/1#');
   
-GRANT ALL ON types, data_types_id_seq, language_tags_id_seq, prefixes, relrdf_schema_version, statements, statements_id_seq, twoway, twoway_conns, twoway_use_time, threeway, threeway_conns, threeway_use_time, version_statement TO vmodell;
+GRANT ALL ON 
+  types, data_types_id_seq, language_tags_id_seq, 
+  prefixes, relrdf_schema_version,
+  statements, statements_id_seq, 
+  graphs, graphs_graph_id_seq, graph_statement TO vmodell;
 
 /* Stored procedures handling type lookups */
 

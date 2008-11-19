@@ -2,13 +2,12 @@ from relrdf.error import InstantiationError
 from relrdf.expression import uri, literal
 from relrdf import commonns
 
-class SingleVersionRdfSink(object):
-    """An RDF sink that sends all tuples to a single model version in
-    the database."""
+class SingleGraphRdfSink(object):
+    """An RDF sink that sends all tuples to a single graph in the database."""
 
     __slots__ = ('connection',
                  'cursor',
-                 'versionId',
+                 'graphId',
                  'verbose',
                  'delete',
 
@@ -18,10 +17,9 @@ class SingleVersionRdfSink(object):
     # Maximum number of rows per insert query.
     ROWS_PER_QUERY = 10000
 
-    def __init__(self, connection, versionId, verbose=False, delete=False):
+    def __init__(self, connection, graphUri, verbose=False, delete=False):
         self.connection = connection
-        self.versionId = versionId
-        self.verbose = True
+        self.verbose = verbose
         self.delete = delete
 
         self.pendingRows = []
@@ -29,7 +27,28 @@ class SingleVersionRdfSink(object):
 
         self.cursor = self.connection.cursor()
         
+        # Get graph ID
+        self.graphId = self._lookupGraphUri(graphUri)
+        
         self._createTempTable()
+        
+    def _lookupGraphUri(self, graphUri):
+        
+        graphUri = unicode(graphUri).encode('utf-8')
+        
+        # Try lookup
+        self.cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)        
+        result = self.cursor.fetchone()
+        if not result is None:
+            return result[0]
+        
+        # Insert new graph
+        self.cursor.execute("INSERT INTO graphs (graph_uri) VALUES ('%s') RETURNING graph_id;" % graphUri)
+        result = self.cursor.fetchone()
+        assert not result is None, "Could not create a new graph!"
+
+        # Done
+        return result[0]
 
     def _createTempTable(self):
         
@@ -123,8 +142,8 @@ class SingleVersionRdfSink(object):
         # Create temporary table to hold statement IDs
         self.cursor.execute(
             """
-            CREATE TEMPORARY TABLE version_statement_temp1 (
-                version_id integer,
+            CREATE TEMPORARY TABLE graph_statement_temp1 (
+                graph_id integer,
                 stmt_id integer
             ) ON COMMIT DROP;
             """)
@@ -136,34 +155,34 @@ class SingleVersionRdfSink(object):
             print "Checking for existing statements..."
         self.cursor.execute(
             """
-            INSERT INTO version_statement_temp1 (version_id, stmt_id)
+            INSERT INTO graph_statement_temp1 (graph_id, stmt_id)
               SELECT %d, ss.id
                 FROM statements_temp1 s
-                  RIGHT JOIN statements ss
+                  LEFT JOIN statements ss
                       ON ss.subject = s.subject AND
                          ss.predicate = s.predicate AND
                          ss.object = s.object
-            """ % int(self.versionId)) 
+            """ % int(self.graphId)) 
         
         # Delete?
         if self.delete:
             
             if self.verbose:
-                print "Removing statements from version..."
+                print "Removing statements from graph..."
             
             self.cursor.execute(
                 """
-                DELETE FROM version_statement vs
-                  WHERE version_id = %d AND stmt_id IN 
-                    (SELECT stmt_id FROM version_statement_temp1)
-                """ % int(self.versionId))
+                DELETE FROM graph_statement vs
+                  WHERE graph_id = %d AND stmt_id IN 
+                    (SELECT stmt_id FROM graph_statement_temp1)
+                """ % int(self.graphId))
             
             if self.verbose:
                 print "Removing unused statements..."
             self.cursor.execute(
                 """
                 DELETE FROM statements ss
-                  WHERE NOT id IN (SELECT stmt_id FROM version_statement)
+                  WHERE NOT id IN (SELECT stmt_id FROM graph_statement)
                 """)            
                 
         else:
@@ -199,22 +218,22 @@ class SingleVersionRdfSink(object):
                         
             # Get IDs of newly inserted rows
             ids = self.cursor.fetchall()
-            ids = [(int(self.versionId), x.pop()) for x in ids]
+            ids = [(int(self.graphId), x.pop()) for x in ids]
             self.cursor.executemany(
                 """
-                INSERT INTO version_statement_temp1 (version_id, stmt_id)
+                INSERT INTO graph_statement_temp1 (graph_id, stmt_id)
                     VALUES (%d, %d)
                 """, ids)
             
-            # Add the statement numbers to the version.
+            # Add the statement numbers to the graph.
             if self.verbose:
-                print "Saving version information..."        
+                print "Saving graph information..."        
             self.cursor.execute(
                 """
-                INSERT INTO version_statement (version_id, stmt_id)
-                    SELECT vt.version_id, vt.stmt_id
-                      FROM version_statement_temp1 vt
-                        LEFT JOIN version_statement v ON v.version_id = vt.version_id AND v.stmt_id = vt.stmt_id
+                INSERT INTO graph_statement (graph_id, stmt_id)
+                    SELECT vt.graph_id, vt.stmt_id
+                      FROM graph_statement_temp1 vt
+                        LEFT JOIN graph_statement v ON v.graph_id = vt.graph_id AND v.stmt_id = vt.stmt_id
                     WHERE v.stmt_id IS NULL
                 """)
             
@@ -230,7 +249,7 @@ class SingleVersionRdfSink(object):
             """)
         self.cursor.execute(
             """
-            DROP TABLE version_statement_temp1
+            DROP TABLE graph_statement_temp1
             """)
         
     def rollback(self):
@@ -253,7 +272,7 @@ class SingleVersionRdfSink(object):
 
 
 _sinkFactories = {
-    'singleversion': SingleVersionRdfSink,
+    'singlegraph': SingleGraphRdfSink,
     }
 
 def getSink(connection, sinkType, **sinkArgs):
@@ -262,7 +281,7 @@ def getSink(connection, sinkType, **sinkArgs):
     try:
         return _sinkFactories[sinkTypeNorm](connection, **sinkArgs)
     except KeyError:
-        raise InstantiationError(_("Invalid sink type '%s'") % sinkType)
+        raise InstantiationError(("Invalid sink type '%s'") % sinkType)
     except TypeError, e:
-        raise InstantiationError(_("Missing or invalid sink arguments: %s") %
+        raise InstantiationError(("Missing or invalid sink arguments: %s") %
                                  e)

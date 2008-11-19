@@ -200,10 +200,12 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         for component, columnName in zip(pattern, columnNames):
             valueExpr = replacementExpr.subexprByName(columnName)
 
+            # Must be supplied by derived classes
+            if isinstance(component, nodes.DefaultGraph):
+                component = self._getDefaultGraph()
+                                
             if isinstance(component, nodes.Var):
                 self.varBindings[component.name] = valueExpr
-            elif isinstance(component, nodes.Joker):
-                pass
             else:
                 conds.append(nodes.Equal(component, valueExpr))
 

@@ -168,7 +168,7 @@ deleteQuery returns [expr]
 
 whereClause returns [expr]
     :   ( WHERE )?
-        expr=groupGraphPattern[nodes.Joker()]
+        expr=groupGraphPattern[nodes.DefaultGraph()]
     ;
 
 solutionModifier[expr] returns [expr=expr]
@@ -302,7 +302,7 @@ constructTemplate returns [tmplList]
     ;
 
 constructTriples[expr]
-    :   (   triplesSameSubject[nodes.Joker(), expr]
+    :   (   triplesSameSubject[nodes.DefaultGraph(), expr]
             ( DOT constructTriples[expr] )?
         )?
     ;

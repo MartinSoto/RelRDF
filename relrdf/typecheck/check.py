@@ -85,8 +85,6 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
                     # Give this variable a type.
                     subexpr.staticType = resourceType
-                elif isinstance(subexpr, nodes.Joker):
-                    pass
                 elif subexpr.staticType != resourceType:
                     error(subexpr, _("Pattern %s can only be a resource") %
                           ('context', 'subject', 'predicate')[i])
@@ -104,8 +102,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkPattern(expr, expr[0:1] + expr[2:])
         expr.staticType.addColumn(expr[1].name, resourceType)
 
-    def Joker(self, expr):
-        pass
+    def DefaultGraph(self, expr):
+        expr.staticType = resourceType
+        expr.failSafe = True
 
     def _checkScalarOperands(self, expr, opName):
         for i, subexpr in enumerate(expr):

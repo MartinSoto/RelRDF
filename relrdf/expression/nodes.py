@@ -752,14 +752,13 @@ class ReifStmtPattern(ExpressionNode):
         super(ReifStmtPattern, self).__init__(context, stmt, subj, pred, obj)
 
 
-class Joker(ExpressionNode):
-    """An expression node representing a joker, i.e., an open
-    position in a pattern tha can be filled with everything."""
+class DefaultGraph(ExpressionNode):
+    """An expression node representing the default graph URI."""
 
     __slots__ = ()
 
     def __init__(self):
-        super(Joker, self).__init__()
+        super(DefaultGraph, self).__init__()
 
 #
 # Relational Operations

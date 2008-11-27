@@ -156,13 +156,13 @@ class SingleGraphRdfSink(object):
         self.cursor.execute(
             """
             INSERT INTO graph_statement_temp1 (graph_id, stmt_id)
-              SELECT %d, ss.id
+              SELECT DISTINCT %d, ss.id
                 FROM statements_temp1 s
-                  LEFT JOIN statements ss
+                  INNER JOIN statements ss
                       ON ss.subject = s.subject AND
                          ss.predicate = s.predicate AND
                          ss.object = s.object
-            """ % int(self.graphId)) 
+            """ % int(self.graphId))        
         
         # Delete?
         if self.delete:
@@ -176,13 +176,18 @@ class SingleGraphRdfSink(object):
                   WHERE graph_id = %d AND stmt_id IN 
                     (SELECT stmt_id FROM graph_statement_temp1)
                 """ % int(self.graphId))
-            
+
+            # Note: This is a /lot/ more efficient than
+            # "... WHERE id NOT IN (SELECT stmt_id FROM statements)"
             if self.verbose:
                 print "Removing unused statements..."
             self.cursor.execute(
                 """
-                DELETE FROM statements ss
-                  WHERE NOT id IN (SELECT stmt_id FROM graph_statement)
+                DELETE FROM statements WHERE id IN
+                  (SELECT ss.id FROM statements ss 
+                                LEFT JOIN graph_statement gs
+                                ON gs.stmt_id = ss.id
+                   WHERE gs.stmt_id IS NULL);                
                 """)            
                 
         else:

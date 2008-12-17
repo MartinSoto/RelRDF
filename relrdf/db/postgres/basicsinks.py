@@ -310,11 +310,11 @@ _sinkFactories = {
     'singlegraph': SingleGraphRdfSink,
     }
 
-def getSink(connection, sinkType, **sinkArgs):
+def getSink(modelBase, connection, sinkType, **sinkArgs):
     sinkTypeNorm = sinkType.lower()
 
     try:
-        return _sinkFactories[sinkTypeNorm](connection, **sinkArgs)
+        return _sinkFactories[sinkTypeNorm](modelBase, connection, **sinkArgs)
     except KeyError:
         raise InstantiationError(("Invalid sink type '%s'") % sinkType)
     except TypeError, e:

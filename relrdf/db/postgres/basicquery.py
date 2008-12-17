@@ -530,15 +530,14 @@ class TwoWayModel(BasicModel):
     
     __slots__ = ('prefixes')
 
-    def __init__(self, modelBase, mappingTransf, graphA, graphB, **modelArgs):        
-        super(TwoWayModel, self).__init__(modelBase, mappingTransf, **modelArgs)
+    def __init__(self, modelBase, connection, mappingTransf, graphA, graphB, **modelArgs):        
+        super(TwoWayModel, self).__init__(modelBase, connection, mappingTransf, **modelArgs)
         
         self.prefixes = nsshortener.NamespaceUriShortener()
         self.prefixes.addPrefixes(modelBase.getPrefixes())
   
-        cursor = self._connection.cursor() 
-        graphAid = modelBase.lookupGraphId(cursor, graphA) 
-        graphBid = modelBase.lookupGraphId(cursor, graphB)
+        graphAid = modelBase.lookupGraphId(graphA, connection=connection) 
+        graphBid = modelBase.lookupGraphId(graphB, connection=connection)
 
         # Won't be a problem, but won't give interesting results either
         assert graphAid != 0, "Graph A doesn't exist!"

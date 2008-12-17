@@ -759,7 +759,7 @@ RBRACE
 
 protected  /* See QNAME_OR_KEYWORD. */
 QNAME
-    :   ( NCNAME_PREFIX )? ':' ( NCNAME )?
+    :   ( NCNAME_PREFIX )? ':' ( PNCNAME )?
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -1317,3 +1317,11 @@ NCNAME
         )*
     ;
 
+protected
+PNCNAME
+    :   ( NCCHAR1 | DIGIT ) 
+        (   NCCHAR
+        |   '.' NCCHAR
+        )*
+    ;
+    

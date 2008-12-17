@@ -133,7 +133,7 @@ class ModelBase(SyncMethodsMixin):
 
         # Create comparison graphs
         baseGraphName = "cmp_%d_%d_" % (graphA, graphB)
-        graphUris = [commonns.relrdf[baseGraphName + suffix] for suffix in ['A', 'B', 'AB']]
+        graphUris = [commonns.relrdf[baseGraphName + suffix + '#'] for suffix in ('A', 'B', 'AB')]
         graphs = [self.lookupGraphId(cursor, uri, create=True) for uri in graphUris]
         
         # Clear previous data

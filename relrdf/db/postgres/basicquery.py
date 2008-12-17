@@ -28,12 +28,6 @@ class GraphUriMapping(valueref.ValueMapping):
 
     # Give this type of mapping priority in comparisons.
     weight = 80
-
-    def intToExt(self, internal):
-        return sqlnodes.SqlScalarExpr(self.intToExtExpr, internal)
-
-    def extToInt(self, expr):
-        return sqlnodes.SqlScalarExpr(self.extToIntExpr, expr)
     
     def _subqueryGraph(self, field, value, resultField):
         
@@ -111,8 +105,8 @@ class BasicMapper(transform.PureRelationalTransformer):
         else:
             assert False, "Cannot determine type"
 
-    def getModifGraphId(self):
-        """Returns the graph ID that should receive modifications."""
+    def getModifGraph(self):
+        """Returns the URI of the graph that should receive modifications."""
         raise NotImplementedError
     
     def DynType(self, expr, subexpr):
@@ -125,22 +119,24 @@ class BasicMapper(transform.PureRelationalTransformer):
 
 class BasicGraphMapper(BasicMapper):
     
-    __slots__ = ('defaultGraphId',
+    __slots__ = ('baseGraph',
+                 'baseGraphId',
                  'stmtRepl')
 
     def __init__(self, modelBase, baseGraph):
         super(BasicGraphMapper, self).__init__()
 
-        # Lookup base graph
-        cursor = modelBase.createConnection().cursor()
-        self.defaultGraphId = modelBase.lookupGraphId(cursor, baseGraph)
+        self.baseGraph = baseGraph
 
+        # Lookup base graph
+        self.baseGraphId = modelBase.lookupGraphId(baseGraph)
+        
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
         
     def _getDefaultGraph(self):
         return valueref.ValueRef(GraphUriMapping(), 
-                                 sqlnodes.SqlInt(self.defaultGraphId));
+                                 sqlnodes.SqlInt(self.baseGraphId));
 
     def replStatementPattern(self, expr):
         if self.stmtRepl is not None:
@@ -177,8 +173,8 @@ class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):
     def __init__(self, modelBase, baseGraph, **args):
         super(GraphMapper, self).__init__(modelBase, baseGraph)
     
-    def getModifGraphId(self):
-        return self.graphId
+    def getModifGraph(self):
+        return self.baseGraph
 
 class BaseResults(object):
     __slots__ = ('connection',
@@ -355,22 +351,15 @@ class BasicModel(object):
                  '_connection',
                  '_changeCursor',)
 
-    def __init__(self, modelBase, mappingTransf, **modelArgs):
+    def __init__(self, modelBase, connection, mappingTransf, **modelArgs):
         self.modelBase = modelBase
         self.mappingTransf = mappingTransf
         self.modelArgs = modelArgs
-
-        # Connections are created when a transaction is started.
-        self._connection = None
+        self._connection = connection
 
         # The change cursor is initialized when actual changes are in
         # progress.
         self._changeCursor = None
-
-    def _startTransaction(self):
-        assert self._connection is None
-
-        self._connection = self.modelBase.createConnection()
 
     def _exprToSql(self, expr):
         
@@ -402,27 +391,17 @@ class BasicModel(object):
     _versionIdPattern = re.compile('[0-9]')
 
     
-    def getSink(self, graphUri = None, delete=False):
+    def getSink(self, graphUri=None, delete=False):
         
-        if graphUri is None:
-            
-            # Get from mapping transform
+        # Get from mapping transform, if not set
+        if graphUri is None:            
             try:
-                graphId = self.mappingTransf.getModifGraphId()
+                graphUri = self.mappingTransf.getModifGraph()
             except NotImplementedError:
                 raise ModifyError(_("Destination model is read-only"))
-            
-        elif not versionId is None:
-            
-            # TODO:Lookup/Add URI....?
-            pass
-        
-        # Build connection, if neccessary
-        if self._connection is None:
-            self._startTransaction()
-        
+
         # Return the appropriate sink
-        return SingleGraphRdfSink(self._connection, graphId, delete=delete)
+        return SingleGraphRdfSink(self.modelBase, self._connection, graphUri, delete=delete)
 
     def _processModifOp(self, expr):
 
@@ -470,10 +449,6 @@ class BasicModel(object):
                 # Treat the queryText as a template.
                 template = relrdf.makeTemplate(queryLanguage, queryText)
                 queryText = template.substitute(keywords)
-
-        if self._connection is None:
-            # Start a transaction:
-            self._startTransaction()
 
         # Add the prefixes from the model base to modelArgs, so that
         # the parser receives them.
@@ -561,7 +536,6 @@ class TwoWayModel(BasicModel):
         self.prefixes = nsshortener.NamespaceUriShortener()
         self.prefixes.addPrefixes(modelBase.getPrefixes())
   
-        self._startTransaction()
         cursor = self._connection.cursor() 
         graphAid = modelBase.lookupGraphId(cursor, graphA) 
         graphBid = modelBase.lookupGraphId(cursor, graphB)
@@ -584,7 +558,7 @@ _modelFactories = {
     'twoway': (TwoWayModel, GraphMapper)
     }
 
-def getModel(modelBase, modelType, schema=None, **modelArgs):
+def getModel(modelBase, connection, modelType, schema=None, **modelArgs):
     modelTypeNorm = modelType.lower()
 
     try:
@@ -595,7 +569,9 @@ def getModel(modelBase, modelType, schema=None, **modelArgs):
         raise InstantiationError(_("Missing or invalid model "
                                    "arguments: %s") % e)
 
-    return modelCls(modelBase, transfCls(modelBase, **modelArgs), **modelArgs)
+    return modelCls(modelBase, connection,
+                    transfCls(modelBase, **modelArgs),
+                    **modelArgs)
 
 def getModelMappers():
     mappers = {}

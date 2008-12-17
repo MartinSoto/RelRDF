@@ -5,33 +5,36 @@ from relrdf import commonns
 class SingleGraphRdfSink(object):
     """An RDF sink that sends all tuples to a single graph in the database."""
 
-    __slots__ = ('connection',
+    __slots__ = ('modelBase',
+                 'connection',
                  'cursor',
-                 'graphId',
+                 'baseGraph',
                  'verbose',
                  'delete',
 
+                 'graphId',
                  'pendingRows',
                  'rowsAffected')
 
     # Maximum number of rows per insert query.
     ROWS_PER_QUERY = 10000
 
-    def __init__(self, modelBase, graphUri, verbose=False, delete=False):
+    def __init__(self, modelBase, connection, baseGraph, verbose=False, delete=False):
         self.verbose = verbose
         self.delete = delete
 
-        self.connection = modelBase.createConnection()
+        self.modelBase = modelBase
+        self.connection = connection
         self.cursor = self.connection.cursor()
-        self.graphId = modelBase.lookupGraphId(self.cursor, graphUri, create=True)
+        self.baseGraph = baseGraph
         
-        self._createTempTable()
+        self._setup()
         
-        self.pendingRows = []
-        self.rowsAffected = 0
+    def _setup(self):
+        
+        # Lookup graph ID
+        self.setGraph(self.baseGraph)
 
-    def _createTempTable(self):
-        
         # Create (if it doesn't exist already) a temporary table to
         # hold the results.
         self.cursor.execute(
@@ -43,6 +46,18 @@ class SingleGraphRdfSink(object):
               object rdf_term
             ) ON COMMIT DROP;
             """)
+        
+        self.pendingRows = []
+        self.rowsAffected = 0
+
+    def setGraph(self, graphUri):
+        """ Sets the name of the graph to receive triples."""
+        
+        # Get graph ID from database
+        self.graphId = self.modelBase.lookupGraphId(graphUri, 
+                                                    connection=self.connection,
+                                                    create=True)
+
         
     def _prepareForDB(self, term):
         """Returns argument triple to pass to the rdf_term_create
@@ -276,7 +291,7 @@ class SingleGraphRdfSink(object):
         
         self.connection.rollback()
         
-        self._createTempTable()
+        self._setup()
                 
     def close(self):
                 

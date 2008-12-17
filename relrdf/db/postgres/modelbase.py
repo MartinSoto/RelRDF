@@ -85,19 +85,26 @@ class ModelBase(SyncMethodsMixin):
         return self._connPool.connect()
 
     def getSink(self, sinkType, **sinkArgs):
-        return self.sinkSchema.getSink(self, sinkType, **sinkArgs)
+        return self.sinkSchema.getSink(self, self.createConnection(), sinkType, **sinkArgs)
 
     def getModel(self, modelType, **modelArgs):
-        return self.querySchema.getModel(self, modelType, **modelArgs)
+        return self.querySchema.getModel(self, self.createConnection(), modelType, **modelArgs)
 
     def getPrefixes(self):
         return self._prefixes
     
-    def lookupGraphId(self, cursor, graphUri, create=False):
-        
+    def lookupGraphId(self, graphUri, connection=None, create=False):
+
         # Normalize URI
         graphUri = self._prefixes.normalizeUri(graphUri).encode('utf-8')
         
+        # Create connection and get cursor
+        ownConnection = False
+        if connection is None:
+            connection = self.createConnection()
+            ownConnection = True
+        cursor = connection.cursor()
+                
         # Try lookup
         cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)        
         result = cursor.fetchone()
@@ -113,6 +120,10 @@ class ModelBase(SyncMethodsMixin):
         cursor.execute("INSERT INTO graphs (graph_uri) VALUES ('%s') RETURNING graph_id;" % graphUri)
         result = cursor.fetchone()
         assert not result is None, "Could not create a new graph!"
+        
+        # Commit
+        if ownConnection:
+            connection.commit()
 
         # Done
         return result[0]

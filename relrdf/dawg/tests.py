@@ -103,7 +103,7 @@ class QueryEvaluationTest(object):
                  'comment',
                  'type',
                  'query',
-                 'data',
+                 'data', 'graphData',
                  'result'  
                  )
     
@@ -117,8 +117,32 @@ class QueryEvaluationTest(object):
         action = triples.get((uri, ns.mf.action))
         self.query = triples.get((action, ns.qt.query))
         self.data = triples.get((action, ns.qt.data))
+        self.graphData = triples.get((action, ns.qt.graphData))
         
         self.result = triples.get((uri, ns.mf.result))
+        
+    def _readData(self, sink, uri, caption, asGraph, ref, log):
+        
+        # Copy text into log
+        dataText = readFileFromURL(uri)
+        log.testEntry(caption, dataText, pre=True, src=uri)
+
+        # Create parser
+        from relrdf.modelimport.redlandparse import RedlandParser
+        parser = RedlandParser("turtle")
+        
+        # Set graph
+        if asGraph:
+            sink.setGraph(uri)
+        
+        # Copy data into database (no commit!)
+        try:
+            parser.parse(self.data, sink)
+            sink.finish()
+        except Exception, detail:
+            sink.rollback()
+            log.testFailExc(ref, "Failed to import data")
+            raise QueryException("Failed to import data", detail)        
         
     def evaluate(self, model, sink, ref, log):
 
@@ -131,25 +155,34 @@ class QueryEvaluationTest(object):
             raise QueryException("Failed to read query", detail)
 
         # Data to read?
-        if self.data != None:
+        def _readData(uri, caption, asGraph):
             
-            # Read text for log
-            dataText = readFileFromURL(self.data)
-            log.testEntry("Data", dataText, pre=True, src=self.data)
-
+            # Copy text into log
+            dataText = readFileFromURL(uri)
+            log.testEntry(caption, dataText, pre=True, src=uri)
+    
             # Create parser
             from relrdf.modelimport.redlandparse import RedlandParser
             parser = RedlandParser("turtle")
-                        
+            
+            # Set graph
+            if asGraph:
+                sink.setGraph(uri)
+            
             # Copy data into database (no commit!)
             try:
-                parser.parse(self.data, sink)
+                parser.parse(uri, sink)
                 sink.finish()
             except Exception, detail:
                 sink.rollback()
                 log.testFailExc(ref, "Failed to import data")
                 raise QueryException("Failed to import data", detail)
-        
+                
+        if self.data is not None:
+            _readData(self.data, "Data", False)
+        if self.graphData is not None:
+            _readData(self.graphData, "Graph Data", True)
+                    
         # Execute the query
         try:
             

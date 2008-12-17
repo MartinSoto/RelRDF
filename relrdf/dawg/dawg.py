@@ -27,7 +27,7 @@ class Manifesto:
 
     def __init__(self, source):
         
-        # Initialiase slots
+        # Initialize slots
         self.source = source
         self.manifests = []
         self.entries = []
@@ -197,8 +197,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 4:
         print "Usage: python dawg.py manifesto.n3 (ref.lst) " \
             ":<model base type> " \
-            " [<model base params>] :<model type> [<model params>]" \
-            " :<sink type> [<sink params>]"
+            " [<model base params>] :<model type> [<model params>]"
             
     # Read manifesto
     manifestoFile = sys.argv[1]
@@ -217,16 +216,27 @@ if __name__ == '__main__':
             refSet = set([s.rstrip() for s in refFile.readlines()])
             refFile.close()
             argv = argv = sys.argv[3:]
-        except IOError:
-            pass
+        except IOError, e:
+            print >> sys.stderr, "Could not read reference list: %s" % e
+            sys.exit(1)
 
     # Get model base and sink    
     try:
+        
+        # Open model
         baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
         modelBase = relrdf.getModelBase(baseType, **baseArgs)
         
+        # Create graph to run test cases in
+        baseGraphUri = manifest.source
+        modelBase.lookupGraphId(baseGraphUri, create=True)
+
+        # Open model
         modelType, modelArgs = parseCmdLineArgs(argv, 'model')
+        modelArgs['baseGraph'] = baseGraphUri
         model = modelBase.getModel(modelType, **modelArgs)
+        
+        # Open sink
         sink = model.getSink()
             
     except InstantiationError, e:

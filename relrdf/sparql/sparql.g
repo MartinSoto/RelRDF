@@ -52,6 +52,8 @@ selectQuery returns [expr]
 		{ distinct = False }    
         (   DISTINCT
             { distinct = True }
+        |	REDUCED
+        	{ /* ignore fore now. */ }
         )?
         	
 		{ times = False; names, mappingExprs = [], [] }        		
@@ -821,6 +823,13 @@ DISTINCT
         ('C'|'c') ('T'|'t')
     ;
 
+
+protected  /* See QNAME_OR_KEYWORD. */
+REDUCED
+    :   ('R'|'r') ('E'|'e') ('D'|'d') ('U'|'u') ('C'|'c') ('E'|'e')
+        ('D'|'d')
+    ;
+    
 protected  /* See QNAME_OR_KEYWORD. */
 FILTER
     :   ('F'|'f') ('I'|'i') ('L'|'l') ('T'|'t') ('E'|'e') ('R'|'r')
@@ -974,6 +983,8 @@ QNAME_OR_KEYWORD
         { $setType(DESC) }
     |   ( DISTINCT ) => DISTINCT
         { $setType(DISTINCT) }
+    |   ( REDUCED ) => REDUCED
+        { $setType(REDUCED) }
     |   ( FILTER ) => FILTER
         { $setType(FILTER) }
     |   ( FROM ) => FROM

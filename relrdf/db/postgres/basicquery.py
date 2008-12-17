@@ -121,7 +121,8 @@ class BasicGraphMapper(BasicMapper):
     
     __slots__ = ('baseGraph',
                  'baseGraphId',
-                 'stmtRepl')
+                 'stmtReplDefault',
+                 'stmtReplOther')
 
     def __init__(self, modelBase, baseGraph):
         super(BasicGraphMapper, self).__init__()
@@ -131,24 +132,33 @@ class BasicGraphMapper(BasicMapper):
         # Lookup base graph
         self.baseGraphId = modelBase.lookupGraphId(baseGraph)
         
-        # Cache for the statement pattern replacement expression.
-        self.stmtRepl = None
+        # Cache for the statement pattern replacement expressions.
+        self.stmtReplDefault = None
+        self.stmtReplOther = None
         
     def _getDefaultGraph(self):
         return valueref.ValueRef(GraphUriMapping(), 
                                  sqlnodes.SqlInt(self.baseGraphId));
 
     def replStatementPattern(self, expr):
-        if self.stmtRepl is not None:
-            return self.stmtRepl
 
+        # Always either select default graph or the rest 
+        if isinstance(expr[0], nodes.DefaultGraph):
+            graphSelector = nodes.Equal(sqlnodes.SqlFieldRef(1, 'graph_id'),
+                                        sqlnodes.SqlInt(self.baseGraphId))            
+        else:
+            graphSelector = nodes.Different(sqlnodes.SqlFieldRef(1, 'graph_id'),
+                                            sqlnodes.SqlInt(self.baseGraphId))            
+        
         rel = nodes.Select(
              nodes.Product(
               sqlnodes.SqlRelation(1, 'graph_statement'),
               sqlnodes.SqlRelation(2, 'statements')),
-             nodes.Equal(
-              sqlnodes.SqlFieldRef(1, 'stmt_id'),
-              sqlnodes.SqlFieldRef(2, 'id')))
+             nodes.And(
+              nodes.Equal(
+               sqlnodes.SqlFieldRef(1, 'stmt_id'),
+               sqlnodes.SqlFieldRef(2, 'id')),
+              graphSelector))
 
         replExpr = \
           nodes.MapResult(['context', 'subject', 'predicate', 'object'],
@@ -158,10 +168,11 @@ class BasicGraphMapper(BasicMapper):
                           valueRef(2, 'predicate'),
                           valueRef(2, 'object'))
 
-        self.stmtRepl = (replExpr,
-                         ('context', 'subject', 'predicate', 'object'))
+        #self.stmtRepl = (replExpr,
+        #                 ('context', 'subject', 'predicate', 'object'))
 
-        return self.stmtRepl
+        return (replExpr,
+                ('context', 'subject', 'predicate', 'object'))
 
 class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):
 

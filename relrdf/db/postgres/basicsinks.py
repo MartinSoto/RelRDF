@@ -17,38 +17,18 @@ class SingleGraphRdfSink(object):
     # Maximum number of rows per insert query.
     ROWS_PER_QUERY = 10000
 
-    def __init__(self, connection, graphUri, verbose=False, delete=False):
-        self.connection = connection
+    def __init__(self, modelBase, graphUri, verbose=False, delete=False):
         self.verbose = verbose
         self.delete = delete
 
-        self.pendingRows = []
-        self.rowsAffected = 0
-
+        self.connection = modelBase.createConnection()
         self.cursor = self.connection.cursor()
-        
-        # Get graph ID
-        self.graphId = self._lookupGraphUri(graphUri)
+        self.graphId = modelBase.lookupGraphId(self.cursor, graphUri, create=True)
         
         self._createTempTable()
         
-    def _lookupGraphUri(self, graphUri):
-        
-        graphUri = unicode(graphUri).encode('utf-8')
-        
-        # Try lookup
-        self.cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)        
-        result = self.cursor.fetchone()
-        if not result is None:
-            return result[0]
-        
-        # Insert new graph
-        self.cursor.execute("INSERT INTO graphs (graph_uri) VALUES ('%s') RETURNING graph_id;" % graphUri)
-        result = self.cursor.fetchone()
-        assert not result is None, "Could not create a new graph!"
-
-        # Done
-        return result[0]
+        self.pendingRows = []
+        self.rowsAffected = 0
 
     def _createTempTable(self):
         

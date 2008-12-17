@@ -13,7 +13,6 @@ from relrdf import commonns
 import basicquery
 import basicsinks
 
-
 class ModelBase(SyncMethodsMixin):
     __slots__ = ('host',
                  'db',
@@ -58,7 +57,6 @@ class ModelBase(SyncMethodsMixin):
         self._connection = self.createConnection()
 
         # Get the prefixes from the database:
-
         cursor = self._connection.cursor()
         cursor.execute("""
             SELECT p.prefix, p.namespace
@@ -87,25 +85,29 @@ class ModelBase(SyncMethodsMixin):
         return self._connPool.connect()
 
     def getSink(self, sinkType, **sinkArgs):
-        return self.sinkSchema.getSink(self.createConnection(),
-                                       sinkType, **sinkArgs)
+        return self.sinkSchema.getSink(self, sinkType, **sinkArgs)
 
     def getModel(self, modelType, **modelArgs):
         return self.querySchema.getModel(self, modelType, **modelArgs)
 
     def getPrefixes(self):
         return self._prefixes
-
-    def _lookupGraphUri(self, cursor, graphUri):
-        # FIXME: Copied from sink...
+    
+    def lookupGraphId(self, cursor, graphUri, create=False):
         
-        graphUri = unicode(graphUri).encode('utf-8')
+        # Normalize URI
+        graphUri = self._prefixes.normalizeUri(graphUri).encode('utf-8')
         
         # Try lookup
         cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)        
         result = cursor.fetchone()
         if not result is None:
             return result[0]
+        
+        # Should not create? Return ID of an empty graph
+        # (graph IDs normally start at 1) 
+        if not create:
+            return 0
         
         # Insert new graph
         cursor.execute("INSERT INTO graphs (graph_uri) VALUES ('%s') RETURNING graph_id;" % graphUri)
@@ -121,22 +123,12 @@ class ModelBase(SyncMethodsMixin):
         # Create comparison graphs
         baseGraphName = "cmp_%d_%d_" % (graphA, graphB)
         graphUris = [commonns.relrdf[baseGraphName + suffix] for suffix in ['A', 'B', 'AB']]
-        graphs = [self._lookupGraphUri(cursor, uri) for uri in graphUris]
+        graphs = [self.lookupGraphId(cursor, uri, create=True) for uri in graphUris]
         
         # Clear previous data
         cursor.execute("DELETE FROM graph_statement WHERE graph_id IN (%d, %d, %d)" % (graphs[0], graphs[1], graphs[2]));
 
         # Insert data
-        print """
-             INSERT INTO graph_statement (stmt_id, graph_id)
-               SELECT COALESCE(a.stmt_id, b.stmt_id),
-                      CASE WHEN a.stmt_id IS NULL THEN %d
-                           WHEN b.stmt_id IS NULL THEN %d
-                           ELSE %d END
-               FROM (SELECT stmt_id FROM graph_statement WHERE graph_id = %d) AS a FULL JOIN
-                    (SELECT stmt_id FROM graph_statement WHERE graph_id = %d) AS b
-                    ON a.stmt_id = b.stmt_id
-             """ % (graphs[0], graphs[1], graphs[2], graphA, graphB)
         cursor.execute(
              """
              INSERT INTO graph_statement (stmt_id, graph_id)
@@ -150,8 +142,7 @@ class ModelBase(SyncMethodsMixin):
              """ % (graphs[0], graphs[1], graphs[2], graphA, graphB))
         
         self._connection.commit()
-        return graphs
-        
+        return graphUris
 
     @synchronized
     def close(self):

@@ -1,5 +1,7 @@
 from relrdf import Namespace
 
+from urlparse import urlparse, urlunparse, urljoin
+from urllib import unquote
 
 class NamespaceUriShortener(dict):
     """Convert URIs into a shortened form using a set of namespace prefixes.
@@ -65,3 +67,30 @@ class NamespaceUriShortener(dict):
         else:
             return self.shortFmt % (prefix, suffix)
 
+    def normalizeUri(self, uri):
+        
+        # Parse URI into parts
+        (scheme, auth, path, par, query, frag) = urlparse(uri)
+        
+        # Skip lookup if there is an authority (so the URI is of the
+        # form "http://..." or something similar)
+        if auth == '':
+            try:
+                
+                # Try to get prefix
+                prefix = self[scheme]
+                
+                # Compose and re-split URI
+                uri = prefix + urlunparse(('', '', path, par, query, frag))
+                (scheme, auth, path, par, query, frag) = urlparse(uri)
+                
+            except KeyError:
+                pass
+        
+        # Normalize path
+        path = unquote(path)
+        
+        # Return result
+        return urlunparse((scheme, auth, path, par, query, frag))
+                
+        

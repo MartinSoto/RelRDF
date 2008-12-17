@@ -42,23 +42,23 @@ class SyntaxTest(object):
         self.action = triples.get((uri, ns.mf.action))
         self.expectSuccess = expectSuccess
         
-    def execute(self, model, sink, ref, log):
+    def execute(self, ctx):
 
         print "Running %s..." % self.name,
 
         # Create log        
         if self.expectSuccess:
-            log.testStart(self.name, "Syntax test (positive)")
+            ctx.testStart(self.uri, self.name, "Syntax test (positive)")
         else:
-            log.testStart(self.name, "Syntax test (negative)")
+            ctx.testStart(self.uri, self.name, "Syntax test (negative)")
         
         # Read the action data (SPARQL)
         try:
             query = readFileFromURL(self.action) 
-            log.testEntry("Query", query, pre=True, src=self.action)
+            ctx.testEntry("Query", query, pre=True, src=self.action)
         except IOError, detail:
             print "Failed (%s)" % detail
-            log.testFailExc(ref, "Could not read query")
+            ctx.testFailExc("Could not read query")
             return False
         
         try:
@@ -70,20 +70,23 @@ class SyntaxTest(object):
         except Exception, detail:
             if self.expectSuccess:
                 print "Failed (%s)" % detail
-                log.testFailExc(ref, "Could not parse query")
+                if not isinstance(detail, error.NotSupportedError):
+                    ctx.testFailExc("Could not parse query")
+                else:
+                    ctx.testNoSupport("Could not parse query")
                 return False
             else:
                 print "Ok"
-                log.testOk(ref)
+                ctx.testOk()
                 return True;
         
         if self.expectSuccess:
             print "Ok"
-            log.testOk(ref)
+            ctx.testOk()
             return True
         else:
             print "Failed (Negative test: Expected a parser error)"
-            log.testFail(ref, "Negative test: Expected a parser error")
+            ctx.testFail("Negative test: Expected a parser error")
             return True
 
 class QueryException(Exception):
@@ -121,11 +124,11 @@ class QueryEvaluationTest(object):
         
         self.result = triples.get((uri, ns.mf.result))
         
-    def _readData(self, sink, uri, caption, asGraph, ref, log):
+    def _readData(self, ctx, uri, caption, asGraph):
         
         # Copy text into log
         dataText = readFileFromURL(uri)
-        log.testEntry(caption, dataText, pre=True, src=uri)
+        ctx.testEntry(caption, dataText, pre=True, src=uri)
 
         # Create parser
         from relrdf.modelimport.redlandparse import RedlandParser
@@ -133,68 +136,69 @@ class QueryEvaluationTest(object):
         
         # Set graph
         if asGraph:
-            sink.setGraph(uri)
+            ctx.sink.setGraph(uri)
         
         # Copy data into database (no commit!)
         try:
-            parser.parse(self.data, sink)
+            parser.parse(self.data, ctx.sink)
             sink.finish()
         except Exception, detail:
-            sink.rollback()
-            log.testFailExc(ref, "Failed to import data")
+            ctx.testFailExc("Failed to import data")
             raise QueryException("Failed to import data", detail)        
         
-    def evaluate(self, model, sink, ref, log):
+    def _readData(self, ctx, uri, caption, asGraph):
+        
+        # Copy text into log
+        dataText = readFileFromURL(uri)
+        ctx.testEntry(caption, dataText, pre=True, src=uri)
+
+        # Create parser
+        from relrdf.modelimport.redlandparse import RedlandParser
+        parser = RedlandParser("turtle")
+        
+        # Set graph
+        if asGraph:
+            ctx.sink.setGraph(uri)
+        
+        # Copy data into database (no commit!)
+        try:
+            parser.parse(uri, ctx.sink)
+            ctx.sink.finish()
+        except Exception, detail:
+            ctx.testFailExc("Failed to import data")
+            raise QueryException("Failed to import data", detail)
+                    
+    def evaluate(self, ctx):
 
         # Read query
         try:
             query = readFileFromURL(self.query)
-            log.testEntry("Query", query, pre=True, src=self.query)
+            ctx.testEntry("Query", query, pre=True, src=self.query)
         except IOError, detail:
-            log.testFailExc(ref, "Failed to read query")
+            ctx.testFailExc(ref, "Failed to read query")
             raise QueryException("Failed to read query", detail)
 
         # Data to read?
-        def _readData(uri, caption, asGraph):
-            
-            # Copy text into log
-            dataText = readFileFromURL(uri)
-            log.testEntry(caption, dataText, pre=True, src=uri)
-    
-            # Create parser
-            from relrdf.modelimport.redlandparse import RedlandParser
-            parser = RedlandParser("turtle")
-            
-            # Set graph
-            if asGraph:
-                sink.setGraph(uri)
-            
-            # Copy data into database (no commit!)
-            try:
-                parser.parse(uri, sink)
-                sink.finish()
-            except Exception, detail:
-                sink.rollback()
-                log.testFailExc(ref, "Failed to import data")
-                raise QueryException("Failed to import data", detail)
-                
         if self.data is not None:
-            _readData(self.data, "Data", False)
+            self._readData(ctx, self.data, "Data", False)
         if self.graphData is not None:
-            _readData(self.graphData, "Graph Data", True)
+            self._readData(ctx, self.graphData, "Graph Data", True)
                     
         # Execute the query
         try:
             
             # Parse query, log SQL
-            sql = model.querySQL('SPARQL', query, self.query)
-            log.testEntry("SQL", sql, pre=True)
+            sql = ctx.model.querySQL('SPARQL', query, self.query)
+            ctx.testEntry("SQL", sql, pre=True)
             
             # Try to execute the query
-            result = model.query('SPARQL', query, self.query)                
+            result = ctx.model.query('SPARQL', query, self.query)                
                 
         except Exception, detail:
-            log.testFailExc(ref, "Failed to run query")
+            if not isinstance(detail, error.NotSupportedError):
+                ctx.testFailExc("Failed to run query")
+            else:
+                ctx.testNoSupport("Failed to run query")
             raise QueryException("Failed to run query", detail)
         
         return result
@@ -204,47 +208,42 @@ class SelectQueryEvaluationTest(QueryEvaluationTest):
     def __init__(self, uri, triples):        
         super(SelectQueryEvaluationTest, self).__init__(uri, triples)
     
-    def execute(self, model, sink, ref, log):
+    def execute(self, ctx):
         
         print "Running %s..." % self.name,
-        log.testStart(self.name, "Select query test")
+        ctx.testStart(self.uri, self.name, "Select query test")
         if not self.comment is None:
-            log.testEntry("Comment", self.comment)
+            ctx.testEntry("Comment", self.comment)
         
         # Read the expected result
         try:
                         
             # Read text for log
-            log.testEntry("Expected", "", src=self.result)
+            ctx.testEntry("Expected", "", src=self.result)
             
             expectedResult = SelectQueryResult(unprefixFileURL(self.result))
             
         except Exception, detail:
-            log.testFailExc(ref, "Failed to read expected result")
+            ctx.testFailExc("Failed to read expected result")
             print "Failed to read expected result (%s)" % detail
             return False
         
+        # Evaluate the query
         try:
-            
-            # Evaluate the query
-            try:
-                result = self.evaluate(model, sink, ref, log)
-            except QueryException, detail:
-                print "%s (%s)" % (detail.msg, detail.nested)
-                return False
+            result = self.evaluate(ctx)
+        except QueryException, detail:
+            print "%s (%s)" % (detail.msg, detail.nested)
+            return False
+    
+        # Compare result
+        (success, msg) = expectedResult.compare(result, ctx)
+        if not success:
+            ctx.testFail("Failed result match (%s)" % msg)
+            print "Failed result match (%s)" % msg
+            return False
         
-            # Compare result
-            (success, msg) = expectedResult.compare(result, log)
-            if not success:
-                log.testFail(ref, "Failed result match (%s)" % msg)
-                print "Failed result match (%s)" % msg
-                return False
-        
-        finally:                            
-            # Rollback any changes
-            sink.rollback()
-        
-        log.testOk(ref)        
+        # Okay        
+        ctx.testOk()
         print "Ok"
         return True
 
@@ -253,45 +252,40 @@ class ConstructQueryEvaluationTest(QueryEvaluationTest):
     def __init__(self, uri, triples):        
         super(ConstructQueryEvaluationTest, self).__init__(uri, triples)
 
-    def execute(self, model, sink, ref, log):
+    def execute(self, ctx):
         print "Running %s..." % self.name,
-        log.testStart(self.name, "Construct query test")
+        ctx.testStart(self.uri, self.name, "Construct query test")
         if not self.comment is None:
-            log.testEntry("Comment", self.comment)
+            ctx.testEntry("Comment", self.comment)
         
         # Read the expected result
         try:
                         
-            log.testEntry("Expected", "", src=self.result)
+            ctx.testEntry("Expected", "", src=self.result)
 
             expectedResult = ConstructQueryResult(unprefixFileURL(self.result))
                         
         except Exception, detail:
-            log.testFailExc(ref, "Failed to read expected result")
+            ctx.testFailExc(ref, "Failed to read expected result")
             print "Failed to read expected result (%s)" % detail
-            return False        
+            return False    
         
+         # Evaluate the query
         try:
-                        
-            # Evaluate the query
-            try:
-                result = self.evaluate(model, sink, ref, log)
-            except QueryException, detail:
-                print "%s (%s)" % (detail.msg, detail.nested)
-                return False
+            result = self.evaluate(ctx)
+        except QueryException, detail:
+            print "%s (%s)" % (detail.msg, detail.nested)
+            return False
+    
+        # Compare result
+        (success, msg) = expectedResult.compare(result)
+        if not success:
+            ctx.testFail("Failed result match (%s)" % msg)
+            print "Failed result match (%s)" % msg
+            return False
         
-            # Compare result
-            (success, msg) = expectedResult.compare(result)
-            if not success:
-                log.testFail(ref, "Failed result match (%s)" % msg)
-                print "Failed result match (%s)" % msg
-                return False
-        
-        finally:                            
-            # Rollback any changes
-            sink.rollback()
-        
-        log.testOk(ref)
+        # Okay        
+        ctx.testOk()
         print "Ok"
         return True
     
@@ -300,7 +294,9 @@ class AskQueryEvaluationTest(QueryEvaluationTest):
     def __init__(self, uri, triples):        
         super(AskQueryEvaluationTest, self).__init__(uri, triples)
 
-    def execute(self, model, sink, ref, log):
+    def execute(self, ctx):
         print "Running %s..." % self.name,
         print "Not implemented yet!"
+        ctx.testStart(self.uri, self.name, "Construct query test")        
+        ctx.testNoSupport()        
         return False

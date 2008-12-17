@@ -16,6 +16,8 @@ from relrdf.typecheck.typeexpr import LiteralType, BlankNodeType, \
 
 from basicsinks import SingleGraphRdfSink
 
+from relrdf.util import nsshortener
+
 def resourceTypeExpr():
     return nodes.Uri(commonns.rdfs.Resource)
 
@@ -126,10 +128,12 @@ class BasicGraphMapper(BasicMapper):
     __slots__ = ('defaultGraphId',
                  'stmtRepl')
 
-    def __init__(self, defaultGraphId):
+    def __init__(self, modelBase, baseGraph):
         super(BasicGraphMapper, self).__init__()
 
-        self.defaultGraphId = int(defaultGraphId)
+        # Lookup base graph
+        cursor = modelBase.createConnection().cursor()
+        self.defaultGraphId = modelBase.lookupGraphId(cursor, baseGraph)
 
         # Cache for the statement pattern replacement expression.
         self.stmtRepl = None
@@ -170,8 +174,8 @@ class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):
     name = "Single Graph"
     parameterInfo = ({"name":"graphId", "label":"Graph ID", "tip":"Enter the ID of the graph to be used", "assert":"graphId != ''", "asserterror":"Graph ID must not be empty"},)
 
-    def __init__(self, graphId, **args):
-        super(GraphMapper, self).__init__(graphId)
+    def __init__(self, modelBase, baseGraph, **args):
+        super(GraphMapper, self).__init__(modelBase, baseGraph)
     
     def getModifGraphId(self):
         return self.graphId
@@ -356,13 +360,6 @@ class BasicModel(object):
         self.mappingTransf = mappingTransf
         self.modelArgs = modelArgs
 
-        # Add the prefixes from the model base to modelArgs, so that
-        # the parser receives them.
-        paramPrf = modelArgs.get('prefixes', {})
-        for prefix, namespace in modelBase.getPrefixes().items():
-            paramPrf[prefix] = uri.Namespace(namespace)
-        modelArgs['prefixes'] = paramPrf
-
         # Connections are created when a transaction is started.
         self._connection = None
 
@@ -377,15 +374,13 @@ class BasicModel(object):
 
     def _exprToSql(self, expr):
         
-        # Transform occurences of StatementResult
+        # Transform occurrences of StatementResult
         expr = transform.StatementResultTransformer().process(expr)
         
         # Insert known type information
         expr = dynamic.dynTypeTranslate(expr)
         
         # Apply the selected mapping.
-        print self.mappingTransf
-        print expr
         expr = self.mappingTransf.process(expr)
        
         # Add dynamic type checks.
@@ -480,6 +475,13 @@ class BasicModel(object):
             # Start a transaction:
             self._startTransaction()
 
+        # Add the prefixes from the model base to modelArgs, so that
+        # the parser receives them.
+        paramPrf = self.modelArgs.get('prefixes', {})
+        for prefix, namespace in self.getPrefixes().items():
+            paramPrf[prefix] = uri.Namespace(namespace)
+        self.modelArgs['prefixes'] = paramPrf
+ 
         # Parse the query.
         parser = parserfactory.getQueryParser(queryLanguage,
                                               **self.modelArgs)
@@ -550,12 +552,32 @@ class BasicModel(object):
         self.close()
         
 class TwoWayModel(BasicModel):
-
+    
+    __slots__ = ('prefixes')
 
     def __init__(self, modelBase, mappingTransf, graphA, graphB, **modelArgs):        
         super(TwoWayModel, self).__init__(modelBase, mappingTransf, **modelArgs)
         
-        modelBase.prepareTwoWay(int(graphA), int(graphB))
+        self.prefixes = nsshortener.NamespaceUriShortener()
+        self.prefixes.addPrefixes(modelBase.getPrefixes())
+  
+        self._startTransaction()
+        cursor = self._connection.cursor() 
+        graphAid = modelBase.lookupGraphId(cursor, graphA) 
+        graphBid = modelBase.lookupGraphId(cursor, graphB)
+
+        # Won't be a problem, but won't give interesting results either
+        assert graphAid != 0, "Graph A doesn't exist!"
+        assert graphBid != 0, "Graph B doesn't exist!"
+        
+        graphUris = modelBase.prepareTwoWay(graphAid, graphBid)
+  
+        self.prefixes['compA'] = graphUris[0]
+        self.prefixes['compB'] = graphUris[1]
+        self.prefixes['compAB'] = graphUris[2]
+  
+    def getPrefixes(self):
+        return self.prefixes
 
 _modelFactories = {
     'plain': (BasicModel, GraphMapper),
@@ -573,7 +595,7 @@ def getModel(modelBase, modelType, schema=None, **modelArgs):
         raise InstantiationError(_("Missing or invalid model "
                                    "arguments: %s") % e)
 
-    return modelCls(modelBase, transfCls(**modelArgs), **modelArgs)
+    return modelCls(modelBase, transfCls(modelBase, **modelArgs), **modelArgs)
 
 def getModelMappers():
     mappers = {}

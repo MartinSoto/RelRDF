@@ -30,8 +30,8 @@ try:
     modelBase = relrdf.getModelBase(baseType, **baseArgs)
 
     sinkType, sinkArgs = parseCmdLineArgs(argv, 'sink')
-    if 'graphUri' not in sinkArgs:
-        sinkArgs['graphUri'] = urljoin('file:', fileName)
+    if 'baseGraph' not in sinkArgs:
+        sinkArgs['baseGraph'] = urljoin('file:', fileName)
     sink = modelBase.getSink(sinkType, **sinkArgs)
 except InstantiationError, e:
     error(e)

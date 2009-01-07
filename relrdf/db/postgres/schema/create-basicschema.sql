@@ -106,13 +106,6 @@ INSERT INTO prefixes (prefix, namespace) VALUES
   ('vmxt', 'http://www.v-modell-xt.de/schema/1#'),
   ('vmxti', 'http://www.v-modell-xt.de/model/1#'),
   ('vmxtg', 'http://www.v-modell-xt.de/graphs/1#');
-  
-  
-GRANT ALL ON 
-  types, data_types_id_seq, language_tags_id_seq, 
-  prefixes, relrdf_schema_version,
-  statements, statements_id_seq, 
-  graphs, graphs_graph_id_seq, graph_statement TO vmodell;
 
 /* Stored procedures handling type lookups */
 

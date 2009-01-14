@@ -192,12 +192,17 @@ class SingleGraphRdfSink(object):
             # Remove existing statements
             if self.verbose:
                 print "Removing statements from graph...",   
+#            self.cursor.execute(
+#                """
+#                DELETE FROM graph_statement vs
+#                  WHERE graph_id = %d AND stmt_id IN 
+#                    (SELECT stmt_id FROM graph_statement_temp1)
+#                """ % int(self.graphId))
             self.cursor.execute(
                 """
-                DELETE FROM graph_statement vs
-                  WHERE graph_id = %d AND stmt_id IN 
+                UPDATE SET version = version - %d WHERE stmt_id IN 
                     (SELECT stmt_id FROM graph_statement_temp1)
-                """ % int(self.graphId))
+                """ % int(self.graphId))            
             if self.verbose:
                 print "%d removed" % self.cursor.rowcount             
 
@@ -205,16 +210,20 @@ class SingleGraphRdfSink(object):
             # "... WHERE id NOT IN (SELECT stmt_id FROM statements)"
             if self.verbose:
                 print "Removing unused statements..."
+#            self.cursor.execute(
+#                """
+#                DELETE FROM statements WHERE id IN
+#                  (SELECT ss.id FROM statements ss 
+#                                LEFT JOIN graph_statement gs
+#                                ON gs.stmt_id = ss.id
+#                   WHERE gs.stmt_id IS NULL);                
+#                """)
             self.cursor.execute(
                 """
-                DELETE FROM statements WHERE id IN
-                  (SELECT ss.id FROM statements ss 
-                                LEFT JOIN graph_statement gs
-                                ON gs.stmt_id = ss.id
-                   WHERE gs.stmt_id IS NULL);                
-                """)            
+                DELETE FROM statements WHERE version = '{}';
+                """)
             if self.verbose:
-                print "%d removed" % self.cursor.rowcount             
+                print "%d removed" % self.cursor.rowcount
                 
         else:
             
@@ -237,27 +246,37 @@ class SingleGraphRdfSink(object):
             #         defined though, so we leave it like this for now.
             if self.verbose:
                 print "Inserting new statements...",
+#            self.cursor.execute(
+#                """
+#                INSERT INTO statements (subject, predicate, object)
+#                  SELECT s.subject, s.predicate, s.object
+#                    FROM statements_temp1 s
+#                    WHERE s.subject IS NOT NULL
+#                      AND s.predicate IS NOT NULL
+#                      AND s.object IS NOT NULL                      
+#                  RETURNING id
+#                """)
             self.cursor.execute(
                 """
-                INSERT INTO statements (subject, predicate, object)
-                  SELECT s.subject, s.predicate, s.object
+                INSERT INTO statements (subject, predicate, object, version)
+                  SELECT s.subject, s.predicate, s.object, intset(%d)
                     FROM statements_temp1 s
                     WHERE s.subject IS NOT NULL
                       AND s.predicate IS NOT NULL
                       AND s.object IS NOT NULL                      
                   RETURNING id
-                """)
+                """ % int(self.graphId))            
             if self.verbose:
                 print "%d new" % self.cursor.rowcount             
                         
-            # Get IDs of newly inserted rows
-            ids = self.cursor.fetchall()
-            ids = [(int(self.graphId), x.pop()) for x in ids]
-            self.cursor.executemany(
-                """
-                INSERT INTO graph_statement_temp1 (graph_id, stmt_id)
-                    VALUES (%d, %d)
-                """, ids)
+#            # Get IDs of newly inserted rows
+#            ids = self.cursor.fetchall()
+#            ids = [(int(self.graphId), x.pop()) for x in ids]
+#            self.cursor.executemany(
+#                """
+#                INSERT INTO graph_statement_temp1 (graph_id, stmt_id)
+#                    VALUES (%d, %d)
+#                """, ids)
                         
             # Drop statements (not needed anymore)
             self.cursor.execute(
@@ -268,14 +287,20 @@ class SingleGraphRdfSink(object):
             # Add the statement numbers to the graph.
             if self.verbose:
                 print "Saving graph information...",  
+#            self.cursor.execute(
+#                """
+#                INSERT INTO graph_statement (graph_id, stmt_id)
+#                    SELECT vt.graph_id, vt.stmt_id
+#                      FROM graph_statement_temp1 vt
+#                        LEFT JOIN graph_statement v ON v.graph_id = vt.graph_id AND v.stmt_id = vt.stmt_id
+#                    WHERE v.stmt_id IS NULL
+#                """)
             self.cursor.execute(
                 """
-                INSERT INTO graph_statement (graph_id, stmt_id)
-                    SELECT vt.graph_id, vt.stmt_id
-                      FROM graph_statement_temp1 vt
-                        LEFT JOIN graph_statement v ON v.graph_id = vt.graph_id AND v.stmt_id = vt.stmt_id
-                    WHERE v.stmt_id IS NULL
-                """)
+                UPDATE statements SET version = version | %d WHERE
+                    id IN (SELECT stmt_id FROM graph_statement_temp1) AND
+                    NOT intset(%d) <@ version 
+                """ % (int(self.graphId), int(self.graphId)) )
             if self.verbose:
                 print "%d new" % self.cursor.rowcount             
 

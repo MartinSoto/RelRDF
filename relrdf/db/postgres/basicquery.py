@@ -150,14 +150,23 @@ class BasicGraphMapper(BasicMapper):
             graphSelector = nodes.Different(sqlnodes.SqlFieldRef(1, 'graph_id'),
                                             sqlnodes.SqlInt(self.baseGraphId))            
         
+#        rel = nodes.Select(
+#             nodes.Product(
+#              sqlnodes.SqlRelation(1, 'graph_statement'),
+#              sqlnodes.SqlRelation(2, 'statements')),
+#             nodes.And(
+#              nodes.Equal(
+#               sqlnodes.SqlFieldRef(1, 'stmt_id'),
+#               sqlnodes.SqlFieldRef(2, 'id')),
+#              graphSelector))
         rel = nodes.Select(
              nodes.Product(
-              sqlnodes.SqlRelation(1, 'graph_statement'),
+              sqlnodes.SqlRelation(1, 'graphs'),
               sqlnodes.SqlRelation(2, 'statements')),
              nodes.And(
-              nodes.Equal(
-               sqlnodes.SqlFieldRef(1, 'stmt_id'),
-               sqlnodes.SqlFieldRef(2, 'id')),
+              sqlnodes.SqlInArray(
+               sqlnodes.SqlFieldRef(1, 'graph_id'),
+               sqlnodes.SqlFieldRef(2, 'version')),
               graphSelector))
 
         replExpr = \

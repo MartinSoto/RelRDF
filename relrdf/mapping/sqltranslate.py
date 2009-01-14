@@ -62,6 +62,7 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
     SqlGreaterThanOrEqual = keep
     SqlDifferent = keep
     SqlTypeCompatible = keep
+    SqlInArray = keep
         
     # Cast unknown nodes to bool
     def Default(self, expr, *subexpr):

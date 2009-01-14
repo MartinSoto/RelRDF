@@ -7,7 +7,7 @@ CREATE TABLE relrdf_schema_version (
 );
 
 INSERT INTO relrdf_schema_version (name, version)
-  VALUES ('basic', 3);
+  VALUES ('basic', 1);
 
 DROP TABLE IF EXISTS statements;
 

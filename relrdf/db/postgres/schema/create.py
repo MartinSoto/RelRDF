@@ -1,0 +1,116 @@
+
+import getopt
+import sys
+from subprocess import call
+from os import path
+
+RDF_TERM_SQL = '../rdf_term/rdf_term.sql'
+SCHEMA_SQL = 'create-basicschema-1.sql'
+USER_SQL = 'create-user.sql'
+
+def usage():    
+    print """
+Usage:
+  python create.py [OPTIONS] [ACTION]
+  
+Options:
+  --help           This helpful text
+  
+  -d [name]        Database name (default: "relrdf")
+  
+  -h [name]        Server hostname 
+  -p [port]        Server port
+  -U [name]        Server login
+  
+Actions:
+  --fast           Creates and initializes database "relrdf" and user "relrdf"
+
+  --create-db      Creates the database
+  --init-db        Initializes the database (clears existing data)
+  
+  --create-user=name  Create a new user
+  --init-user=name    Give all necessary privileges to given user
+"""
+    exit(1)
+
+# Parse command line options
+argv = sys.argv[1:]
+try:
+    shortOpts = "d:h:p:U:"
+    longOpts = ["help", "fast", "create-db", "init-db", "create-user=", "init-user="]
+    opts, args = getopt.getopt(argv, shortOpts, longOpts)
+except getopt.GetoptError:
+    usage()
+if args != []:
+    usage()
+
+# Evaluate
+db = 'relrdf'
+createDB = False
+initDB = False
+createUsers = []
+initUsers = []
+pgOpts = []
+for opt, val in opts:
+    if opt == '-d':
+        db = val
+    elif opt == '-h' or opt == '-p' or opt == '-U': 
+        pgOpts.append(opt)
+        pgOpts.append(val)
+    elif opt == '--fast':
+        createDB = initDB = True
+        createUsers.append("relrdf")
+        initUsers.append("relrdf")
+    elif opt == '--help':
+        usage()
+    elif opt == '--create-db':
+        createDB = True
+    elif opt == '--init-db':
+        initDB = True
+    elif opt == '--create-user':
+        createUsers.append(val)
+    elif opt == '--init-user':
+        initUsers.append(val)
+        
+# Nothing to do?
+if not createDB and not initDB and createUsers == [] and initUsers == []:
+    usage()
+
+# Create database
+if createDB:
+    if 0 != call(['createdb'] + pgOpts + [db, "RelRDF database"]):
+        print "Failed to create database %s!" % db
+        exit(1)
+        
+# Initialize database
+scriptDir = path.dirname(__file__)
+if initDB:
+    
+    # rdf_term database extension
+    sqlFile = path.join(scriptDir, RDF_TERM_SQL)
+    if 0 != call(['psql'] + pgOpts + ['-f', sqlFile]):
+        print "Failed to import rel_rdf extension into database %s!" % db
+        print "Make sure rdf_term.so is installed!"
+        exit(1)
+
+    # The schema
+    sqlFile = path.join(scriptDir, SCHEMA_SQL)
+    if 0 != call(['psql'] + pgOpts + ['-f', sqlFile]):
+        print "Failed to initialize database %s!" % db
+        exit(1)
+
+# Create user(s)
+for user in createUsers:     
+    sqlFile = path.join(scriptDir, USER_SQL)
+    if 0 != call(['createuser'] + pgOpts + ['-SDRlPE', user]):
+        print "Failed to initialize database %s!" % db
+        exit(1)
+
+# Initialize user(s)
+for user in initUsers:     
+    sqlFile = path.join(scriptDir, USER_SQL)
+    if 0 != call(['psql'] + pgOpts + ['-f', sqlFile, '-v', 'user='+user]):
+        print "Failed to initialize database %s!" % db
+        exit(1)
+
+print "\n All done!"

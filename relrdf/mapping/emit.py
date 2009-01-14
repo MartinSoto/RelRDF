@@ -3,6 +3,15 @@ import re
 from relrdf.commonns import xsd, fn, sql, rdfs
 from relrdf.expression import uri, rewrite, nodes
 
+import string
+
+# Adapted from pgdb
+def quote(str):
+    str = unicode(str)
+    str = str.replace('\\', '\\\\')
+    str = str.replace("'", "''")
+    return "E'"+ str + "'"
+
 class SqlEmitter(rewrite.ExpressionProcessor):
     """Generate SQL code from a relational expression."""
 
@@ -15,9 +24,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def _lookupTypeId(self, uri, tag):
         if uri is not None:
-            return "(SELECT id FROM types WHERE type_uri='%s')" % uri
+            return "(SELECT id FROM types WHERE type_uri=%s)" % quote(uri)
         elif tag is not None:
-            return "(SELECT id FROM types WHERE lang_tag='%s')" % tag
+            return "(SELECT id FROM types WHERE lang_tag=%s)" % quote(tag)
         else:
             return "1"
         
@@ -28,7 +37,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '%d' % expr.val
 
     def Uri(self, expr):
-        return "rdf_term_resource('%s')" % expr.uri
+        return "rdf_term_resource(%s)" % quote(expr.uri)
 
     def Literal(self, expr):
         
@@ -36,7 +45,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         typeIdExpr = self._lookupTypeId(expr.literal.typeUri,
                                         expr.literal.lang)
         
-        return "rdf_term(%s, '%s')" % (typeIdExpr, unicode(expr.literal))
+        return "rdf_term(%s, %s)" % (typeIdExpr, quote(expr.literal))
 
     def If(self, expr, cond, thenExpr, elseExpr):
         return 'IF(%s, %s, %s)' % (cond, thenExpr, elseExpr)
@@ -299,6 +308,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def SqlFunctionCall(self, expr, *args):
         return '%s(%s)' % (expr.name, ', '.join(args))
+    
+    def SqlInArray(self, expr, val, array):
+        return "intset(%s) <@ (%s)" % (val, array)
 
     def BlankNode(self, expr):
         # Generate a unique UUID for the name used to identify the blank node
@@ -312,5 +324,6 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
 def emit(expr):
     emitter = SqlEmitter()
+    print emitter.process(expr)
     return emitter.process(expr)
 

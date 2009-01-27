@@ -387,7 +387,7 @@ class ModelBase(SyncMethodsMixin):
         assert len(conns) > 0
         conns = ', '.join(conns)
 
-        # Delete uses from inexisting connections (most probably
+        # Delete uses from inexistent connections (most probably
         # corresponding to killed or failed processes.)
         cursor.execute("""
             DELETE FROM twoway_conns
@@ -426,6 +426,22 @@ class ModelBase(SyncMethodsMixin):
             ON t.version_a = ut.version_a AND t.version_b = ut.version_b
                AND t.version_c = ut.version_c
             WHERE ut.version_a is null
+            """)
+
+        self._connection.commit()
+
+
+    @synchronized
+    def cleanUpStatements(self):
+        cursor = self._connection.cursor()
+
+        # Delete statements that aren't referenced from
+        # version_statement.
+        cursor.execute("""
+            DELETE s
+            FROM statements s LEFT JOIN version_statement vs
+                 ON s.id = vs.stmt_id
+            WHERE vs.stmt_id is NULL
             """)
 
         self._connection.commit()

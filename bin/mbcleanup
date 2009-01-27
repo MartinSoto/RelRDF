@@ -27,5 +27,6 @@ except InstantiationError, e:
     error(e)
 
 modelBase.cleanUpCaches()
+modelBase.cleanUpStatements()
 
 modelBase.close()

@@ -271,18 +271,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def StatementResult(self, expr, rel, *stmtTmpls):
         typeExpr = StatementRelType()
         for i, stmtTmpl in enumerate(expr[1:]):
-            if not stmtTmpl[0].staticType.isSubtype(resourceType):
-                error(stmtTmpl[0], _("Subject type must be a resource"))
             typeExpr.addColumn('subject%d' % (i + 1),
                                stmtTmpl[0].staticType)
-
-            if not stmtTmpl[1].staticType.isSubtype(resourceType):
-                error(stmtTmpl[1], _("Predicate type must be a resource"))
             typeExpr.addColumn('predicate%d' % (i + 1),
                                stmtTmpl[1].staticType)
-
-            if not stmtTmpl[2].staticType.isSubtype(rdfNodeType):
-                error(stmtTmpl[2], _("Object type must be an RDF node"))
             typeExpr.addColumn('object%d' % (i + 1),
                                stmtTmpl[2].staticType)
         expr.staticType = typeExpr

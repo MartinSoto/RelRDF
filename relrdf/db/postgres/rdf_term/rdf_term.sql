@@ -257,6 +257,62 @@ CREATE FUNCTION rdf_term_hash(rdf_term)
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
 
+/* GiST support methods */
+
+CREATE TYPE gbtreekey_var;
+
+CREATE OR REPLACE FUNCTION gbtreekey_var_in(cstring)
+	RETURNS gbtreekey_var
+	AS 'rdf_term', 'gbtreekey_in'
+	LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION gbtreekey_var_out(gbtreekey_var)
+	RETURNS cstring
+	AS 'rdf_term', 'gbtreekey_out'
+	LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE gbtreekey_var (
+	INTERNALLENGTH = VARIABLE,
+	INPUT  = gbtreekey_var_in,
+	OUTPUT = gbtreekey_var_out,
+	STORAGE = EXTENDED
+);
+
+CREATE FUNCTION gbt_term_consistent(internal,rdf_term,int2)
+	RETURNS bool
+	AS 'rdf_term'
+	LANGUAGE C IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION gbt_term_compress(internal)
+	RETURNS internal
+	AS 'rdf_term'
+	LANGUAGE C IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION gbt_term_penalty(internal,internal,internal)
+	RETURNS internal
+	AS 'rdf_term'
+	LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION gbt_term_picksplit(internal, internal)
+	RETURNS internal
+	AS 'rdf_term'
+	LANGUAGE C IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION gbt_term_union(bytea, internal)
+	RETURNS gbtreekey_var
+	AS 'rdf_term'
+	LANGUAGE C IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION gbt_term_same(internal, internal, internal)
+	RETURNS internal
+	AS 'rdf_term'
+	LANGUAGE C IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION gbt_var_decompress(internal)
+	RETURNS internal
+	AS 'rdf_term'
+	LANGUAGE C IMMUTABLE;
+
 /* Index definitions */
 
 CREATE OPERATOR CLASS rdf_term_equal
@@ -272,6 +328,22 @@ CREATE OPERATOR CLASS rdf_term_hash
 	DEFAULT FOR TYPE rdf_term USING hash AS
 		OPERATOR 1 = RECHECK,
 		FUNCTION 1 rdf_term_hash(rdf_term);
+
+CREATE OPERATOR CLASS gist_term_ops
+	DEFAULT FOR TYPE rdf_term USING gist AS
+		OPERATOR	1	<  ,
+		OPERATOR	2	<= ,
+		OPERATOR	3	=  ,
+		OPERATOR	4	>= ,
+		OPERATOR	5	>  ,
+		FUNCTION	1	gbt_term_consistent (internal, rdf_term, int2),
+		FUNCTION	2	gbt_term_union (bytea, internal),
+		FUNCTION	3	gbt_term_compress (internal),
+		FUNCTION	4	gbt_var_decompress (internal),
+		FUNCTION	5	gbt_term_penalty (internal, internal, internal),
+		FUNCTION	6	gbt_term_picksplit (internal, internal),
+		FUNCTION	7	gbt_term_same (internal, internal, internal),
+		STORAGE	    gbtreekey_var;
 
 /* Arithmetic operators */
 

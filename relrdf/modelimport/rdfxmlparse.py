@@ -1,3 +1,8 @@
+# -*- Python -*-
+#
+# Copyright (c) 2005-2009 Fraunhofer-Institut fuer Experimentelles
+#                         Software Engineering (IESE).
+#
 # Adapted from rdflib
 #
 # Original copyright notice:

@@ -4,6 +4,8 @@
 #
 # Copyright (c) 2002, Daniel Krech, http://eikeon.com/
 # All rights reserved.
+# Copyright (C) 2008, Fraunhofer Institut fuer Experimentelles Software
+# Engineering (IESE)
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are

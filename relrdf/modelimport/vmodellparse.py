@@ -1,4 +1,27 @@
 # -*- coding: utf-8 -*-
+#
+# This file is part of RelRDF, a library for storage and
+# comparison of RDF models.
+#
+# Copyright (c) 2005-2009 Fraunhofer-Institut fuer Experimentelles
+#                         Software Engineering (IESE).
+#
+# RelRDF is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA. 
+
+
 
 import sys
 import urllib
@@ -43,36 +66,59 @@ class VModellParser(object):
     # Elements that must be excluded because they are unnecessary in
     # the RDF representation.
     excludedElements = set((
-            u'Werkzeugreferenzen',
-            u'ErzeugendeAbhängigkeitserweiterungen',
-            u'Projektdurchführungsstrategien',
-            u'Ablaufbausteine',
-            u'Konventionsabbildungen',
-            u'AbstrakteModellElemente',
-            u'Glossar',
-            u'V-Modell-Struktur',
-            u'Entscheidungspunkte',
-            u'Strukturabhängigkeiten',
-            u'Textbausteine',
-            u'Aktivitäten',
-            u'Projektmerkmale',
-            u'Aktivitätsgruppen',
-            u'InhaltlicheAbhängigkeiten',
-            u'Projekttypen',
-            u'Themen',
             u'Abkürzungen',
-            u'Produktabhängigkeiten',
-            u'Produkte',
-            u'Vorgehensbausteine',
-            u'Rollen',
-            u'Teilaktivitäten',
-            u'Quellen',
-            u'Produktgruppen',
-            u'InhaltlicheAbhängigkeitserweiterungen',
+            u'Ablaufbausteine',
+            u'Ablaufbausteinspezifikationen',
+            u'AbstrakteModellElemente',
+            u'Aktivitäten',
+            u'Aktivitätsbeziehungen',
+            u'Aktivitätsgruppen',
+            u'Beziehungen',
+            u'Disziplinen',
+            u'Entscheidungspunkte',
             u'ErzeugendeAbhängigkeiten',
-            u'Tailoringabhängigkeiten',
+            u'ErzeugendeAbhängigkeitserweiterungen',
+            u'ExterneKopiervorlagen',
+            u'Glossar',
+            u'InhaltlicheAbhängigkeiten',
+            u'InhaltlicheAbhängigkeitserweiterungen',
+            u'Konventionsabbildungen',
             u'Methodenreferenzen',
-            u'Strukturabhängigkeitserweiterungen',))
+            u'Produktabhängigkeiten',
+            u'Produktabhängigkeitsbeziehungen',
+            u'Produktabhängigkeitsbeziehungen',
+            u'Produktbeziehungen',
+            u'Produkte',
+            u'Produktgruppen',
+            u'Projektdurchführungsstrategien',
+            u'Projektmerkmale',
+            u'Projekttypen',
+            u'Projekttypvarianten',
+            u'Quellen',
+            u'Rollen',
+            u'Rollenbeziehungen',
+            u'Strukturabhängigkeiten',
+            u'Strukturabhängigkeitserweiterungen',
+            u'Tailoringabhängigkeiten',
+            u'Teilaktivitäten',
+            u'Textbausteine',
+            u'Themen',
+            u'V-Modell-Struktur',
+            u'Vorgehensbausteine',
+            u'Werkzeugreferenzen',
+            ))
+
+    # Element attributes excluded when created RDF properties. This
+    # may be because they are unnecessary or redundant in the RDF
+    # representation.
+    excludedAttributes = set((
+            'id',
+            'link',
+            'version',
+            'consistent_to_version',
+            'refers_to_id',
+            ))
+
 
     # The dummy value used to mark name id elements.
     NAME_ID_URI = '<<Name ID>>'
@@ -128,7 +174,7 @@ class VModellParser(object):
             self._addProperty(propertyName, value)
 
         for name, value in attributes.items():
-            if name not in ('id', 'link', 'version') and ':' not in name:
+            if name not in self.excludedAttributes and ':' not in name:
                 # Make a property.
                 self._addProperty(name, literal.Literal(value))
 

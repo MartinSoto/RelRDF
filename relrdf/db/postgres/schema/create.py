@@ -54,6 +54,8 @@ pgOpts = []
 for opt, val in opts:
     if opt == '-d':
         db = val
+        pgOpts.append(opt)
+        pgOpts.append(val)
     elif opt == '-h' or opt == '-p' or opt == '-U': 
         pgOpts.append(opt)
         pgOpts.append(val)
@@ -81,7 +83,7 @@ if createDB:
     if 0 != call(['createdb'] + pgOpts + [db, "RelRDF database"]):
         print "Failed to create database %s!" % db
         exit(1)
-        
+
 # Initialize database
 scriptDir = path.dirname(__file__)
 if initDB:

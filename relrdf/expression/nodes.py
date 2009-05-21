@@ -535,7 +535,7 @@ class Literal(ValueNode):
 
 
 class Var(ValueNode):
-    """An expression node representing a SerQL variable by name."""
+    """An expression node representing a query variable by name."""
 
     __slots = ('name')
 
@@ -558,6 +558,7 @@ class Var(ValueNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.name)
+
 
 class BlankNode(Var):
     """An expression node representing an unspecified blank node"""

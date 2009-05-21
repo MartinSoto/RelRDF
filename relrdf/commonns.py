@@ -38,13 +38,6 @@ owl = uri.Namespace('http://www.w3.org/2002/07/owl#')
 
 
 #
-# SerQL
-#
-
-serql = uri.Namespace('http://www.openrdf.org/schema/serql#')
-
-
-#
 # RelRDF
 #
 

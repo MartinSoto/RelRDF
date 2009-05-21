@@ -46,7 +46,6 @@ class Parser(antlr.LLkParser):
         'rdfs': commonns.rdfs,
         'xsd': commonns.xsd,
         'owl': commonns.owl,
-        'serql': commonns.serql,
         'relrdf': commonns.relrdf}
 
 

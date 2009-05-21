@@ -22,7 +22,7 @@
 # Boston, MA 02111-1307, USA. 
 
 
-import serql, sparql
+import sparql
 
 def getQueryParser(queryLanguage, **parserArgs):
     try:
@@ -31,9 +31,7 @@ def getQueryParser(queryLanguage, **parserArgs):
         prefixes = {}
 
     queryLanguageNorm = queryLanguage.lower()
-    if queryLanguageNorm == 'serql':
-        return serql.Parser(prefixes)
-    elif queryLanguageNorm == 'sparql':
+    if queryLanguageNorm == 'sparql':
         return sparql.Parser(prefixes)
     else:
         assert False, "invalid query language '%s'" % queryLanguage

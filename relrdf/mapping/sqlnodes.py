@@ -77,16 +77,12 @@ class SqlDifferent(nodes.Comparison):
     
     __slots__ = ()
 
+
 class SqlTypeCompatible(nodes.Comparison):
     """Tests wether two values are type-compatible (comparable)"""
     
     __slots__ = ()
 
-class SqlInArray(nodes.Comparison):
-    """Tests whether a value appears in an array"""
-    
-    __slots__ = ()
-    
 class SqlAnd(nodes.Comparison):
     """Calculcates the conjunction of two SQL boolean values"""
 

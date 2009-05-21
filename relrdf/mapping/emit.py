@@ -348,6 +348,5 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
 def emit(expr):
     emitter = SqlEmitter()
-    print emitter.process(expr)
     return emitter.process(expr)
 

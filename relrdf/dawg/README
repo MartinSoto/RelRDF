@@ -1,15 +1,14 @@
+This directory contains the test rig and the test data for the DAWG
+test cases (http://www.w3.org/2001/sw/DataAccess/tests/r2.html).
 
-For the tests, you need the DAWG testcase data from
-  http://www.w3.org/2001/sw/DataAccess/tests/r2.html
+The test cases only work with a completely empty Postgres database as
+backend, so, it is recommended that you create one for the purpose.
 
-Extract the files so the data-r2 directory can be found by
-the scripts (create a symbolic link inside relrdf/dawg, for
-example).
+To run the test cases, use a command line similar to the following one:
 
-At the moment, the testcases only work somewhat correctly
-with a completely empty Postgres database as backend. To
-run the testcases, specify a base, a sink and a matching
-model. This might look look this:
+  ./dawg-eval.sh :postgres host=localhost db=dawg password=xxx :plain baseGraph=http://example.com/
 
-  ./dawg-eval.sh :postgres host=localhost db=vmodell user=vmodell password=vmodell :singleversion versionId=999 :singleversion versionId=999
+(the base graph name is irrelevant, any valid URI will do.)
 
+Test results are written to log.html. They are (hopefully) self
+explanatory.

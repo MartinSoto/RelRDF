@@ -1,13 +1,3 @@
-<<<<<<< TREE
-
-from uuid import uuid3, uuid4
-
-from urlparse import urljoin
-
-# Prefix to use for blank nodes
-BLANK_NODE_NS = "bnode:"
-BLANK_NODE_NS_UUID = uuid4()
-=======
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
@@ -31,7 +21,15 @@ BLANK_NODE_NS_UUID = uuid4()
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA. 
 
->>>>>>> MERGE-SOURCE
+
+from uuid import uuid3, uuid4
+
+from urlparse import urljoin
+
+# Prefix to use for blank nodes
+BLANK_NODE_NS = "bnode:"
+BLANK_NODE_NS_UUID = uuid4()
+
 
 class Uri(unicode):
     __slots__ = ()

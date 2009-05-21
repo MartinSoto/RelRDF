@@ -1,5 +1,3 @@
-<<<<<<< TREE
-=======
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
@@ -25,4 +23,3 @@
 
 
 from loader import schemaPath, loadSchema
->>>>>>> MERGE-SOURCE

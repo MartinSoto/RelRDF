@@ -1056,17 +1056,15 @@ class Type(ValueNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.typeExpr)
-<<<<<<< TREE
  
+
 class Lang(UnaryOperation):
     """An expression node representing the language tag of a literal."""
 
     __slots = ()   
-    =======
+
 
 class TypeToURI(UnaryOperation):
     """Returns the URI of the type given in the subexpression"""
 
     __slots__ = ()
-    
->>>>>>> MERGE-SOURCE

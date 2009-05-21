@@ -1,7 +1,3 @@
-<<<<<<< TREE
-
-from relrdf import commonns
-=======
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
@@ -26,7 +22,7 @@ from relrdf import commonns
 # Boston, MA 02111-1307, USA. 
 
 
->>>>>>> MERGE-SOURCE
+from relrdf import commonns
 from relrdf.expression import nodes, rewrite
 
 from typeexpr import commonType, LiteralType, genericLiteralType, \

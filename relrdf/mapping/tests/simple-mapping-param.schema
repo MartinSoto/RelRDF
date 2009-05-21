@@ -1,9 +1,0 @@
-mapping testMapping ($sb1, $sb2)
-  match (., $subj, ., .) on ($subj = $sb1)
-    tab1
-
-  match (., $subj, ., .) on ($subj = $sb2)
-    tab2
-
-  default
-    tabDefault;

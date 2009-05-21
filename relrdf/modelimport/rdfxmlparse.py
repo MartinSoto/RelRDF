@@ -42,9 +42,9 @@ from xml.sax import make_parser
 from xml.sax.saxutils import handler
 from xml.sax.handler import ErrorHandler
 
-from relrdf.expression import uri, blanknode, literal
+from relrdf.expression import uri, literal
 
-from RDFXMLHandler import RDFXMLHandler
+from rdflib_mod.RDFXMLHandler import RDFXMLHandler
 
 
 class SinkToStore(object):
@@ -59,7 +59,6 @@ class SinkToStore(object):
 
     def add(self, (subject, pred, object)):
         if not isinstance(object, uri.Uri) and \
-           not isinstance(object, blanknode.BlankNode) and \
            not isinstance(object, literal.Literal):
             object = literal.Literal(object)
 

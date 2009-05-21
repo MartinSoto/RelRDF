@@ -1,0 +1,14 @@
+This directory contains the test rig and the test data for the DAWG
+test cases (http://www.w3.org/2001/sw/DataAccess/tests/r2.html).
+
+The test cases only work with a completely empty Postgres database as
+backend, so, it is recommended that you create one for the purpose.
+
+To run the test cases, use a command line similar to the following one:
+
+  ./dawg-eval.sh :postgres host=localhost db=dawg password=xxx :plain baseGraph=http://example.com/
+
+(the base graph name is irrelevant, any valid URI will do.)
+
+Test results are written to log.html. They are (hopefully) self
+explanatory.

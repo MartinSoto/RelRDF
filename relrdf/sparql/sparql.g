@@ -22,7 +22,8 @@
 
 header {
     from relrdf.commonns import rdf, xsd
-    from relrdf.expression import nodes
+    from relrdf.expression import nodes, uri, util, literal
+    from relrdf import commonns
 
     import parser, spqnodes
 }
@@ -34,7 +35,6 @@ options {
 /*----------------------------------------------------------------------
  * Parser
  *----------Product----------------------------------------------------------*/
-
 class SparqlParser extends Parser("parser.Parser");
 
 options {
@@ -59,32 +59,45 @@ prolog
     ;
 
 baseDecl
-    :   BASE Q_IRI_REF
+    :   BASE iri:Q_IRI_REF
+    	{ self.baseUri = uri.Namespace(iri.getText()) }
     ;
 
 prefixDecl
-    :   PREFIX qn:QNAME uri:Q_IRI_REF
-        { self.defineLocalPrefix(qn, uri) }
+    :   PREFIX qn:QNAME iri:Q_IRI_REF
+        { self.defineLocalPrefix(qn, iri) }
     ;
 
 selectQuery returns [expr]
-    :   { distinct = False }
-        sl:SELECT
+    :   sl:SELECT
+    
+		{ distinct = False }    
         (   DISTINCT
             { distinct = True }
+        |	REDUCED
+        	{ /* ignore fore now. */ }
         )?
-        (   { names, mappingExprs = [], [] }
-            selectColumnList[names, mappingExprs]
+        	
+		{ times = False; names, mappingExprs = [], [] }        		
+        (	selectColumnList[names, mappingExprs]
         |   TIMES
+        	{ times = True }
         )
+        
         ( datasetClause )*
+        
         where=whereClause
-        {   
-            expr = nodes.MapResult(names, where, *mappingExprs);
-            if distinct: \
-               expr = nodes.Distinct(expr); \
+        {
+            if times:
+                names = list(self.variables)
+                mappingExprs = [nodes.Var(name) for name in names]
+                
+            expr = nodes.MapResult(names, where, *mappingExprs)
+            if distinct:
+               expr = nodes.Distinct(expr);
             expr.setExtentsStartFromToken(sl, self);
         }
+        
         expr=solutionModifier[expr]
     ;
 
@@ -179,7 +192,7 @@ deleteQuery returns [expr]
 
 whereClause returns [expr]
     :   ( WHERE )?
-        expr=groupGraphPattern[nodes.Joker()]
+        expr=groupGraphPattern[nodes.DefaultGraph()]
     ;
 
 solutionModifier[expr] returns [expr=expr]
@@ -198,7 +211,7 @@ orderCondition[expr] returns [expr=expr]
 	    		)
 	    		orderBy=brackettedExpression
 	    	)
-	    |	( orderBy=functionCall | orderBy=var | orderBy=brackettedExpression )
+	    |	( orderBy=functionCall | orderBy=var | orderBy=brackettedExpression | orderBy=builtInCall)
 	    )
 		{
             expr = nodes.Sort(expr, orderBy)
@@ -289,7 +302,7 @@ constraint returns [expr]
 
 functionCall returns [expr]
     :   name=iriRef
-        { expr = nodes.FunctionCall(name.uri) }
+        { expr = self._makeFunctionCall(name.uri, name.extents) }
         argList[expr]
     ;
 
@@ -313,14 +326,14 @@ constructTemplate returns [tmplList]
     ;
 
 constructTriples[expr]
-    :   (   triplesSameSubject[nodes.Joker(), expr]
+    :   (   triplesSameSubject[nodes.DefaultGraph(), expr]
             ( DOT constructTriples[expr] )?
         )?
     ;
 
 triplesSameSubject[graph, pattern]
     :   subject=varOrTerm propertyListNotEmpty[graph, pattern, subject]
-    |   subject=triplesNode propertyList[graph, pattern, subject]
+    |   subject=triplesNode[graph, pattern] propertyList[graph, pattern, subject]
     ;
 
 propertyList[graph, pattern, subject]
@@ -334,7 +347,7 @@ propertyListNotEmpty[graph, pattern, subject]
     ;
 
 objectList[graph, pattern, subject, predicate]
-    :   obj=graphNode
+    :   obj=graphNode[graph, pattern]
         { stmtPattern = nodes.StatementPattern(graph.copy(),
                                                subject.copy(),
                                                predicate.copy(),
@@ -350,26 +363,28 @@ verb returns [expr]
         { expr=nodes.Uri(rdf.type) }
     ;
 
-triplesNode returns [expr]
-    :   expr=collection
-    /*|   expr=blankNodePropertyList*/
+triplesNode[graph, pattern] returns [expr]
+    :   expr=collection[graph, pattern]
+    |   expr=blankNodePropertyList[graph, pattern]
     ;
 
-/*blankNodePropertyList returns [expr]
-    :   LBRACKET propertyListNotEmpty RBRACKET
-        { expr = nodes.NotSupported(); }
-    ;*/
+blankNodePropertyList[graph, pattern] returns [expr]
+    :   { subject = util.VarMaker.makeBlank() }
+    	LBRACKET propertyListNotEmpty[graph, pattern, subject] RBRACKET
+        { expr = subject }
+    ;
 
-collection returns [expr]
-    :   lp:LPAREN ( node=graphNode )+ rp:RPAREN
-        { expr = nodes.NotSupported(); \
+collection[graph, pattern] returns [expr]
+    :   { nodes = [] }
+    	lp:LPAREN ( node=graphNode[graph, pattern] { nodes.append(node) } )+ rp:RPAREN
+        { expr = self.makeCollectionPattern(graph, pattern, nodes); \
           expr.setExtentsStartFromToken(lp, self); \
           expr.setExtentsEndFromToken(rp) }
     ;
 
-graphNode returns [expr]
+graphNode[graph, pattern] returns [expr]
     :   expr=varOrTerm
-    |   expr=triplesNode
+    |   expr=triplesNode[graph, pattern]
     ;
 
 varOrTerm returns [expr]
@@ -390,11 +405,17 @@ varOrBlankNodeOrIriRef returns [expr]
 
 var returns [expr]
     :   v1:VAR1
-        { expr = nodes.Var(v1.getText()); \
-          expr.setExtentsFromToken(v1, self, 1) }
+        {
+          expr = nodes.Var(v1.getText());
+          expr.setExtentsFromToken(v1, self, 1);
+          if not expr.name in self.variables: self.variables.append(expr.name);
+        }
     |   v2:VAR2
-        { expr = nodes.Var(v2.getText()); \
-          expr.setExtentsFromToken(v2, self, 1) }
+        {
+          expr = nodes.Var(v2.getText());
+          expr.setExtentsFromToken(v2, self, 1);
+          if not expr.name in self.variables: self.variables.append(expr.name);
+        }
     ;
 
 graphTerm returns [expr]
@@ -407,7 +428,7 @@ graphTerm returns [expr]
     |   expr=booleanLiteral
     |   expr=blankNode
     |   nil:NIL
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.Uri(commonns.rdf.nil); \
           expr.setExtentsFromToken(nil, self) }
     ;
 
@@ -477,7 +498,7 @@ unaryExpression returns [expr]
         { expr = nodes.Not(prim); \
           expr.setExtentsStartFromToken(on, self); }
     |   plus:PLUS prim=primaryExpression
-        { expr = nodes.NotSupported(prim); \
+        { expr = nodes.UPlus(prim); \
           expr.setExtentsStartFromToken(plus, self); }
     |   minus:MINUS prim=primaryExpression
         { expr = nodes.UMinus(prim); \
@@ -501,37 +522,21 @@ brackettedExpression returns [expr]
     ;
 
 builtInCall returns [expr]
-    :   bool:BOOL LPAREN param=expression rp1:RPAREN
-        { expr = nodes.CastBool(param); \
-          expr.setExtentsStartFromToken(bool, self); \
-          expr.setExtentsEndFromToken(rp1); }
-    |   dec:DEC LPAREN param=expression rp12:RPAREN
-        { expr = nodes.CastDecimal(param); \
-          expr.setExtentsStartFromToken(dec, self); \
-          expr.setExtentsEndFromToken(rp12); }
-    |   int:INT LPAREN param=expression rp13:RPAREN
-        { expr = nodes.CastInt(param); \
-          expr.setExtentsStartFromToken(int, self); \
-          expr.setExtentsEndFromToken(rp13); }
-    |   dT:DT LPAREN param=expression rp14:RPAREN
-        { expr = nodes.CastDateTime(param); \
-          expr.setExtentsStartFromToken(dT, self); \
-          expr.setExtentsEndFromToken(rp14); }
-    |   str:STR LPAREN param=expression rp15:RPAREN
-        { expr = nodes.CastString(param); \
+    :   str:STR LPAREN param=expression rp15:RPAREN
+        { expr = nodes.Cast(None, param); \
           expr.setExtentsStartFromToken(str, self); \
           expr.setExtentsEndFromToken(rp15); }
     |   lang:LANG LPAREN param=expression rp2:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.Lang(param); \
           expr.setExtentsStartFromToken(lang, self); \
           expr.setExtentsEndFromToken(rp2); }
     |   lm:LANGMATCHES
         LPAREN param1=expression COMMA param2=expression rp3:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.LangMatches(param1, param2); \
           expr.setExtentsStartFromToken(lm, self); \
           expr.setExtentsEndFromToken(rp3); }
     |   dt:DATATYPE LPAREN param=expression rp4:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.DynType(param); \
           expr.setExtentsStartFromToken(dt, self); \
           expr.setExtentsEndFromToken(rp4); }
     |   bd:BOUND LPAREN param=var rp5:RPAREN
@@ -539,19 +544,19 @@ builtInCall returns [expr]
           expr.setExtentsStartFromToken(bd, self); \
           expr.setExtentsEndFromToken(rp5); }
     |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.IsURI(param); \
           expr.setExtentsStartFromToken(ii, self); \
           expr.setExtentsEndFromToken(rp6); }
     |   iu:IS_URI LPAREN param=expression rp7:RPAREN
-        { expr = nodes.Equal(nodes.TypeToURI(nodes.DynType(param)), nodes.Literal("xsd:anyURI")); \
+        { expr = nodes.IsURI(param); \
           expr.setExtentsStartFromToken(iu, self); \
           expr.setExtentsEndFromToken(rp7); }
     |   ib:IS_BLANK LPAREN param=expression rp8:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.IsBlank(param); \
           expr.setExtentsStartFromToken(ib, self); \
           expr.setExtentsEndFromToken(rp8); }
     |   il:IS_LITERAL LPAREN param=expression rp9:RPAREN
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.IsLiteral(param); \
           expr.setExtentsStartFromToken(il, self); \
           expr.setExtentsEndFromToken(rp9); }
     |   expr=regexExpression
@@ -568,7 +573,7 @@ regexExpression returns [expr]
 
 iriRefOrFunction returns [expr]
     :   expr=iriRef
-        (   { expr = nodes.FunctionCall(expr.uri) }
+        (   { expr = self._makeFunctionCall(expr.uri, expr.extents) }
             argList[expr]
         )?
     ;
@@ -576,7 +581,7 @@ iriRefOrFunction returns [expr]
 rdfLiteral returns [expr]
     :   expr=string
         (   lt:LANGTAG
-            { expr.literal.lang = lt.getText() }
+            { expr.literal.lang = lt.getText().lower() }
         |   ( DCARET uriNode=iriRef )
             { expr.literal.typeUri = uriNode.uri }
         )?
@@ -604,23 +609,20 @@ booleanLiteral returns [expr]
     ;
 
 string returns [expr]
-    :   s1:STRING_LITERAL1
-        { expr = nodes.Literal(s1.getText()); \
-          expr.setExtentsFromToken(s1, self) }
-    |   s2:STRING_LITERAL2
-        { expr = nodes.Literal(s2.getText()); \
-          expr.setExtentsFromToken(s2, self) }
-    |   s1l:STRING_LITERAL_LONG1
-        { expr = nodes.Literal(s1l.getText()); \
-          expr.setExtentsFromToken(s1l, self) }
-    |   s2l:STRING_LITERAL_LONG2
-        { expr = nodes.Literal(s2l.getText()); \
-          expr.setExtentsFromToken(s2l, self) }
+    :   
+    (	s1:STRING_LITERAL1 { s = s1 }
+    |   s2:STRING_LITERAL2 { s = s2 }
+    |   s1l:STRING_LITERAL_LONG1 { s = s1l }
+    |   s2l:STRING_LITERAL_LONG2 { s = s2l }
+    )
+    {   expr = nodes.Literal(s.getText()); \
+        expr.setExtentsFromToken(s, self); }    	
     ;
 
 iriRef returns [expr]
     :   iri:Q_IRI_REF
-        { expr = nodes.Uri(iri.getText()); \
+        { absUri = self.baseUri.getLocal(iri.getText()); \
+          expr = nodes.Uri(absUri); \
           expr.setExtentsFromToken(iri, self) }
     |   expr=qname
     ;
@@ -632,10 +634,10 @@ qname returns [expr]
 
 blankNode returns [expr]
     :   bnl:BLANK_NODE_LABEL
-        { expr = nodes.NotSupported(); \
+        { expr = self.blankNodeByLabel(bnl.getText()); \
           expr.setExtentsFromToken(bnl, self) }
     |   an:ANON
-        { expr = nodes.NotSupported(); \
+        { expr = util.VarMaker.makeBlank(); \
           expr.setExtentsFromToken(an, self) }
     ;
 
@@ -666,6 +668,11 @@ WS
         { $skip }
     ;
 
+SL_COMMENT
+		:	"#"
+			(~('\n'|'\r'))* ('\n'|'\r'('\n')?)
+			{ $skip; $newline }
+		;
 
 /*
  * Symbols and operators
@@ -776,7 +783,7 @@ RBRACE
 
 protected  /* See QNAME_OR_KEYWORD. */
 QNAME
-    :   ( NCNAME_PREFIX )? ':' ( NCNAME )?
+    :   ( NCNAME_PREFIX )? ':' ( PNCNAME )?
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -838,6 +845,13 @@ DISTINCT
         ('C'|'c') ('T'|'t')
     ;
 
+
+protected  /* See QNAME_OR_KEYWORD. */
+REDUCED
+    :   ('R'|'r') ('E'|'e') ('D'|'d') ('U'|'u') ('C'|'c') ('E'|'e')
+        ('D'|'d')
+    ;
+    
 protected  /* See QNAME_OR_KEYWORD. */
 FILTER
     :   ('F'|'f') ('I'|'i') ('L'|'l') ('T'|'t') ('E'|'e') ('R'|'r')
@@ -916,26 +930,6 @@ SELECT
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
-BOOL
-    :   ('B'|'b') ('O'|'o') ('O'|'o') ('L'|'l')
-    ;
-    
-protected  /* See QNAME_OR_KEYWORD. */
-DEC
-    :   ('D'|'d') ('E'|'e') ('C'|'c')
-    ;
-    
-protected  /* See QNAME_OR_KEYWORD. */
-INT
-    :   ('I'|'i') ('N'|'n') ('T'|'t')
-    ;
-    
-protected  /* See QNAME_OR_KEYWORD. */
-DT
-    :   ('D'|'d') ('T'|'t')
-    ;
-
-protected  /* See QNAME_OR_KEYWORD. */
 STR
     :   ('S'|'s') ('T'|'t') ('R'|'r')
     ;
@@ -967,7 +961,7 @@ FALSE
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_BLANK
-    :   "isBLANK"
+    :   "isBlank"
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -977,7 +971,7 @@ IS_IRI
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_LITERAL
-    :   "isLITERAL"
+    :   "isLiteral"
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
@@ -1011,6 +1005,8 @@ QNAME_OR_KEYWORD
         { $setType(DESC) }
     |   ( DISTINCT ) => DISTINCT
         { $setType(DISTINCT) }
+    |   ( REDUCED ) => REDUCED
+        { $setType(REDUCED) }
     |   ( FILTER ) => FILTER
         { $setType(FILTER) }
     |   ( FROM ) => FROM
@@ -1041,14 +1037,6 @@ QNAME_OR_KEYWORD
         { $setType(REGEX) }
     |   ( SELECT ) => SELECT
         { $setType(SELECT) }
-    |   ( BOOL ) => BOOL
-        { $setType(BOOL) }
-    |   ( DEC ) => DEC
-        { $setType(DEC) }
-    |   ( INT ) => INT
-        { $setType(INT) }
-    |   ( DT ) => DT
-        { $setType(DT) }
     |   ( STR ) => STR
         { $setType(STR) }
     |   ( UNION ) => UNION
@@ -1097,12 +1085,12 @@ OP_OR_Q_IRI_REF
     ;
 
 LANGTAG
-    :   '@' ('a'..'z' | 'A'..'Z')+ ('-' ('a'..'z' | 'A'..'Z' | DIGIT)+)*
+    :   '@'! ('a'..'z' | 'A'..'Z')+ ('-' ('a'..'z' | 'A'..'Z' | DIGIT)+)*
     ;
 
 
 BLANK_NODE_LABEL
-    :   '_' ':' NCNAME
+    :   '_'! ':'! NCNAME
     ;
 
 
@@ -1362,3 +1350,11 @@ NCNAME
         )*
     ;
 
+protected
+PNCNAME
+    :   ( NCCHAR1 | DIGIT ) 
+        (   NCCHAR
+        |   '.' NCCHAR
+        )*
+    ;
+    

@@ -77,11 +77,15 @@ def commonType(*exprs):
     """Return a type expression representing the most specific type
     that is a supertype of the types of all elements in `exprs`, or
     `nullType` if no such type exists."""
-    if len(exprs) == 0:
+    if len(exprs) == 0 or exprs[0].staticType is None:
         return nullType
 
     genType = exprs[0].staticType
     for expr in exprs[1:]:
+        
+        if expr.staticType is None:
+            return nullType
+        
         genType = genType.generalizeType(expr.staticType)
 
     return genType
@@ -96,6 +100,13 @@ class NullType(TypeNode):
 
 nullType = NullType()
 
+
+class TypeType(TypeNode):
+    """A type node representing the type of interal type identifiers"""
+    
+    __slots__ = ()
+    
+typeType = TypeType()
 
 class RdfNodeType(TypeNode):
     """A type node representing the generic type of RDF nodes. This is
@@ -146,7 +157,6 @@ class LiteralType(TypeNode):
 
 genericLiteralType = LiteralType()
 booleanLiteralType = LiteralType(xsd.boolean)
-
 
 class BlankNodeType(TypeNode):
     """A type node representing the type of an RDF blank node."""

@@ -115,15 +115,20 @@ class ExpressionProcessor(object):
 
         # Calculate the values for the subexpressions.
         if self.prePrefix is not None and \
-            hasattr(self, self.prePrefix + expr.__class__.__name__):
+            (hasattr(self, self.prePrefix + expr.__class__.__name__) or
+             hasattr(self, self.prePrefix + "Default")):
+            
             # Invoke the preorder method.
-            method = getattr(self, self.prePrefix + expr.__class__.__name__)
+            if hasattr(self, self.prePrefix + expr.__class__.__name__):
+                method = getattr(self, self.prePrefix + expr.__class__.__name__)
+            else:
+                method = getattr(self, self.prePrefix + "Default")
             procSubexprs = method(expr)
+         
         else:
-            # Process the subexpressions recursively and collect the values.
-            procSubexprs = []
-            for subexpr in expr:
-                procSubexprs.append(self.process(subexpr))
+            
+            # Use the default behavior
+            procSubexprs = self._recurse(expr)
 
         if hasattr(self, self.postPrefix + expr.__class__.__name__):
             method = getattr(self, self.postPrefix + expr.__class__.__name__)
@@ -133,6 +138,15 @@ class ExpressionProcessor(object):
         # Invoke the postorder method.
         return method(expr, *procSubexprs)
     
+    def _recurse(self, expr):
+        
+        # Default bahaviour for tree traversal:
+        # Process the subexpressions recursively and collect the values.        
+        procSubexprs = []
+        for subexpr in expr:
+            procSubexprs.append(self.process(subexpr))
+        return procSubexprs
+            
     def Default(self, expr, *pars):
         assert False, "Processor " + self.__class__.__name__ + " defines no action for " + expr.__class__.__name__ + "!"
 

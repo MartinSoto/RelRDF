@@ -22,11 +22,33 @@
 # Boston, MA 02111-1307, USA. 
 
 
+from uuid import uuid3, uuid4
+
+from urlparse import urljoin
+
+# Prefix to use for blank nodes
+BLANK_NODE_NS = "bnode:"
+BLANK_NODE_NS_UUID = uuid4()
+
+
 class Uri(unicode):
     __slots__ = ()
 
     def __add__(self, string):
         return Uri(super(Uri, self).__add__(string))
+    
+    def isBlank(self):
+        return self.startswith(BLANK_NODE_NS)
+
+def isBlank(obj):
+    return isinstance(obj, Uri) and obj.isBlank()
+    
+def newBlank():
+    return Uri(BLANK_NODE_NS + unicode(uuid4()))
+
+def newBlankFromName(name):
+    uuid = uuid3(BLANK_NODE_NS_UUID, name)
+    return Uri(BLANK_NODE_NS + unicode(uuid))
 
 class Namespace(Uri):
     __slots__ = ()
@@ -49,11 +71,7 @@ class Namespace(Uri):
         return self + localPart
 
     def getLocal(self, uri):
-        if uri.startswith(self):
-            return uri[len(self):]
-        else:
-            return None
-
+        return urljoin(self, uri)
 
 if __name__ == '__main__':
     n1 = Namespace(u'http://www.v-modell-xt.de/schema/1#')

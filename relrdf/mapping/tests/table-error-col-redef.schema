@@ -1,8 +1,0 @@
-table statements (
-  hash xsd:hexBinary notNull,
-  id xsd:unsignedInt notNull autoIncrement,
-  subject xsd:string notNull,
-  predicate xsd:string,
-  subject xsd:unsignedShort notNull,
-  object xsd:string notNull
-);

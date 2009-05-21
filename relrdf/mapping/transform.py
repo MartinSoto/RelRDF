@@ -23,9 +23,8 @@
 
 
 import re
-import pprint
 
-from relrdf.commonns import xsd, rdf, relrdf
+from relrdf.commonns import xsd, rdf, rdfs, relrdf
 from relrdf.expression import nodes
 from relrdf.expression import rewrite
 from relrdf.expression import literal, uri
@@ -34,7 +33,29 @@ from relrdf.typecheck.typeexpr import resourceType
 
 import sqlnodes
 
+class StatementResultTransformer(rewrite.ExpressionTransformer):
+    """Transforms StatementResult into MapResult."""
 
+    __slots__ = ()
+
+    def StatementResult(self, expr, relExpr, *stmtTmpls):
+        expr = nodes.MapResult([], relExpr)
+        for i, stmtTmpl in enumerate(stmtTmpls):
+            for colName, mappingExpr in zip(('subject', 'predicate', 'object'),
+                                            stmtTmpl):
+                expr.columnNames.append('%s%d' % (colName, i + 1))
+                expr.append(mappingExpr)
+        return expr
+
+    def _setOperation(self, expr, *operands):
+        expr.columnNames = list(operands[0].columnNames)
+        expr[:] = operands
+        return expr
+
+    Union = _setOperation
+    SetDifference = _setOperation
+    Intersection = _setOperation
+    
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions
     corresponding to the dynamic data type of each one of the
@@ -72,6 +93,46 @@ class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     Intersection = _setOperation
 
 
+class ResultMappingTransformer(rewrite.ExpressionTransformer):
+    """Applies a function to all result value columns."""
+
+    __slots__ = ('function',)
+    
+    def __init__(self, function):
+        super(ResultMappingTransformer, self).__init__()
+        
+        self.function = function
+        
+    def _applyFunction(self, expr):
+        f = self.function.copy();
+        f.append(expr.copy())
+        return f
+
+    def MapResult(self, expr, relExpr, *mappingExprs):
+        expr[0] = relExpr
+        for i, mappingExpr in enumerate(mappingExprs):
+            expr[i+1] = self._applyFunction(mappingExprs[i])
+        return expr
+
+    def StatementResult(self, expr, relExpr, *stmtTmpls):
+        expr = nodes.MapResult([], relExpr)
+        for i, stmtTmpl in enumerate(stmtTmpls):
+            for colName, mappingExpr in zip(('subject', 'predicate', 'object'),
+                                            stmtTmpl):
+                expr.columnNames.append('%s%d' % (colName, i + 1))
+                expr.append(self._applyFunction(mappingExpr))
+                
+        return expr
+
+    def _setOperation(self, expr, *operands):
+        expr.columnNames = list(operands[0].columnNames)
+        expr[:] = operands
+        return expr
+
+    Union = _setOperation
+    SetDifference = _setOperation
+    Intersection = _setOperation
+    
 class Incarnator(object):
     """A singleton used to generate unique relation incarnations."""
 
@@ -116,8 +177,7 @@ class Incarnator(object):
             ret.append(rewrite.exprApply(expr.copy(), postOp=postOp)[0])
 
         return ret
-
-
+    
 class PureRelationalTransformer(rewrite.ExpressionTransformer):
     """An abstract expression transformer that transforms a decoupled
     expression containing patterns into a pure relational expression.
@@ -129,8 +189,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         super(PureRelationalTransformer, self).__init__(prePrefix='pre')
 
         # A dictionary for variable replacements. Variable names are
-        # associated to pairs consisting of the value and type
-        # replacement expressions.
+        # associated to value replacement expressions.
         self.varBindings = {}
 
     def matchPattern(self, pattern, replacementExpr, columnNames):
@@ -164,20 +223,15 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         conds = []
         for component, columnName in zip(pattern, columnNames):
             valueExpr = replacementExpr.subexprByName(columnName)
-            dynTypeExpr = replacementExpr.subexprByName('type__' +
-                                                        columnName)
 
+            # Must be supplied by derived classes
+            if isinstance(component, nodes.DefaultGraph):
+                component = self._getDefaultGraph()
+                                
             if isinstance(component, nodes.Var):
-                self.varBindings[component.name] = (valueExpr, dynTypeExpr)
-            elif isinstance(component, nodes.Joker):
-                pass
+                self.varBindings[component.name] = valueExpr
             else:
-                conds.append(\
-                    nodes.And(nodes.Equal(\
-                                  self.mapTypeExpr(component.staticType),
-                                  dynTypeExpr),
-                              nodes.Equal(component,
-                                          valueExpr)))
+                conds.append(nodes.Equal(component, valueExpr))
 
         if conds == []:
             return coreExpr
@@ -203,7 +257,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
 
     def Var(self, expr):
         # Substitute the variable.
-        return self.varBindings[expr.name][0].copy()
+        return self.varBindings[expr.name].copy()
 
     def preStatementPattern(self, expr):
         # Don't process the subexpressions.
@@ -215,26 +269,6 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
     def preReifStmtPattern(self, expr):
         # Don't process the subexpressions.
         return expr
-
-    def preDynType(self, expr):
-        if isinstance(expr[0], nodes.Null):
-            # Dynamic type from Null is defined as Null.
-            return (nodes.Null(),)
-        elif isinstance(expr[0], nodes.Var):
-            # Expand the variable's type.
-            return (self.varBindings[expr[0].name][1].copy(),)
-        else:
-            repl = self.mapTypeExpr(expr[0].staticType)
-            if repl is not None:
-                return (repl,)
-            else:
-                if hasattr(expr, 'id'):
-                    assert False, "Cannot determine type from [[%s]]" % expr.id
-                else:
-                    assert False, "Cannot determine type"
-
-    def DynType(self, expr, subexpr):
-        return subexpr
 
     def Type(self, expr):
         repl = self.mapTypeExpr(expr.typeExpr)

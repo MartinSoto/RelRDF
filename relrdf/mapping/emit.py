@@ -24,9 +24,17 @@
 
 import re
 
-from relrdf.commonns import xsd, fn, sql
-from relrdf.expression import rewrite, nodes, simplify, evaluate
+from relrdf.commonns import xsd, fn, sql, rdfs
+from relrdf.expression import uri, rewrite, nodes
 
+import string
+
+# Adapted from pgdb
+def quote(str):
+    str = unicode(str)
+    str = str.replace('\\', '\\\\')
+    str = str.replace("'", "''")
+    return "E'"+ str + "'"
 
 class SqlEmitter(rewrite.ExpressionProcessor):
     """Generate SQL code from a relational expression."""
@@ -38,82 +46,79 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
         self.distinct = 0
 
+    def _lookupTypeId(self, uri, tag):
+        if uri is not None:
+            return "(SELECT id FROM types WHERE type_uri=%s)" % quote(uri)
+        elif tag is not None:
+            return "(SELECT id FROM types WHERE lang_tag=%s)" % quote(tag)
+        else:
+            return "1"
+        
     def Null(self, expr):
         return 'NULL'
+    
+    def SqlInt(self, expr):
+        return '%d' % expr.val
 
     def Uri(self, expr):
-        return '"%s"' % expr.uri
-
-    _noStringTypes = set((xsd.boolean,
-                          xsd.integer,
-                          xsd.decimal,
-                          xsd.double))
+        return "rdf_term_resource(%s)" % quote(expr.uri)
 
     def Literal(self, expr):
-        if expr.literal.typeUri in self._noStringTypes:
-            return "%s"  % unicode(expr.literal)
-        else:
-            return '"%s"' % unicode(expr.literal)
-
-    _functionMap = {
-        fn.abs:                'ABS',
-        fn.ceiling:            'CEILING',
-        fn.concat:             'CONCAT',
-        fn['current-dateTime']:'NOW',
-        fn.floor:              'FLOOR',
-        fn['lower-case']:      'LOWER',
-        fn.max:                'GREATEST',
-        fn.min:                'LEAST',
-        fn['not']:             'NOT',
-        fn.round:              'ROUND',
-        fn['upper-case']:      'UPPER'
-    }
-    
-    def FunctionCall(self, expr, *params):
-        # Find SQL function name. TODO: type checking, argument count
-        fnName = self._functionMap.get(expr.functionName)
-        if fnName == None:
-            fnName = sql.getLocal(expr.functionName)
-        if fnName == None:
-            return '' # TODO: Throw something? Check in advance?
-        return '%s(%s)' % (fnName, ', '.join(params))
+        
+        # Type ID lookup
+        typeIdExpr = self._lookupTypeId(expr.literal.typeUri,
+                                        expr.literal.lang)
+        
+        return "rdf_term(%s, %s)" % (typeIdExpr, quote(expr.literal))
 
     def If(self, expr, cond, thenExpr, elseExpr):
         return 'IF(%s, %s, %s)' % (cond, thenExpr, elseExpr)
+    
+    def SqlCastBool(self, expr, subexpr):
+        return '!!(%s)' % subexpr
 
-    def Equal(self, expr, operand1, *operands):
+    def SqlEqual(self, expr, operand1, *operands):
         return ' AND '.join(['(%s) = (%s)' % (operand1, o) for o in operands])
 
-    def LessThan(self, expr, operand1, operand2):
+    def SqlIn(self, expr, operand1, operand2):
+        return '(%s) IN (%s)' % (operand1, operand2)
+    
+    def SqlLessThan(self, expr, operand1, operand2):
         return '(%s) < (%s)' % (operand1, operand2)
 
-    def LessThanOrEqual(self, expr, operand1, operand2):
+    def SqlLessThanOrEqual(self, expr, operand1, operand2):
         return '(%s) <= (%s)' % (operand1, operand2)
 
-    def GreaterThan(self, expr, operand1, operand2):
+    def SqlGreaterThan(self, expr, operand1, operand2):
         return '(%s) > (%s)' % (operand1, operand2)
 
-    def GreaterThanOrEqual(self, expr, operand1, operand2):
+    def SqlGreaterThanOrEqual(self, expr, operand1, operand2):
         return '(%s) >= (%s)' % (operand1, operand2)
 
-    def Different(self, expr, *operands):
+    def SqlDifferent(self, expr, *operands):
         disj = []
         for i, operand1 in enumerate(operands):
             for operand2 in operands[i + 1:]:
                 disj.append('(%s) <> (%s)' % (operand1, operand2))
         return ' AND '.join(disj)
 
-    def Or(self, expr, *operands):
+    def SqlTypeCompatible(self, expr, operand1, *operands):
+        return ' AND '.join(['(%s) === (%s)' % (operand1, o) for o in operands])
+
+    def SqlOr(self, expr, *operands):
         return '(' + ') OR ('.join(operands) + ')'
 
-    def Not(self, expr, operand):
+    def SqlNot(self, expr, operand):
         return 'NOT (%s)' % operand
 
-    def And(self, expr, *operands):
+    def SqlAnd(self, expr, *operands):
         return '(' + ') AND ('.join(operands) + ')'
 
     def Plus(self, expr, *operands):
         return '(' + ') + ('.join(operands) + ')'
+
+    def UPlus(self, expr, op):
+        return '+(%s)' % op
 
     def Minus(self, expr, op1, op2):
         return '(%s) - (%s)' % (op1, op2)
@@ -128,25 +133,36 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return '(%s) / (%s)' % (op1, op2)
     
     def IsBound(self, expr, var):
-        return '%s IS NOT NULL' % var
+        return 'rdf_term_bound(%s)' % var
 
-    def CastBool(self, expr, var):
-        return '(%s) != 0' % var
-
-    def CastDecimal(self, expr, var):
-        return 'CAST(%s AS DECIMAL)' % var
-
-    def CastInt(self, expr, var):
-        return 'CAST(%s AS SIGNED INTEGER)' % var
-
-    def CastDateTime(self, expr, var):
-        return 'CAST(%s AS DATETIME)' % var
-
-    def CastString(self, expr, var):
-        return 'CAST(%s AS CHAR)' % var
+    def IsURI(self, expr, sexpr):
+        return 'rdf_term_is_uri(%s)' % sexpr
+    
+    def IsBlank(self, expr, sexpr):
+        return 'rdf_term_is_bnode(%s)' % sexpr
+    
+    def IsLiteral(self, expr, sexpr):
+        return 'rdf_term_is_literal(%s)' % sexpr
+    
+    def Cast(self, expr, sexpr):
+        return 'rdf_term_cast(%s, %s)' % (self._lookupTypeId(expr.type, None), sexpr)
+    
+    def preMapValue(self, expr):
+        if isinstance(expr[0], nodes.Select):
+            # We treat this common case specially, in order to avoid
+            # unnecessary nested queries.
+            return ['%s WHERE %s' % (self.process(expr[0][0]),
+                                      self.process(expr[0][1]))] + \
+                   [self.process(subexpr) for subexpr in expr[1:]]
+        else:
+            return [self.process(subexpr) for subexpr in expr]
+    
+    def MapValue(self, expr, rel, sexpr):
+        return '(SELECT %s FROM %s)' % (sexpr, rel);
 
     def Product(self, expr, *operands):
-        return '(' + ') CROSS JOIN ('.join(operands) + ')'
+        # Note there is a special rule if parent node is Select (see preSelect)
+        return '(' + ' CROSS JOIN '.join(operands) + ')'
 
     def preLeftJoin(self, expr):
         if isinstance(expr[1], nodes.Select):
@@ -159,17 +175,24 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def LeftJoin(self, expr, fixed, optional, cond):
         if cond is not None:
-            return '(%s) LEFT JOIN (%s) ON (%s)' % (fixed, optional, cond)
+            return '(%s LEFT JOIN %s ON (%s))' % (fixed, optional, cond)
         else:
             # If no condition is available, this is actually a cross
             # join.
-            return '(%s) CROSS JOIN (%s)' % (fixed, optional)
+            return '(%s CROSS JOIN %s)' % (fixed, optional)
 
+    def preSelect(self, expr):
+        if isinstance(expr[0], nodes.Product):
+            srel = [self.process(sub) for sub in expr[0]]
+            return (' INNER JOIN '.join(srel), self.process(expr[1]))
+        else:
+            return (self.process(expr[0]), self.process(expr[1]))                        
+        
     def Select(self, expr, rel, cond):
         if isinstance(expr[0], nodes.Product):
             # The relation is some sort of join, we can just add an
             # "ON" clause to it.
-            return '%s\nON %s' % (rel, cond)
+            return '(%s ON %s)' % (rel, cond)
         else:
             # If the expression is not a product it must have an
             # incarnation. We create a derived table which uses the
@@ -188,8 +211,12 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             return [self.process(subexpr) for subexpr in expr]
 
     def MapResult(self, expr, select, *columnExprs):
-        columns = ', '.join(["%s AS '%s'" % (e, n)
-                             for e, n in zip(columnExprs, expr.columnNames)])
+
+        if len(expr.columnNames) > 0:
+            columns = ', '.join(["%s AS %s" % (e, n)
+                                 for e, n in zip(columnExprs, expr.columnNames)])
+        else:
+            columns = '*'
 
         # Distinct?
         if self.distinct:
@@ -214,21 +241,21 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         
         # Check that we have some kind of SELECT expression in subexpr
         allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
-        assert expr[0].__class__ in allowed,  \
+        assert expr[0].__class__ in allowed, \
             'OffsetLimit can only be used with the result of MapResult, Select, ' \
             'Distinct or Sort!'
         
         # Add LIMIT clause
         if expr.limit != None:
             if expr.offset != None:                
-                query = subexpr + '\nLIMIT %d,%d' % (expr.offset, expr.limit)
+                query = subexpr + '\nLIMIT %d OFFSET %d' % (expr.limit, expr.offset)
             else:
                 query = subexpr + '\nLIMIT %d' % expr.limit
         else:
             if expr.offset != None:
                 # Note: The MySQL manual actually suggests this number.
                 #       Let's hope it's future-proof.
-                query = subepxr + '\nLIMIT %d,18446744073709551615' % expr.offset
+                query = subexpr + '\nOFFSET %d' % expr.offset
             
         return query
     
@@ -236,7 +263,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         
         # Check that we have some kind of SELECT expression in subexpr
         allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
-        assert expr[0].__class__ in allowed,  \
+        assert expr[0].__class__ in allowed, \
             'Sort can only be used directly with the result of MapResult, Distinct or Select!'
                     
         # Compose with order direction
@@ -250,6 +277,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             query = subexpr + ", " + orderCrit
         else:
             query = subexpr + "\nORDER BY " + orderCrit
+        query = query + ' NULLS FIRST'
         
         return query
 
@@ -291,6 +319,9 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     def SqlFieldRef(self, expr):
         return 'rel_%s.%s' % (expr.incarnation, expr.fieldId)
 
+    def SqlTypedFieldRef(self, expr):
+        return 'rel_%s.%s' % (expr.incarnation, expr.fieldId)
+
     _subexprPattern = re.compile(r'\$([0-9]+)\$')
 
     def SqlScalarExpr(self, expr, *subexprs):
@@ -301,19 +332,21 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def SqlFunctionCall(self, expr, *args):
         return '%s(%s)' % (expr.name, ', '.join(args))
+    
+    def SqlInArray(self, expr, val, array):
+        return "intset(%s) <@ (%s)" % (val, array)
 
+    def BlankNode(self, expr):
+        # Generate a unique UUID for the name used to identify the blank node
+        # Note this will produce the same blank node in all result rows, so the
+        # blank nodes will have to be reinstantiated afterwards.
+        blank = uri.newBlankFromName(expr.name)
+        return "rdf_term_resource('%s#reinst')" % unicode(blank)
+    
+    def LangMatches(self, expr, sexpr1, sexpr2):
+        return "rdf_term_lang_matches(%s, %s)" % (sexpr1, sexpr2)
 
 def emit(expr):
     emitter = SqlEmitter()
-
-    # Simplify the expression first.
-    expr = simplify.simplify(expr)
-
-    # Reduce constant expressions.
-    expr = evaluate.reduceConst(expr)
-
-    # Debugging...
-    #print emitter.process(expr)
-    
     return emitter.process(expr)
 

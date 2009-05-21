@@ -27,7 +27,7 @@ from relrdf.commonns import xsd
 
 from relrdf.expression import nodes, rewrite
 
-from typeexpr import nullType, rdfNodeType, LiteralType, \
+from typeexpr import typeType, nullType, rdfNodeType, LiteralType, \
      booleanLiteralType, genericLiteralType, ResourceType, \
      resourceType, RelationType, StatementRelType
 
@@ -37,7 +37,7 @@ from typeexpr import error
 class TypeChecker(rewrite.ExpressionProcessor):
     """Perform type checking on an expression. Methods don't actually
     build any values but set them in the ``staticType`` and
-    ``dynamicType`` fields of the expression."""
+    ``failSafe`` fields of the expression."""
 
     __slots__ = ('scopeStack',)
 
@@ -81,12 +81,14 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
     def Uri(self, expr):
         expr.staticType = resourceType
+        expr.failSafe = True
 
     def Literal(self, expr):
         if expr.literal.typeUri is not None:
             expr.staticType = LiteralType(expr.literal.typeUri)
         else:
             expr.staticType = genericLiteralType
+        expr.failSafe = True
             
     def FunctionCall(self, expr, *params):
         self._checkScalarOperands(expr, expr.functionName)
@@ -94,6 +96,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
     def Var(self, expr):
         expr.staticType = self.lookUpVar(expr.name)
+
+    def BlankNode(self, expr):
+        expr.staticType = resourceType
 
     def _checkPattern(self, expr, subexprs):
         typeExpr = RelationType()
@@ -104,8 +109,6 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
                     # Give this variable a type.
                     subexpr.staticType = resourceType
-                elif isinstance(subexpr, nodes.Joker):
-                    pass
                 elif subexpr.staticType != resourceType:
                     error(subexpr, _("Pattern %s can only be a resource") %
                           ('context', 'subject', 'predicate')[i])
@@ -123,8 +126,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkPattern(expr, expr[0:1] + expr[2:])
         expr.staticType.addColumn(expr[1].name, resourceType)
 
-    def Joker(self, expr):
-        pass
+    def DefaultGraph(self, expr):
+        expr.staticType = resourceType
+        expr.failSafe = True
 
     def _checkScalarOperands(self, expr, opName):
         for i, subexpr in enumerate(expr):
@@ -184,6 +188,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, '+')
         expr.staticType = genericLiteralType
 
+    def UPlus(self, expr, *operands):
+        self._checkScalarOperands(expr, '+')
+        expr.staticType = genericLiteralType
+        
     def Minus(self, expr, *operands):
         self._checkScalarOperands(expr, '-')
         expr.staticType = genericLiteralType
@@ -204,26 +212,25 @@ class TypeChecker(rewrite.ExpressionProcessor):
         self._checkScalarOperands(expr, 'BOUND')
         expr.staticType = booleanLiteralType
 
-    def CastBool(self, expr, var):
-        self._checkScalarOperands(expr, 'BOOL')
+    def IsURI(self, expr, var):
+        self._checkScalarOperands(expr, 'IS_URI')
         expr.staticType = booleanLiteralType
 
-    def CastDecimal(self, expr, var):
-        self._checkScalarOperands(expr, 'DEC')
-        expr.staticType = LiteralType(xsd.decimal)
+    def IsBlank(self, expr, var):
+        self._checkScalarOperands(expr, 'IS_BLANK')
+        expr.staticType = booleanLiteralType
 
-    def CastInt(self, expr, var):
-        self._checkScalarOperands(expr, 'INT')
-        expr.staticType = LiteralType(xsd.integer)
+    def IsLiteral(self, expr, var):
+        self._checkScalarOperands(expr, 'IS_LITERAL')
+        expr.staticType = booleanLiteralType
 
-    def CastDateTime(self, expr, var):
-        self._checkScalarOperands(expr, 'DT')
-        expr.staticType = LiteralType(xsd.dateTime)
-
-    def CastString(self, expr, var):
-        self._checkScalarOperands(expr, 'STR')
-        expr.staticType = LiteralType(xsd.string)
-
+    def Cast(self, expr, sexpr):
+        self._checkScalarOperands(expr, 'CAST')
+        expr.staticType = LiteralType(expr.type)
+        
+    def MapValue(self, expr, rel, sexpr):
+        expr.staticType = expr[1].staticType
+  
     def _checkJoin(self, expr, *operands):
         typeExpr = RelationType()
 
@@ -344,12 +351,19 @@ class TypeChecker(rewrite.ExpressionProcessor):
        expr.staticType = expr[0].staticType
        
     def DynType(self, expr, *subexprs):
-        expr.staticType = genericLiteralType
+        expr.staticType = resourceType
 
+    def Lang(self, expr, *subexprs):
+        expr.staticType = genericLiteralType
+        
+    def LangMatches(self, expr, sexpr1, sexpr2):
+        self._checkScalarOperands(expr, 'LANG_MATCHES')
+        expr.staticType = booleanLiteralType
+        
 
 def typeCheck(expr):
     """Type check `expr`. This function sets the ``staticType`` and
-    ``dynamicType`` fields in all nodes in `expr`. `expr` will be
+    ``failSafe`` fields in all nodes in `expr`. `expr` will be
     modified in place, but the return value must be used since the
     root node may change."""
     checker = TypeChecker()

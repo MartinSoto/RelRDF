@@ -29,10 +29,7 @@ from error import InstantiationError
 def getModelBase(modelBaseType, **modelBaseArgs):
     modelBaseTypeNorm = modelBaseType.lower()
 
-    if modelBaseTypeNorm == "mysql":
-        from db import mysql
-        module = mysql
-    elif modelBaseTypeNorm == "postgres":
+    if modelBaseTypeNorm == "postgres":
         from db import postgres
         module = postgres
     elif modelBaseTypeNorm == "debug":
@@ -50,4 +47,4 @@ def getModelBase(modelBaseType, **modelBaseArgs):
 
 def getModelBases():
     import db.mysql
-    return {"mysql": db.mysql.modelbase.ModelBase}
+    return {"postgres": db.postgres.modelbase.ModelBase}

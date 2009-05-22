@@ -32,9 +32,6 @@ def getModelBase(modelBaseType, **modelBaseArgs):
     if modelBaseTypeNorm == "mysql":
         from db import mysql
         module = mysql
-    elif modelBaseTypeNorm == "sqlite":
-        from db import sqlite
-        module = sqlite
     elif modelBaseTypeNorm == "postgres":
         from db import postgres
         module = postgres

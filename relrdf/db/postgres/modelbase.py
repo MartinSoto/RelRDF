@@ -38,8 +38,7 @@ import basicquery
 import basicsinks
 
 class ModelBase(SyncMethodsMixin):
-    __slots__ = ('host',
-                 'db',
+    __slots__ = ('db',
                  'params',
                  'querySchema',
                  'sinkSchema',
@@ -58,7 +57,7 @@ class ModelBase(SyncMethodsMixin):
     def getModelInfo(self, **parameters):
         return basicquery.getModelMappers()
 
-    def __init__(self, host, db, **params):
+    def __init__(self, db, **params):
         super(ModelBase, self).__init__()
 
         import sys
@@ -67,7 +66,6 @@ class ModelBase(SyncMethodsMixin):
         self.sinkSchema = basicsinks
         self.querySchema = basicquery
 
-        self.host = host
         self.db = db
         self.params = params
 
@@ -100,8 +98,7 @@ class ModelBase(SyncMethodsMixin):
 
     def _setupConnection(self):
 
-        connection = pgdb.connect(host=self.host, database=self.db,
-                                     **self.params)
+        connection = pgdb.connect(database=self.db, **self.params)
 
         return connection
 

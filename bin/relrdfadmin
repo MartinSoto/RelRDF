@@ -25,6 +25,11 @@
 # databases. A more unified command system should replace this in the
 # future.
 
+import sys
+from os import path
+
+sys.path.append(path.dirname(path.dirname(__file__)))
+
 from relrdf.db.postgres import managedb
 
 managedb.main()

@@ -80,32 +80,31 @@ class SingleGraphRdfSink(object):
                                                     create=True)
 
         
-    def _prepareForDB(self, term):
-        """Returns argument triple to pass to the rdf_term_create
-           function to create the appropriate term"""
-        
+    def triple(self, subject, pred, object):
+        assert isinstance(subject, uri.Uri)
+        assert isinstance(pred, uri.Uri)
+
+        # Prepare the components for the object, which can be a
+        # literal:
+
         lang = typeUri = None
         isResource = 0
-        if isinstance(term, uri.Uri):
+        if isinstance(object, uri.Uri):
             isResource = 1
-        elif isinstance(term, literal.Literal):
-            if not term.typeUri is None:
-                typeUri = unicode(term.typeUri).encode('utf-8')
-            elif not term.lang is None:
-                lang = unicode(term.lang.lower()).encode('utf-8')
+        elif isinstance(object, literal.Literal):
+            if not object.typeUri is None:
+                typeUri = unicode(object.typeUri).encode('utf-8')
+            elif not object.lang is None:
+                lang = unicode(object.lang.lower()).encode('utf-8')
         else:
             assert False, "Unexpected object type '%d'" \
                    % object.__class__.__name__
 
-        val = unicode(term).encode('utf-8')
-
-        return (val, isResource, typeUri, lang)
-
-    def triple(self, subject, pred, object):
-        
-        self.pendingRows.append(self._prepareForDB(subject) + 
-                                self._prepareForDB(pred) + 
-                                self._prepareForDB(object))
+        # Collect the row.
+        self.pendingRows.append((unicode(subject).encode('utf-8'),
+                                 unicode(pred).encode('utf-8'),
+                                 unicode(object).encode('utf-8'),
+                                 isResource, typeUri, lang))
         
         if len(self.pendingRows) >= self.ROWS_PER_QUERY:
             self._writePendingRows()
@@ -146,8 +145,8 @@ class SingleGraphRdfSink(object):
         self.cursor.executemany(
             """
             INSERT INTO statements_temp1 (subject, predicate, object) VALUES (
-              rdf_term_create(%s, %d, %s, %s),
-              rdf_term_create(%s, %d, %s, %s),
+              rdf_term(0, %s),
+              rdf_term(0, %s),
               rdf_term_create(%s, %d, %s, %s))""",
             self.pendingRows)
         

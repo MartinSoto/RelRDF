@@ -129,6 +129,62 @@ INSERT INTO prefixes (prefix, namespace) VALUES
   ('vmxti', 'http://www.v-modell-xt.de/model/1#'),
   ('vmxtg', 'http://www.v-modell-xt.de/graphs/1#');
 
+
+-- Insert raw statements from statements_temp1 into the graph with the
+-- given internal id.
+CREATE OR REPLACE FUNCTION insert_statements(graph integer)
+    RETURNS integer AS $$
+  DECLARE
+    stmt integer;
+    sbj rdf_term;
+    pred rdf_term;
+    obj rdf_term;
+    inserted integer;
+  BEGIN
+    inserted := 0;
+
+    FOR stmt, sbj, pred, obj IN
+      SELECT ss.id, s.subject, s.predicate, s.object
+      FROM statements_temp1 s LEFT JOIN statements ss
+        ON ss.subject = s.subject AND
+           ss.predicate = s.predicate AND
+           ss.object = s.object
+      WHERE s.subject IS NOT NULL AND
+            s.predicate IS NOT NULL AND
+            s.object IS NOT NULL
+    LOOP
+      -- If necessary, insert the statement into the statements table.
+      IF stmt IS NULL THEN
+        -- We have to check for duplicates because the input
+        -- statements are not guaranteed to be duplicate-free.
+        BEGIN
+	  INSERT INTO statements (subject, predicate, object)
+	  VALUES (sbj, pred, obj)                      
+	  RETURNING id
+	  INTO STRICT stmt;
+	  inserted := inserted + 1;
+        EXCEPTION WHEN unique_violation THEN
+          -- Do nothing.
+        END;
+      END IF;
+
+      -- Add the statement to the graph.
+      BEGIN
+	INSERT INTO graph_statement (graph_id, stmt_id)
+	VALUES (graph, stmt);
+      EXCEPTION WHEN unique_violation THEN
+	-- Do nothing.
+      END;
+    END LOOP;
+
+    -- Drop the raw statements.
+    TRUNCATE TABLE statements_temp1;
+
+    RETURN inserted;
+  END
+$$ LANGUAGE 'plpgsql' VOLATILE;
+
+
 /* Stored procedures handling type lookups */
 
 -- Looks up or creates type entry for given type URI / language tag

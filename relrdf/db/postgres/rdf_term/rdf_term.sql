@@ -50,10 +50,12 @@ CREATE FUNCTION rdf_term_get_type_id(rdf_term)
   AS 'rdf_term'
   LANGUAGE C IMMUTABLE STRICT;
   
-CREATE FUNCTION rdf_term_get_data_type_id(rdf_term)
-  RETURNS int4
-  AS 'rdf_term'
-  LANGUAGE C IMMUTABLE STRICT;
+-- MS: Commented out because it conflicts with a PL/pgSQL function in
+-- the schema.
+-- CREATE FUNCTION rdf_term_get_data_type_id(rdf_term)
+--   RETURNS int4
+--   AS 'rdf_term'
+--   LANGUAGE C IMMUTABLE STRICT;
   
 CREATE FUNCTION rdf_term_get_language_id(rdf_term)
   RETURNS int4

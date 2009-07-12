@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+#
+# This file is part of RelRDF, a library for storage and
+# comparison of RDF models.
+#
+# Copyright (C) 2005-2009, Fraunhofer Institut Experimentelles
+# Software Engineering (IESE).
+#
+# RelRDF is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA. 
+
+import sys
+
+import relrdf
+from relrdf.localization import _
+from relrdf.error import InstantiationError
+from relrdf.factory import parseCmdLineArgs
+from relrdf.util import nsshortener
+
+def error(msg):
+    print >> sys.stderr, _("Error: %s") % msg
+    sys.exit(1)
+
+def formatTerm(term, shortener):
+    if isinstance(term, relrdf.Uri):
+        return shortener.shortenUri(term)
+    else:
+        return "'%s'" % term
+
+def showResults(results, sep = '|'):
+    # Create an appropriate URI shortener.
+    shortener = nsshortener.NamespaceUriShortener(shortFmt='%s:%s',
+                                                       longFmt='<%s>')
+    shortener.addPrefix('rdf', relrdf.ns.rdf)
+    shortener.addPrefix('rdfs', relrdf.ns.rdfs)
+    shortener.addPrefix('relrdf', relrdf.ns.relrdf)
+
+    # Add the namespaces from the model.
+    shortener.addPrefixes(model.getPrefixes())
+
+    print sep.join(results.columnNames)
+    for result in results:
+        print sep.join((formatTerm(term, shortener)
+                        for term in result)).encode('utf-8')
+
+
+if len(sys.argv) < 3:
+    print >> sys.stderr, \
+          _("usage: <query file> %s :<model base type> [<model base params] "
+	    ":<model type> [<model params>]" % sys.argv[0])
+    sys.exit(1)
+
+queryFileName = sys.argv[1]
+
+argv = list(sys.argv[2:])
+
+try:
+    baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
+    modelBase = relrdf.getModelBase(baseType, **baseArgs)
+
+    modelType, modelArgs = parseCmdLineArgs(argv, 'model')
+    model = modelBase.getModel(modelType, **modelArgs)
+except InstantiationError, e:
+    error(e)
+
+if queryFileName == '-':
+   queryFile = sys.stdin
+   queryFileName = '<stdin>'
+else:
+    try:
+        queryFile = file(queryFileName, 'r')
+    except IOError, e:
+        error(e)
+
+try:
+    query = ''.join(queryFile).decode('utf-8')
+    results = model.query('SPARQL', query, fileName=queryFileName)
+except relrdf.Error, e:
+    error(e)
+
+showResults(results)
+
+
+model.close()
+modelBase.close()

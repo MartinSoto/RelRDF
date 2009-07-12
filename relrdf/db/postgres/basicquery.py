@@ -223,6 +223,8 @@ class BaseResults(object):
 
         # Send the query to the database (iterating on this object
         # will produce the actual results.)
+        if isinstance(sqlText, unicode):
+            sqlText = sqlText.encode('utf-8')
         self.cursor.execute(sqlText)
 
         self.length = self.cursor.rowcount

@@ -29,7 +29,9 @@ import antlr
 from relrdf.localization import _
 from relrdf import error
 
-from relrdf.expression import nodes, rewrite, simplify
+from relrdf.expression import nodes
+
+import simplify
 
 
 import SparqlLexer
@@ -96,6 +98,10 @@ class ParseEnvironment(object):
 
         # Check for use of not implemented features.
         checkNotSupported(expr)
+
+        # Simplify the expression. This includes the standard
+        # simplification prescribed by Chapter 12 of the SPARQL spec.
+        expr = simplify.simplify(expr)
 
         # Type check the expression, using the specialized SPARQL type
         # checker.

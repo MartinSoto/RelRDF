@@ -399,6 +399,8 @@ class BasicModel(object):
         self._changeCursor = None
 
     def _exprToSql(self, expr):
+        expr.prettyPrint()
+        return 'select * from statements where False'
         
         # Transform occurrences of StatementResult
         expr = transform.StatementResultTransformer().process(expr)

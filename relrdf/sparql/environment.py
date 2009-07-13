@@ -99,11 +99,11 @@ class ParseEnvironment(object):
 
         # Type check the expression, using the specialized SPARQL type
         # checker.
-        expr = typecheck.sparqlTypeCheck(expr)
+        #expr = typecheck.sparqlTypeCheck(expr)
 
         # Decouple the patterns and translate special SPARQL
         # constructs.
         transf = decouple.PatternDecoupler()
-        expr = transf.process(expr)
+        #expr = transf.process(expr)
 
         return expr

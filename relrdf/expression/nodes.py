@@ -840,14 +840,23 @@ class Product(RelationNode):
         super(Product, self).__init__(*relations)
 
 
-class LeftJoin(RelationNode):
-    """A node representing a left outer join of two or more
+class Join(RelationNode):
+    """A node representing the natural join of two or more
     relations."""
 
     __slots__ = ()
 
-    def __init__(self, fixed, optional):
-        super(LeftJoin, self).__init__(fixed, optional)
+
+class LeftJoin(RelationNode):
+    """A node representing a left outer join of two relations."""
+
+    __slots__ = ()
+
+    def __init__(self, fixed, optional, cond=None):
+        if cond is not None:
+            super(LeftJoin, self).__init__(fixed, optional, cond)
+        else:
+            super(LeftJoin, self).__init__(fixed, optional)
 
 
 class Select(RelationNode):

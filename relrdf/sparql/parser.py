@@ -245,5 +245,20 @@ class Parser(antlr.LLkParser):
         # Unknown function...
         raise error.SyntaxError(msg=_("Unknown function '%s'" % uri),
                                 extents=extents)
-        
-    
+
+    def makeGroupGraphPattern(self, pattern, filtersCond):
+        if len(pattern) == 1:
+            pattern = pattern[0]
+        if len(filtersCond) == 0:
+            return pattern
+        elif len(filtersCond) == 1:
+            return nodes.Select(pattern, filtersCond[0])
+        else:
+            return nodes.Select(pattern, filtersCond)
+
+    def makeOptionalPattern(self, pattern, optional):
+        if isinstance(optional, nodes.Select):
+            leftJoin = nodes.LeftJoin(pattern, optional[0], optional[1])
+        else:
+            leftJoin = nodes.LeftJoin(pattern, optional)
+        return nodes.Join(leftJoin)

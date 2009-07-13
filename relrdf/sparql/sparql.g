@@ -235,27 +235,29 @@ offsetClause[expr]
     ;
 
 groupGraphPattern[graph] returns [expr]
-    :   { expr = spqnodes.GraphPattern() }
-        lb:LBRACE graphPattern[graph, expr] rb:RBRACE
-        { expr.setExtentsStartFromToken(lb, self); \
+    :   { pattern = nodes.Join(); \
+          filtersCond = nodes.And() }
+        lb:LBRACE pattern=graphPattern[graph, pattern, filtersCond] rb:RBRACE
+        { expr = self.makeGroupGraphPattern(pattern, filtersCond); \
+          expr.setExtentsStartFromToken(lb, self); \
           expr.setExtentsEndFromToken(rb) }
     ;
 
-graphPattern[graph, pattern]
-    :   filteredBasicGraphPattern[graph, pattern]
-        (   expr=graphPatternNotTriples[graph]
-            { pattern.append(expr) }
+graphPattern[graph, pattern, filtersCond] returns [newPattern]
+    :   filteredBasicGraphPattern[graph, pattern, filtersCond]
+        (   pattern=graphPatternNotTriples[graph, pattern]
             ( DOT )?
-            graphPattern[graph, pattern]
+            pattern=graphPattern[graph, pattern, filtersCond]
         )?
+        { newPattern = pattern }
     ;
 
-filteredBasicGraphPattern[graph, pattern]
+filteredBasicGraphPattern[graph, pattern, filtersCond]
     :   ( blockOfTriples[graph, pattern] )?
         (   constr=constraint
-            { pattern.append(constr)  }
+            { filtersCond.append(constr) }
             ( DOT )?
-            filteredBasicGraphPattern[graph, pattern]
+            filteredBasicGraphPattern[graph, pattern, filtersCond]
         )?
     ;
 
@@ -264,16 +266,20 @@ blockOfTriples[graph, pattern]
         ( DOT ( triplesSameSubject[graph, pattern] )? )*
     ;
 
-graphPatternNotTriples[graph] returns [expr]
+graphPatternNotTriples[graph, pattern] returns [newPattern]
     :   expr=optionalGraphPattern[graph]
+        { newPattern = self.makeOptionalPattern(pattern, expr) }
     |   expr=groupOrUnionGraphPattern[graph]
+        { pattern.append(expr); \
+          newPattern = pattern }
     |   expr=graphGraphPattern
+        { pattern.append(expr); \
+          newPattern = pattern }
     ;
 
 optionalGraphPattern[graph] returns [expr]
-    :   opt:OPTIONAL pattern=groupGraphPattern[graph]
-        { expr = spqnodes.Optional(pattern); \
-          expr.setExtentsStartFromToken(opt, self) }
+    :   opt:OPTIONAL expr=groupGraphPattern[graph]
+        { expr.setExtentsStartFromToken(opt, self) }
     ;
 
 graphGraphPattern returns [expr]
@@ -283,21 +289,19 @@ graphGraphPattern returns [expr]
 
 groupOrUnionGraphPattern[graph] returns [expr]
     :   expr=groupGraphPattern[graph]
-        (   { expr=spqnodes.OpenUnion(expr) }
+        (   { expr=nodes.Union(expr) }
             (   UNION pattern=groupGraphPattern[graph]
                 { expr.append(pattern) }
             )+
-            { expr = nodes.NotSupported(expr) }
         )?
     ;
 
 constraint returns [expr]
     :   FILTER
-        (   cond=brackettedExpression
-        |   cond=builtInCall
-        |   cond=functionCall
+        (   expr=brackettedExpression
+        |   expr=builtInCall
+        |   expr=functionCall
         )
-        { expr = spqnodes.Filter(cond) }
     ;
 
 functionCall returns [expr]

@@ -453,6 +453,7 @@ class Pruned(ExpressionNode):
         super(Pruned, self).prettyPrint(stream, indentLevel)
         self.prunedExpr.prettyPrint(stream, indentLevel + 1)
 
+
 class NotSupported(ExpressionNode):
     """An expression node representing a subexpression that is not
     currently supported by the parser."""
@@ -476,6 +477,7 @@ class Null(ValueNode):
 
     def __init__(self):
         super(Null, self).__init__()
+
 
 class Uri(ValueNode):
     """An expression node representing a URI reference."""
@@ -512,7 +514,7 @@ class QName(ValueNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.qname)
-        
+
 
 class Literal(ValueNode):
     """An expression node representing a RDF literal."""
@@ -566,6 +568,7 @@ class BlankNode(Var):
     def __init__(self, name):
         super(BlankNode, self).__init__(name)
 
+
 class If(ValueNode):
     """A functional if expression.
 
@@ -587,10 +590,12 @@ class Operation(ValueNode):
 
     __slots__ = ()
 
+
 class TypeCompatible(Operation):
     """Determine if two or more operands are type-compatible (= comparable)""" 
 
     __slots__ = ()
+
 
 class UnaryOperation(Operation):
     """A node representing a unary operation."""
@@ -689,51 +694,60 @@ class Plus(ArithmeticOperation):
 
     __slots__ = ()
 
+
 class UPlus(ArithmeticOperation, UnaryOperation):
     """An arithmetic unary plus."""
 
     __slots__ = ()
+
 
 class Minus(ArithmeticOperation, BinaryOperation):
     """An arithmetic subtraction."""
 
     __slots__ = ()
 
+
 class UMinus(ArithmeticOperation, UnaryOperation):
     """An arithmetic unary minus."""
 
     __slots__ = ()
-    
+
+
 class Times(ArithmeticOperation):
     """An arithmetic multiplication."""
 
     __slots__ = ()
 
-    
+
 class DividedBy(ArithmeticOperation, BinaryOperation):
     """An arithmetic division."""
 
     __slots__ = ()
+
 
 class IsBound(UnaryOperation):
     """Determines wether a variable is bound to a value"""
     
     __slots__ = ()
 
+
 class IsURI(UnaryOperation):
     """Determines wether some value is an URI"""
     
-    __slots__ = ()    
+    __slots__ = ()
+
 
 class IsBlank(UnaryOperation):
     """Determines wether some value is a blank node"""
     
-    __slots__ = ()    
+    __slots__ = ()
+
 
 class IsLiteral(UnaryOperation):
     """Determines wether some value is a literal"""
     
-    __slots__ = ()    
+    __slots__ = ()
+
 
 class Cast(Operation):
      """Converts the given literal to another datatype, if possible.
@@ -744,11 +758,13 @@ class Cast(Operation):
      def __init__(self, type, *sexpr):
          self.type = type
          super(Cast, self).__init__(*sexpr)
-     
+
+
 class MapValue(BinaryOperation):
     """Computes the value of a single expression concerning a relation"""
     
     __slots__ = ()
+
 
 class LangMatches(BinaryOperation):
     """Tests wether a language tag matches a language pattern"""
@@ -758,7 +774,7 @@ class LangMatches(BinaryOperation):
 #
 # Pattern Nodes
 #
-    
+
 class StatementPattern(ExpressionNode):
     """An expression node representing an statement pattern."""
 
@@ -793,6 +809,7 @@ class RelationNode(ExpressionNode):
     """An expression that evaluates to a set of triples"""
     
     __slots__ = ()
+
 
 class Empty(RelationNode):
     """An expression node representing an empty relation, i.e., one
@@ -887,6 +904,7 @@ class MapResult(QueryResult):
         if self.incarnation is not None:
             stream.write(' _%d' % self.incarnation)
 
+
 class StatementResult(QueryResult):
     """Specify the statement templates used to produce the result of a
     transformation ('construct') query. The first child of this node
@@ -918,6 +936,7 @@ class QueryResultModifier(ExpressionNode):
     
     __slots__ = ()
 
+
 class Distinct(QueryResultModifier):
     """Specify that the results produced by the subexpression must be
     filtered to eliminate repeated rows."""
@@ -925,7 +944,8 @@ class Distinct(QueryResultModifier):
     __slots__ = ()
     
     def __init__(self, operand):
-        super(Distinct, self).__init__(operand)    
+        super(Distinct, self).__init__(operand)
+
 
 class OffsetLimit(QueryResultModifier):
     """Selects some rows from the results based on their position in
@@ -944,7 +964,8 @@ class OffsetLimit(QueryResultModifier):
         self.limit = None
         
         super(ExpressionNode, self).__init__(subexpr)
-        
+
+
 class Sort(QueryResultModifier):
     """Sorts the result rows according to the second subexpression"""
     
@@ -1057,12 +1078,12 @@ class Type(ValueNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.typeExpr)
- 
+
 
 class Lang(UnaryOperation):
     """An expression node representing the language tag of a literal."""
 
-    __slots = ()   
+    __slots = ()
 
 
 class TypeToURI(UnaryOperation):

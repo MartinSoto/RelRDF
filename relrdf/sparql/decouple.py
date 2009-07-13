@@ -143,7 +143,7 @@ class Scope(dict):
             if len(bindings) >= 2:
                 subconds.append(bindings)
 
-        expr = simplify.reduceUnary(subconds)
+        expr, m = simplify.reduceUnary(subconds)
         return expr
 
     def variableRepl(self, var):
@@ -240,7 +240,7 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
             i += 1
 
         expr = nodes.Product(*subexprs[:i])
-        expr = simplify.reduceUnary(expr)
+        expr, m = simplify.reduceUnary(expr)
         assert expr is not None
 
         # Process optional patterns.
@@ -261,7 +261,7 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
 
             # Get rid of the spqnodes.Filter node.
             filterExpr.append(subexpr[0])
-        filterExpr = simplify.reduceUnary(filterExpr)
+        filterExpr, m = simplify.reduceUnary(filterExpr)
 
         if filterExpr is not None:
             expr = nodes.Select(expr, filterExpr)

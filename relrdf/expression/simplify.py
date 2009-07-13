@@ -31,11 +31,11 @@ def reduceUnary(expr, default=None):
     subexpressions, and to its subexpression if it has only
     one. Otherwise return the expression unmodified."""
     if len(expr) == 0:
-        return default
+        return default, True
     elif len(expr) == 1:
-        return expr[0]
+        return expr[0], True
     else:
-        return expr
+        return expr, False
 
 def flattenAssoc(nodeType, expr):
     modif = False

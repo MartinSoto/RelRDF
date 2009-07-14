@@ -30,6 +30,7 @@ from relrdf.localization import _
 from relrdf import error
 
 from relrdf.expression import nodes
+from relrdf import typecheck
 
 import simplify
 
@@ -37,7 +38,6 @@ import simplify
 import SparqlLexer
 import SparqlParser
 
-import typecheck
 import decouple, spqnodes
 
 
@@ -76,7 +76,8 @@ class ParseEnvironment(object):
         lexer = SparqlLexer.Lexer() 
         lexer.setInput(stream)
 
-        parser = SparqlParser.Parser(lexer, prefixes=self.prefixes, baseUri=fileName)
+        parser = SparqlParser.Parser(lexer, prefixes=self.prefixes,
+                                     baseUri=fileName)
         parser.setFilename(fileName)
 
         try:
@@ -105,7 +106,7 @@ class ParseEnvironment(object):
 
         # Type check the expression, using the specialized SPARQL type
         # checker.
-        #expr = typecheck.sparqlTypeCheck(expr)
+        expr = typecheck.typeCheck(expr)
 
         # Decouple the patterns and translate special SPARQL
         # constructs.

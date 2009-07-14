@@ -259,6 +259,22 @@ class RelationType(TypeNode):
                 columnType = relTypeExpr.getColumnType(columnName)
             self.addColumn(columnName, columnType)
 
+    def unionType(self, relTypeExpr):
+        """Add the columns in `relTypeExpr` to `self`. If columns with
+        the same name are present in both types, a single column will
+        be created with the generalized type of both columns."""
+        for columnName in relTypeExpr.getColumnNames():
+            if self.hasColumn(columnName):
+                columnType = self.getColumnType(columnName). \
+                             generalizeType(relTypeExpr. \
+                                           getColumnType(columnName))
+                if columnType == nullType:
+                    error(expr, _("Incompatible types for variable '%s'")
+                          % columnName)
+            else:
+                columnType = relTypeExpr.getColumnType(columnName)
+            self.addColumn(columnName, columnType)
+
     def __str__(self):
         cols = []
         for item in self.dict.items():

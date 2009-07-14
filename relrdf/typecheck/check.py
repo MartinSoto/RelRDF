@@ -231,17 +231,42 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def MapValue(self, expr, rel, sexpr):
         expr.staticType = expr[1].staticType
   
-    def _checkJoin(self, expr, *operands):
+    def _checkJoin(self, expr, *ignored):
         typeExpr = RelationType()
-
         for subexpr in expr:
             typeExpr.joinType(subexpr.staticType)
-
         expr.staticType = typeExpr
 
     Product = _checkJoin
-    LeftJoin = _checkJoin
+    Join = _checkJoin
 
+    def preLeftJoin(self, expr):
+        # Process the relation subexpressions.
+        self.process(expr[0])
+        self.process(expr[1])
+
+        # Calculate the type. The procedure is the same as for a
+        # natural join.
+        typeExpr = RelationType()
+        typeExpr.joinType(expr[0].staticType)
+        typeExpr.joinType(expr[1].staticType)
+        expr.staticType = typeExpr
+
+        # If there is a condition, process it in a scope based on this
+        # type.
+        if len(expr) == 3:
+            self.createScope(typeExpr)
+            self.process(expr[2])
+            self.closeScope()
+
+        return (None,) * len(expr)
+
+    def LeftJoin(self, expr, *ignored):
+        if len(expr) == 3 and \
+                (not isinstance(expr[2].staticType, LiteralType) or \
+                 expr[2].staticType.typeUri != xsd.boolean):
+            error(expr, _("Condition must be boolean"))
+        
     def preSelect(self, expr):
         # Process the relation subexpression and create a scope from
         # its type.
@@ -332,7 +357,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
         expr.staticType = typeExpr
 
     def Union(self, expr, *operands):
-        self._setOperationType(expr, *operands)
+        typeExpr = RelationType()
+        for subexpr in expr:
+            typeExpr.unionType(subexpr.staticType)
+        expr.staticType = typeExpr
 
     def SetDifference(self, expr, operand1, operand2):
         self._setOperationType(expr, operand1, operand2)

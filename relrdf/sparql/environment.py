@@ -111,6 +111,6 @@ class ParseEnvironment(object):
         # Decouple the patterns and translate special SPARQL
         # constructs.
         transf = decouple.PatternDecoupler()
-        #expr = transf.process(expr)
+        expr = transf.process(expr)
 
         return expr

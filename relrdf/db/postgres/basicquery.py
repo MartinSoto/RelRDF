@@ -399,31 +399,28 @@ class BasicModel(object):
         self._changeCursor = None
 
     def _exprToSql(self, expr):
-        expr.prettyPrint()
-        return 'select * from statements where False'
-        
         # Transform occurrences of StatementResult
         expr = transform.StatementResultTransformer().process(expr)
-        
+
         # Insert known type information
         expr = dynamic.dynTypeTranslate(expr)
-        
+
         # Apply the selected mapping.
         expr = self.mappingTransf.process(expr)
-       
+
         # Add dynamic type checks.
         expr = dynamic.typeCheckTranslate(expr)
 
         # Dereference value references from the mapping.
         transf = valueref.ValueRefDereferencer()
         expr = transf.process(expr)
-         
+
         # Simplify the expression
         expr = simplify.simplify(expr)
 
         # Convert select predicates to SQL
         expr = sqltranslate.translateSelectToSqlBool(expr)
-        
+
         # Generate SQL.
         return emit.emit(expr)
 

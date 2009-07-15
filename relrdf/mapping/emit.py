@@ -164,16 +164,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         # Note there is a special rule if parent node is Select (see preSelect)
         return '(' + ' CROSS JOIN '.join(operands) + ')'
 
-    def preLeftJoin(self, expr):
-        if isinstance(expr[1], nodes.Select):
-            # We use this select's condition as join condition.
-            return (self.process(expr[0]), self.process(expr[1][0]),
-                     self.process(expr[1][1]))
-        else:
-            return (self.process(expr[0]), self.process(expr[1]),
-                    None)
-
-    def LeftJoin(self, expr, fixed, optional, cond):
+    def LeftJoin(self, expr, fixed, optional, cond=None):
         if cond is not None:
             return '(%s LEFT JOIN %s ON (%s))' % (fixed, optional, cond)
         else:
@@ -186,7 +177,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             srel = [self.process(sub) for sub in expr[0]]
             return (' INNER JOIN '.join(srel), self.process(expr[1]))
         else:
-            return (self.process(expr[0]), self.process(expr[1]))                        
+            return (self.process(expr[0]), self.process(expr[1]))
         
     def Select(self, expr, rel, cond):
         if isinstance(expr[0], nodes.Product):

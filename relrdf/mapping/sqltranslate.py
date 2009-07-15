@@ -27,8 +27,8 @@ from relrdf.expression import rewrite, nodes
 import sqlnodes
 
 class SqlBoolTranslator(rewrite.ExpressionTransformer):
-    """Translates an expression resulting in a boolean RDF value into an expression
-    returning the equivalent raw SQL boolean"""
+    """Translates an expression resulting in a boolean RDF value into
+    an expression returning the equivalent raw SQL boolean."""
     
     def __init__(self):
         super(SqlBoolTranslator, self).__init__(prePrefix='pre')
@@ -92,25 +92,33 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
         assert(isinstance(expr, nodes.ValueNode));
         return sqlnodes.SqlCastBool(expr)
 
+
 _sqlBoolTranslator = SqlBoolTranslator()
 
 def translateToSqlBool(expr):
     return _sqlBoolTranslator.process(expr)
 
+
 class SqlSelectBoolTranslator(rewrite.ExpressionTransformer):
-    """ Translates the predicates of all Select nodes to nodes returning raw
-    SQL boolean values """
+    """ Translates the predicates of all Select and LeftJoin nodes to
+    nodes returning raw SQL boolean values."""
 
     def __init__(self):
         super(SqlSelectBoolTranslator, self).__init__(prePrefix='pre')       
     
     def Select(self, expr, rel, pred):
-        
         # Convert predicate
-        pred = translateToSqlBool(pred)
+        expr[1] = translateToSqlBool(pred)
+
+        return expr
+
+    def LeftJoin(self, expr, fixed, optional, cond=None):
+        if cond is not None:
+            # Convert predicate.
+            expr[2] = translateToSqlBool(cond)
         
-        # Return node with modified predicate
-        return nodes.Select(rel, pred)
+        return expr
+
                   
 _sqlSelectBoolTranslator = SqlSelectBoolTranslator()
 

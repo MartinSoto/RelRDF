@@ -211,8 +211,15 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
     def preSelect(self, expr):
         if isinstance(expr[0], nodes.Product):
+            assert len(expr[0]) > 1
             srel = [self.process(sub) for sub in expr[0]]
-            return (listJoin(' INNER JOIN ', srel), self.process(expr[1]))
+            # We need cross joins here except for the last one, which
+            # must be an inner join so that we can attach the
+            # condition to it. Joins associate left to right, so this
+            # is guaranteed to work without parentheses.
+            return (listJoin(' CROSS JOIN ', srel[:-1]) +
+                    (' INNER JOIN ', srel[-1]),
+                    self.process(expr[1]))
         else:
             return (self.process(expr[0]), self.process(expr[1]))
 

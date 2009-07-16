@@ -22,6 +22,7 @@
 # Boston, MA 02111-1307, USA.
 
 
+import sys
 import re
 
 from relrdf.commonns import xsd, fn, sql, rdfs
@@ -388,7 +389,66 @@ def traverseEmitted(seqOrStr):
             for s in traverseEmitted(elem):
                 yield s
 
+def emittedText(seqOrStr):
+    return ''.join(traverseEmitted(seqOrStr)).strip()
+
+def prettyPrintStream(seqOrStr, stream=None, indent=0, width=78,
+                      breakMin=20):
+    """Pretty print a SQL expression into an output stream.
+
+    The SQL expression is stored as a potentially nested sequence of
+    strings as produced by the emitter.
+    """
+    if stream is None:
+        stream = sys.stdout
+
+    def recurse(seqOrStr, indent):
+        if isinstance(seqOrStr, basestring):
+            # We have a string, it's not possible to break it into
+            # lines anyway.
+            stripped = seqOrStr.strip()
+            if len(stripped) > 0:
+                stream.write(' ' * indent)
+                stream.write(stripped)
+                stream.write('\n')
+            return
+
+        oneLine = emittedText(seqOrStr)
+        if len(oneLine) <= breakMin or indent + len(oneLine) <= width:
+            if len(oneLine) > 0:
+                # The whole expression fits into the allotted width.
+                stream.write(' ' * indent)
+                stream.write(oneLine)
+                stream.write('\n')
+            return
+
+        # Print direct string subexpressions at this indent level and
+        # sequence subexpressions at the next indent level.
+        for subexpr in seqOrStr:
+            if isinstance(subexpr, basestring):
+                recurse(subexpr, indent)
+            else:
+                recurse(subexpr, indent + 2)
+
+    recurse(seqOrStr, indent)
+
+def prettyPrint(seqOrStr, indent=0, width=78, breakMin=20):
+    """Pretty print a SQL expression and return the result as a
+    string.
+
+    The SQL expression is stored as a potentially nested sequence of
+    strings as produced by the emitter.
+    """
+    import StringIO
+
+    stream = StringIO.StringIO()
+    prettyPrintStream(seqOrStr, stream, indent, width, breakMin)
+    result = stream.getvalue()
+    stream.close()
+    return result
+
 def emit(expr):
     emitter = SqlEmitter()
-    return ''.join(traverseEmitted(emitter.process(expr)))
+    #return prettyPrint(emitter.process(expr))
+    return emittedText(emitter.process(expr))
 

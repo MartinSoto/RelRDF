@@ -22,10 +22,46 @@
 # Boston, MA 02111-1307, USA. 
 
 
+import operator
+
 from relrdf.expression.simplify import flattenAssoc, flattenSelect, \
     reduceUnary
 from relrdf.expression import nodes, rewrite
 
+
+def simplifySelect(expr):
+    subexpr = expr[0]
+    if isinstance(subexpr, nodes.Empty):
+        # Selecting on the empty set always yields the empty set.
+        return subexpr, True
+    else:
+        return expr, False
+
+def simplifyJoin(expr):
+    if len(expr) == 1:
+        return expr[0], True
+    elif reduce(operator.__or__,
+                  (isinstance(subexpr, nodes.Empty) for subexpr in expr)):
+        # There's at least one empty relation in the join.
+        return nodes.Empty(), True
+    else:
+        return expr, False
+
+def simplifyLeftJoin(expr):
+    subexpr = expr[0]
+    if isinstance(subexpr, nodes.Empty):
+        # Left-joining the empty set with anything always produces the
+        # empty set.
+        return subexpr, True
+
+    subexpr = expr[1]
+    if isinstance(subexpr, nodes.Empty):
+        # Left-joining anything with the empty set produces the same
+        # thing (trivially, no element on the left side will have a
+        # counterpart on the right side).
+        return expr[0], True
+
+    return expr, False
 
 def simplifyNode(expr, subexprsModif):
     """Simplify a SPARQL node."""
@@ -43,18 +79,21 @@ def simplifyNode(expr, subexprsModif):
             modif = modif or m
             expr, m = reduceUnary(expr)
             modif = modif or m
-        elif isinstance(expr, nodes.Join):
-            expr, m = flattenAssoc(nodes.Join, expr)
+        elif isinstance(expr, nodes.Select):
+            expr, m = flattenSelect(expr)
             modif = modif or m
             expr, m = reduceUnary(expr)
+            modif = modif or m
+            expr, m = simplifySelect(expr)
+            modif = modif or m
+        elif isinstance(expr, nodes.Join):
+            expr, m = simplifyJoin(expr)
+            modif = modif or m
+        elif isinstance(expr, nodes.LeftJoin):
+            expr, m = simplifyLeftJoin(expr)
             modif = modif or m
         elif isinstance(expr, nodes.Union):
             expr, m = flattenAssoc(nodes.Union, expr)
-            modif = modif or m
-            expr, m = reduceUnary(expr)
-            modif = modif or m
-        elif isinstance(expr, nodes.Select):
-            expr, m = flattenSelect(expr)
             modif = modif or m
             expr, m = reduceUnary(expr)
             modif = modif or m

@@ -247,6 +247,8 @@ class Parser(antlr.LLkParser):
                                 extents=extents)
 
     def makeGroupGraphPattern(self, pattern, filtersCond):
+        if len(pattern) == 0:
+            return nodes.Empty()
         if len(pattern) == 1:
             pattern = pattern[0]
         if len(filtersCond) == 0:

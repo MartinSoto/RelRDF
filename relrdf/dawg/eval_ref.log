@@ -16,7 +16,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-option
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-optional-002
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-5
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-4
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-nested-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-nested-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-place-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-10
@@ -127,6 +127,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-7
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-8
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#spoo-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-graph-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-6
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-graph-4

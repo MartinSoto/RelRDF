@@ -240,6 +240,10 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             return [('', self.process(expr[0][0]), ' WHERE ',
                      self.process(expr[0][1]))] + \
                    [self.process(subexpr) for subexpr in expr[1:]]
+        elif isinstance(expr[0], nodes.Empty):
+            return [('(VALUES (1))', ' AS ', 'empty_rel(x)', ' WHERE ',
+                     'empty_rel.x = 0')] + \
+                   [self.process(subexpr) for subexpr in expr[1:]]
         else:
             return [self.process(subexpr) for subexpr in expr]
 

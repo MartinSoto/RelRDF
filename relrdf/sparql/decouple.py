@@ -90,15 +90,14 @@ class Scope(dict):
             assert isinstance(bindings, nodes.Equal), var
 
             if containing is not None:
+                # Bind the variable in the containing scope to one of
+                # the bindings in this scope.
                 try:
-                    # Try to append a binding to the containing scope.
-                    bindings.append(iter(containing[var]).next(). \
-                                    copy())
+                    contBindings = containing[var]
                 except KeyError:
-                    # If failed, enrich the contining scope with a
-                    # binding to the local scope (it is actually the
-                    # local scope that is binding the variable.)
-                    containing[var] = nodes.Equal(bindings[0].copy())
+                    contBindings = nodes.Equal()
+                    containing[var] = contBindings
+                contBindings.append(bindings[0].copy())
 
             if len(bindings) >= 2:
                 subconds.append(bindings)

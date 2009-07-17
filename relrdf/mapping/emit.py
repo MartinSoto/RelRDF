@@ -205,9 +205,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
             return ('(', fixed, ' LEFT JOIN ', optional, ' ON (',
                     cond, ')', ')')
         else:
-            # If no condition is available, this is actually a cross
-            # join.
-            return ('(', fixed, ' CROSS JOIN ', optional, ')')
+            return ('(', fixed, ' LEFT JOIN ', optional, ' ON TRUE', ')')
 
     def preSelect(self, expr):
         if isinstance(expr[0], nodes.Product):

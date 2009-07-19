@@ -46,15 +46,6 @@ class StatementResultTransformer(rewrite.ExpressionTransformer):
                 expr.columnNames.append('%s%d' % (colName, i + 1))
                 expr.append(mappingExpr)
         return expr
-
-    def _setOperation(self, expr, *operands):
-        expr.columnNames = list(operands[0].columnNames)
-        expr[:] = operands
-        return expr
-
-    Union = _setOperation
-    SetDifference = _setOperation
-    Intersection = _setOperation
     
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions

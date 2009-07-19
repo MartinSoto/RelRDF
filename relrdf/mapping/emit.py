@@ -337,7 +337,8 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return self._setDiffOrIntersect('NOT IN', *args)
 
     def Empty(self, expr):
-        return ''
+        return ('(VALUES (1))', ' AS ', 'empty_rel(x)', ' WHERE ',
+                'empty_rel.x = 0')
 
     def SqlRelation(self, expr):
         # Single relation names cannot be parenthesized.

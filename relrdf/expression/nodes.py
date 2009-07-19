@@ -867,33 +867,23 @@ class Select(RelationNode):
     def __init__(self, rel, predicate):
         super(Select, self).__init__(rel, predicate)
 
-#
-# Query Results
-#
 
-class QueryResult(ExpressionNode):
-    """A base class for all nodes representing query results.
-    """
+class Project(RelationNode):
+    """A node representing a projection expression.
 
-    __slots__ = ()
+    A projection produces a new relation by applying a function to
+    each one of the tuples produced by a relational expression. We
+    represent this process here with a set of (scalar) expressions
+    that are evaluated for each tuple to produce the components of a
+    new tuple, and a matching set of column names for the resulting
+    columns."""
 
-
-class MapResult(QueryResult):
-    """Specify the column names of a result table, together with the
-    expressions they are bound to."""
-
-    __slots__ = ('columnNames',
-                 'incarnation'
-                 )
+    __slots__ = ('columnNames')
 
     def __init__(self, columnNames, rel, *mappingExprs):
-        super(MapResult, self).__init__(rel, *mappingExprs)
+        super(Project, self).__init__(rel, *mappingExprs)
 
         self.columnNames = columnNames
-
-        # The incarnation can be used to give the resulting table a
-        # name while generating SQL expressions.
-        self.incarnation = None
         
     def subexprByName(self, columnName):
         """Return the subexpression bound a to a particular column name."""
@@ -910,8 +900,24 @@ class MapResult(QueryResult):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' [%s]' % ', '.join(self.columnNames))
-        if self.incarnation is not None:
-            stream.write(' _%d' % self.incarnation)
+
+
+#
+# Query Results
+#
+
+class QueryResult(ExpressionNode):
+    """A base class for all nodes representing query results.
+    """
+
+    __slots__ = ()
+
+
+class MapResult(QueryResult, Project):
+    """Specify the column names of a result table, together with the
+    expressions they are bound to."""
+
+    __slots__ = ()
 
 
 class StatementResult(QueryResult):

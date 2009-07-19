@@ -335,6 +335,14 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return ('(VALUES (1))', ' AS ', 'empty_rel(x)', ' WHERE ',
                 'empty_rel.x = 0')
 
+    def Project(self, expr, rel, *mappingExprs):
+         columns = listJoin(', ',
+                            [(e, ' AS ', n)
+                             for e, n in zip(mappingExprs,
+                                             expr.columnNames)])
+
+         return ('SELECT ', columns, ' FROM ', rel)
+
     def SqlRelation(self, expr):
         # Single relation names cannot be parenthesized.
         try:

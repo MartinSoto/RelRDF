@@ -153,6 +153,19 @@ class SqlTypedFieldRef(SqlFieldRef):
         
         self.staticType = typeexpr.rdfNodeType
 
+
+class SqlAs(nodes.UnaryOperation):
+    """Give a name to a complete SQL subexpression, so that it can be
+    referred to by name from other parts of the query."""
+
+    __slots__ = ('incarnation')
+
+    def __init__(self, incarnation, subexpr):
+        super(SqlAs, self).__init__(subexpr)
+
+        self.incarnation = incarnation
+
+
 class SqlFunctionCall(nodes.ExpressionNode):
     """A SQL function call."""
 
@@ -167,7 +180,6 @@ class SqlFunctionCall(nodes.ExpressionNode):
 
     def prettyPrintAttributes(self, stream, indentLevel):
         stream.write(' %s' % self.name)
-
 
 
 class SqlScalarExpr(nodes.ExpressionNode):

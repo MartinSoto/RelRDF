@@ -312,7 +312,7 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         return query
 
     def Union(self, expr, *operands):
-        return ('(',) + listJoin(')', ' UNION ', '(', operands) + (')',)
+        return ('(',) + listJoin(')', ' UNION ALL ', '(', operands) + (')',)
 
     def _setDiffOrIntersect(self, compOperator, expr, operand1, operand2):
         incarnation1 = 'rel_%s' % expr[0].incarnation

@@ -165,8 +165,7 @@ class BasicGraphMapper(BasicMapper):
                                  sqlnodes.SqlInt(self.baseGraphId));
 
     def replStatementPattern(self, expr):
-
-        # Always either select default graph or the rest 
+        # Always either select the default graph or the rest.
         if isinstance(expr[0], nodes.DefaultGraph):
             graphSelector = nodes.Equal(sqlnodes.SqlFieldRef(1, 'graph_id'),
                                         sqlnodes.SqlInt(self.baseGraphId))            
@@ -192,11 +191,55 @@ class BasicGraphMapper(BasicMapper):
                           valueRef(2, 'predicate'),
                           valueRef(2, 'object'))
 
-        #self.stmtRepl = (replExpr,
-        #                 ('context', 'subject', 'predicate', 'object'))
-
         return (replExpr,
                 ('context', 'subject', 'predicate', 'object'))
+
+    # TODO: This should belong to a more generic superclass.
+    def Project(self, expr, *subexprs):
+        # Create an incarnation for the project expression.
+        incarnation = transform.Incarnator.makeIncarnation()
+
+        # Bind the column names to appropriate expressions. Also,
+        # generate valid SQL name for the columns.
+        for i, name in enumerate(expr.columnNames):
+            sqlName = 'col_%d' % (i + 1)
+            self.varBindings[name] = valueRef(incarnation, sqlName)
+            expr.columnNames[i] = sqlName
+
+        return sqlnodes.SqlAs(incarnation, expr)
+
+    # TODO: This should belong to a more generic superclass.
+    def preUnion(self, expr):
+        for subexpr in expr:
+            # This must be a projection expression.
+            assert isinstance(subexpr, nodes.Project)
+
+            # Process all of its subexpressions first.
+            for i, ssexpr in enumerate(subexpr):
+                subexpr[i] = self.process(ssexpr)
+
+            # Replace the column names by valid SQL names. These names
+            # are identical to those used by the union, so the Union
+            # method will bind them properly.
+            subexpr.columnNames = ['col_%d' % (i + 1)
+                                   for i in xrange(len(subexpr.columnNames))]
+
+        return expr
+
+    # TODO: This should belong to a more generic superclass.
+    def Union(self, expr, *subexprs):
+        # Create an incarnation for the whole union.
+        incarnation = transform.Incarnator.makeIncarnation()
+
+        # Bind the column names to appropriate expressions. Also,
+        # generate valid SQL name for the columns.
+        for i, name in enumerate(expr.columnNames):
+            sqlName = 'col_%d' % (i + 1)
+            self.varBindings[name] = valueRef(incarnation, sqlName)
+            expr.columnNames[i] = sqlName
+
+        return sqlnodes.SqlAs(incarnation, expr)
+
 
 class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):
 

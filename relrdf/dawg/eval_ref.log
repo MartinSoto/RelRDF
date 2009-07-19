@@ -41,6 +41,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#opt-filter-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#opt-filter-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#opt-filter-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-str-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-star-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-datatype-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-02
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/graph/manifest#dawg-graph-09
@@ -54,6 +55,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional-filter/manifest#dawg
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-isURI-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#join-scope-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/reduced/manifest#reduced-2
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/reduced/manifest#reduced-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/cast/manifest#cast-flt
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#le-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-function
@@ -63,6 +65,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/triple-match/manifest#dawg-tr
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/triple-match/manifest#dawg-triple-pattern-001
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/triple-match/manifest#dawg-triple-pattern-004
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#unminus-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-7
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#var-1
@@ -98,13 +101,16 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-5
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-5
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/bound/manifest#dawg-bound-query-001
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#plus-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-optional-complex-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/cast/manifest#cast-dbl
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-optional-complex-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-optional-complex-3
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-optional-complex-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#minus-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-2
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-3
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-union-001
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#no-distinct-2
@@ -123,7 +129,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-9
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-5
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-6
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-7
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-8
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#spoo-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-1
@@ -146,6 +152,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#list-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#list-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-isLiteral-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#list-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/graph/manifest#dawg-graph-07
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/graph/manifest#dawg-graph-06
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/graph/manifest#dawg-graph-05
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/graph/manifest#dawg-graph-04

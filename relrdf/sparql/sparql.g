@@ -294,7 +294,6 @@ groupOrUnionGraphPattern[graph] returns [expr]
             (   UNION pattern=groupGraphPattern[graph]
                 { expr.append(pattern) }
             )+
-            { expr = nodes.NotSupported(expr) }
         )?
     ;
 

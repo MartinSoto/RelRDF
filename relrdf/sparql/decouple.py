@@ -163,6 +163,85 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     preSort = _processResultOrModifier
     preOffsetLimit = _processResultOrModifier
 
+    def preProject(self, expr):
+        """Process a `nodes.Project` node.
+
+        Similar nodes can also be processed, such as the result nodes."""
+        # Create a scope for the expression.
+        containing = self.currentScope
+        self.currentScope = Scope()
+
+        # Process the first subexpression first. Directly or
+        # indirectly, this will process the main query expression.
+        expr[0] = self.process(expr[0])
+
+        # Process all other subexpressions in the same context.
+        expr[1:] = [self.process(mappingExpr)
+                    for mappingExpr in expr[1:]]
+
+        # Close the scope into the containing scope, if any.
+        cond = self.currentScope.closeScope(containing)
+        self.currentScope = containing
+
+        if cond != None:
+            # Add the condition to the subexpression.
+            expr[0] = nodes.Select(expr[0], cond)
+        self.currentScope = containing
+
+        if self.currentScope is not None:
+            # This is a nested projection expression. It hides all
+            # variables in its subexpressions from the containing
+            # scope, but contributes variables corresponding to
+            # its column names.
+            for name in expr.columnNames:
+                self.currentScope.createBinding(nodes.Var(name))
+
+        return expr
+
+    def preUnion(self, expr):
+        assert isinstance(expr.staticType, typeexpr.RelationType)
+
+        # In a union, a number of independent subexpressions produce
+        # results that contribute to the same relation. In order to
+        # decouple their variables, we encapsulate the subexpressions
+        # in Project nodes that map their decoupled variables into the
+        # same set of variables.
+
+        # The union expression contributes a number of variables to
+        # its containing scope. Make a list with them.
+        origVars = [nodes.Var(colName)
+                    for colName in expr.staticType.getColumnNames()]
+
+        # These variables must bound in the containing scope. Bind
+        # them and save the resulting names.
+        resultColNames = [self.currentScope.createBinding(var).name
+                          for var in origVars]
+
+        # Prevent the subexpression processing from adding any further
+        # variables to the containing scope.
+        containing = self.currentScope
+        self.currentScope = None
+
+        for i, subexpr in enumerate(expr):
+            # Encapsulate the subexpression in a Project node. This
+            # node projects the original variables (as still present
+            # in the subexpression) into the names for these variables
+            # as bound in the containing scope.
+            encapsulated = nodes.Project(list(resultColNames),
+                                         subexpr,
+                                         *[v.copy() for v in origVars])
+
+            # Decouple the variables in this node.
+            expr[i] = self.preProject(encapsulated)
+
+        self.currentScope = containing
+
+        return expr
+
+    def Union(self, expr, *subexprs):
+        expr.columnNames = list(subexprs[0].columnNames)
+        return expr
+
     def preSelect(self, expr):
         # Open a new scope.
         containing = self.currentScope

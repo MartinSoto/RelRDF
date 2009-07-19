@@ -70,35 +70,35 @@ prefixDecl
 
 selectQuery returns [expr]
     :   sl:SELECT
-    
+
 		{ distinct = False }    
         (   DISTINCT
             { distinct = True }
         |	REDUCED
-        	{ /* ignore fore now. */ }
+        	{ /* Ignore for now. */ }
         )?
-        	
-		{ times = False; names, mappingExprs = [], [] }        		
+
+		{ times = False; names, mappingExprs = [], [] }
         (	selectColumnList[names, mappingExprs]
         |   TIMES
         	{ times = True }
         )
-        
+
         ( datasetClause )*
-        
+
         where=whereClause
         {
-            if times:
-                names = list(self.variables)
-                mappingExprs = [nodes.Var(name) for name in names]
-                
-            expr = nodes.MapResult(names, where, *mappingExprs)
-            if distinct:
-               expr = nodes.Distinct(expr);
-            expr.setExtentsStartFromToken(sl, self);
-        }
-        
+          if times:
+              names = list(self.variables);
+              mappingExprs = [nodes.Var(name) for name in names];
+
+          expr = where;
+          if distinct:
+             expr = nodes.Distinct(expr);
+          expr.setExtentsStartFromToken(sl, self); }
+
         expr=solutionModifier[expr]
+        { expr = nodes.MapResult(names, expr, *mappingExprs) }
     ;
 
 /* RelRDF extension. */
@@ -124,9 +124,10 @@ constructQuery returns [expr]
         tmplList=constructTemplate
         ( datasetClause )*
         where=whereClause
+        { expr = where }
+        expr=solutionModifier[expr]
         { expr = nodes.StatementResult(where, *tmplList); \
           expr.setExtentsStartFromToken(ct, self); }
-        expr=solutionModifier[expr]
     ;
 
 describeQuery returns [expr]

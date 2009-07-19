@@ -70,12 +70,16 @@ class SqlEmitter(rewrite.ExpressionProcessor):
     structure of the resulting SQL, and can be used for pretty
     printing."""
 
-    __slots__ = ('distinct',)
+    __slots__ = ('distinct',
+                 'sort',
+                 'offsetLimit',)
 
     def __init__(self):
         super(SqlEmitter, self).__init__(prePrefix='pre')
 
-        self.distinct = 0
+        self.distinct = None
+        self.sort = None
+        self.offsetLimit = None
 
     def _lookupTypeId(self, uri, tag):
         if uri is not None:
@@ -234,17 +238,56 @@ class SqlEmitter(rewrite.ExpressionProcessor):
                     'rel_%s' % expr[0].incarnation)
 
     def preMapResult(self, expr):
-        if isinstance(expr[0], nodes.Select):
+        # If any of the result modifier fields was already changed
+        # something really evil is going on, such as a nested
+        # MapResult.
+        assert self.distinct is None
+        assert self.sort is None
+        assert self.offsetLimit is None
+
+        # Process any result modifiers present in the expression.
+        subexpr = expr[0]
+        while isinstance(subexpr, nodes.QueryResultModifier):
+            if isinstance(subexpr, nodes.Distinct):
+                self.distinct = True
+
+            elif isinstance(subexpr, nodes.Sort):
+                orderBy = self.process(subexpr[1])
+                if subexpr.ascending:
+                    orderCrit = (orderBy, ' ASC')
+                else:
+                    orderCrit = (orderBy, ' DESC')
+
+                # Accumulate sort nodes.
+                if self.sort is None:
+                    self.sort = (orderCrit,)
+                else:
+                    self.sort = (orderCrit, ', ') + self.sort
+
+            elif isinstance(subexpr, nodes.OffsetLimit):
+                if subexpr.limit is not None:
+                    if subexpr.offset is not None:
+                        self.offsetLimit = (' LIMIT ', str(subexpr.limit),
+                                            ' OFFSET ', str(subexpr.offset))
+                    else:
+                        self.offsetLimit = (' LIMIT ', str(subexpr.limit))
+                elif subexpr.offset != None:
+                    self.offsetLimit = (' OFFSET ', str(subexpr.offset))
+
+            subexpr = subexpr[0]
+
+        # Process the body.
+        if isinstance(subexpr, nodes.Select):
             # We treat this common case specially, in order to avoid
             # unnecessary nested queries.
-            return [('', self.process(expr[0][0]), ' WHERE ',
-                     self.process(expr[0][1]))] + \
-                   [self.process(subexpr) for subexpr in expr[1:]]
+            return [(self.process(subexpr[0]), ' WHERE ',
+                     self.process(subexpr[1]))] + \
+                   [self.process(mappingExpr) for mappingExpr in expr[1:]]
         else:
-            return [self.process(subexpr) for subexpr in expr]
+            return [self.process(subexpr)] + \
+                   [self.process(mappingExpr) for mappingExpr in expr[1:]]
 
     def MapResult(self, expr, select, *columnExprs):
-
         if len(expr.columnNames) > 0:
             columns = listJoin(', ',
                                [(e, ' AS ', n)
@@ -253,66 +296,18 @@ class SqlEmitter(rewrite.ExpressionProcessor):
         else:
             columns = '*'
 
-        # Distinct?
         if self.distinct:
             distinct = 'DISTINCT '
         else:
             distinct = ''
 
-        if select == '':
-            return ('SELECT ', distinct, columns)
-        else:
-            return ('SELECT ', distinct, columns, ' FROM ', select)
+        query = ('SELECT ', distinct, columns, ' FROM ') + select
 
-    def preDistinct(self, expr):
-        self.distinct += 1
-        return (self.process(expr[0]),)
+        if self.sort:
+            query += (' ORDER BY ',) + self.sort + (' NULLS FIRST',)
 
-    def Distinct(self, expr, subexpr):
-        self.distinct -= 1
-        return subexpr
-
-    def OffsetLimit(self, expr, subexpr):
-        # Check that we have some kind of SELECT expression in subexpr.
-        allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
-        assert expr[0].__class__ in allowed, \
-            "OffsetLimit can only be used with the result of MapResult, " \
-            "Select, Distinct or Sort!"
-
-        # Add LIMIT clause
-        if expr.limit != None:
-            if expr.offset != None:
-                query = (subexpr, ' LIMIT ', str(expr.limit), ' OFFSET ',
-                         str(expr.offset))
-            else:
-                query = (subexpr, ' LIMIT ', str(expr.limit))
-        else:
-            if expr.offset != None:
-                # Note: The MySQL manual actually suggests this
-                #       number.  Let's hope it's future-proof.
-                query = (subexpr, ' OFFSET ', str(expr.offset))
-
-        return query
-
-    def Sort(self, expr, subexpr, orderBy):
-        # Check that we have some kind of SELECT expression in subexpr.
-        allowed = [nodes.MapResult, nodes.Select, nodes.Sort, nodes.Distinct]
-        assert expr[0].__class__ in allowed, \
-            "Sort can only be used directly with the result of " \
-            "MapResult, Distinct or Select"
-
-        # Compose with order direction.
-        if expr.ascending:
-            orderCrit = (orderBy, ' ASC')
-        else:
-            orderCrit = (orderBy, ' DESC')
-
-        # Add (to) ORDER BY clause.
-        if isinstance(expr[0], nodes.Sort):
-            query = (subexpr, ', ', orderCrit)
-        else:
-            query = (subexpr, ' ORDER BY ', orderCrit)
-        query = query + (' NULLS FIRST',)
+        if self.offsetLimit:
+            query += self.offsetLimit
 
         return query
 

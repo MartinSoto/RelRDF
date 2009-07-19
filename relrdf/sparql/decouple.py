@@ -126,26 +126,42 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
     def __init__(self):
         super(PatternDecoupler, self).__init__(prePrefix='pre')
 
-    def _processResult(self, expr):
-        # Create a separate scope for the expression.
+        self.currentScope = None
+
+    def _processResultOrModifier(self, expr):
+        #  All result and modifier nodes have the same basic
+        #  structure. The first subexpression is either a modifier or
+        #  the main query expression. Other subexpressions, if any,
+        #  are scalars that must be evaluated in the context of the
+        #  main query expression.
+
+        # Create a scope for the first subexpression.
+        containing = self.currentScope
         self.currentScope = Scope()
 
-        # Process the relation subexpression first.
+        # Process the first subexpression first. Directly or
+        # indirectly, this will process the main query expression.
         expr[0] = self.process(expr[0])
 
-        # Now process the mapping expressions/statement templates.
+        # Process all other subexpressions in the same context.
         expr[1:] = [self.process(mappingExpr)
                     for mappingExpr in expr[1:]]
 
-        # Add the binding condition if necessary.
-        cond = self.currentScope.closeScope()
+        # Close the scope into the containing scope, if any.
+        cond = self.currentScope.closeScope(containing)
+        self.currentScope = containing
+
         if cond != None:
+            # Add the condition to the subexpression.
             expr[0] = nodes.Select(expr[0], cond)
 
         return expr
 
-    preMapResult = _processResult
-    preStatementResult = _processResult
+    preMapResult = _processResultOrModifier
+    preStatementResult = _processResultOrModifier
+    preDistinct = _processResultOrModifier
+    preSort = _processResultOrModifier
+    preOffsetLimit = _processResultOrModifier
 
     def preSelect(self, expr):
         # Open a new scope.

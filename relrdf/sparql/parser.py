@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 import antlr
@@ -61,7 +61,7 @@ class Parser(antlr.LLkParser):
 
         'noBasePrefixes': If `True`, do not define any base namespace
         prefixes.
-        
+
         'baseUri': The base URI to use for resolution of relative URIs
         (query might override)
         """
@@ -76,27 +76,27 @@ class Parser(antlr.LLkParser):
             self.externalPrefixes = kwargs['prefixes']
         except KeyError:
             self.externalPrefixes = {}
-            
+
         try:
             self.baseUri = uri.Namespace(kwargs.get('baseUri'))
         except KeyError:
             self.baseUri = uri.Namespace('')
-            
+
         # The set of locally defined namespace prefixes (prefixes
         # defined by the query itself through PREFIX clauses.)
         self.localPrefixes = {}
-        
+
         # The set of used variable names, in order they first appeared
         self.variables = []
-        
+
         # Map of blank node labels to the actual resource objects
         self.blankNodes = {}
-        
+
     @staticmethod
     def makeTypedLiteral(string, typeUri):
         """Make a `nodes.Literal` expression node with the value given
         by `string` and the data type given by `typeUri`, and return
-        it.""" 
+        it."""
         lt = literal.Literal(string, typeUri=typeUri)
         return nodes.Literal(lt)
 
@@ -181,7 +181,7 @@ class Parser(antlr.LLkParser):
             return cls(None, cons)
 
     def blankNodeByLabel(self, label):
-        
+
         # Try to return the existing blank node
         try:
             return self.blankNodes[label]
@@ -190,43 +190,43 @@ class Parser(antlr.LLkParser):
             node = util.VarMaker.makeBlank()
             self.blankNodes[label] = node
             return node
-    
+
     def makeCollectionPattern(self, graph, pattern, collection):
-        
+
         assert len(collection) > 0
-        
+
         # Create linked list
         current = head = None
         for item in collection:
-            
-            # Create new blank node for this collection item            
+
+            # Create new blank node for this collection item
             #new = nodes.Uri(uri.newBlank())
             new = util.VarMaker.makeBlank()
-            
+
             # Link the node
             if head is None:
                 current = head = new
             else:
-                
+
                 restTriple = (current.copy(), nodes.Uri(commonns.rdf.rest), new.copy())
                 restPattern = nodes.StatementPattern(graph.copy(), *restTriple)
                 pattern.append(restPattern)
-                
+
                 current = new
-        
+
             # Set the value of this node
             firstTriple = (current, nodes.Uri(commonns.rdf.first), item)
             firstPattern = nodes.StatementPattern(graph.copy(), *firstTriple)
             pattern.append(firstPattern)
-        
+
         # Terminate
         restTriple = (current.copy(), nodes.Uri(commonns.rdf.rest), nodes.Uri(commonns.rdf.nil))
         restPattern = nodes.StatementPattern(graph.copy(), *restTriple)
         pattern.append(restPattern)
-        
+
         # Return the head node
         return head.copy()
-    
+
     CONS_FUNCS = (commonns.xsd.boolean,
                   commonns.xsd.double,
                   commonns.xsd.float,
@@ -235,13 +235,13 @@ class Parser(antlr.LLkParser):
                   commonns.xsd.dateTime,
                   commonns.xsd.string,
                   )
-    
+
     def _makeFunctionCall(self, uri, extents):
-        
+
         # Constructor function?
         if uri in self.CONS_FUNCS:
             return nodes.Cast(uri)
-        
+
         # Unknown function...
         raise error.SyntaxError(msg=_("Unknown function '%s'" % uri),
                                 extents=extents)

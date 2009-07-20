@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.expression import nodes
@@ -29,58 +29,58 @@ import valueref
 
 class SqlInt(nodes.ValueNode):
     """Represents a raw SQL integer"""
-    
+
     __slots__ = ('val',)
-    
+
     def __init__(self, val):
         self.val = val
         super(SqlInt, self).__init__()
-        
+
 class SqlEqual(nodes.Comparison):
-    """Tests two values for equivalence, returning the result as a 
+    """Tests two values for equivalence, returning the result as a
     raw SQL boolean value"""
-    
+
     __slots__ = ()
 
 class SqlIn(nodes.Comparison):
     """Tests wether a value appears in a value set (as returned by MapValue)"""
-    
+
     __slots__ = ()
 
 class SqlLessThan(nodes.Comparison):
     """Tests wether operand1 < operand2, returning the result as a
     raw SQL boolean value"""
-    
+
     __slots__ = ()
 
 class SqlLessThanOrEqual(nodes.Comparison):
     """Tests wether operand1 <= operand2, returning the result as a
     raw SQL boolean value"""
-    
+
     __slots__ = ()
 
 class SqlGreaterThan(nodes.Comparison):
     """Tests wether operand1 > operand2, returning the result as a
     raw SQL boolean value"""
-    
+
     __slots__ = ()
 
 class SqlGreaterThanOrEqual(nodes.Comparison):
     """Tests wether operand1 >= operand2, returning the result as a
     raw SQL boolean value"""
-    
+
     __slots__ = ()
 
 class SqlDifferent(nodes.Comparison):
-    """Tests two values for equivalence, returning the negated result 
+    """Tests two values for equivalence, returning the negated result
     as a raw SQL boolean value"""
-    
+
     __slots__ = ()
 
 
 class SqlTypeCompatible(nodes.Comparison):
     """Tests wether two values are type-compatible (comparable)"""
-    
+
     __slots__ = ()
 
 class SqlAnd(nodes.Comparison):
@@ -95,13 +95,13 @@ class SqlOr(nodes.Comparison):
 
 class SqlNot(nodes.UnaryOperation):
     """Calculcates the negation of a SQL boolean values"""
-    
+
     __slots__ = ()
 
 class SqlCastBool(nodes.UnaryOperation):
     """Converts a RDF term value into an SQL bool (note this might fail
     if the term has the wrong type)"""
-    
+
     __slots__ = ()
 
 class SqlRelation(nodes.ExpressionNode):
@@ -147,10 +147,10 @@ class SqlFieldRef(nodes.ValueNode):
 class SqlTypedFieldRef(SqlFieldRef):
     """Like SqlFieldRef, but points to a typed field (so this node
     is initialized with a valid type)."""
-    
+
     def __init__(self, *args):
         super(SqlTypedFieldRef, self).__init__(*args)
-        
+
         self.staticType = typeexpr.rdfNodeType
 
 

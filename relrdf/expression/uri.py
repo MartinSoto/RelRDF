@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from uuid import uuid3, uuid4
@@ -36,13 +36,13 @@ class Uri(unicode):
 
     def __add__(self, string):
         return Uri(super(Uri, self).__add__(string))
-    
+
     def isBlank(self):
         return self.startswith(BLANK_NODE_NS)
 
 def isBlank(obj):
     return isinstance(obj, Uri) and obj.isBlank()
-    
+
 def newBlank():
     return Uri(BLANK_NODE_NS + unicode(uuid4()))
 
@@ -59,7 +59,7 @@ class Namespace(Uri):
 
     #def __unicode__(self):
     #    return unicode(super(Namespace, self))
-    
+
     def __getattr__(self, localPart):
         # For some strange reason, Python 2.5 searches for the
         # __unicode__ method in the object and ends up calling the

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 import nodes
@@ -86,19 +86,19 @@ def promoteMapValue(expr, id):
 
     # Promote into query modifiers
     if isinstance(expr, nodes.QueryResultModifier):
-        
+
         # Search for query result node
         sexpr = expr[0]
         while sexpr != None and not isinstance(sexpr, nodes.QueryResult):
             sexpr = sexpr[0];
         assert sexpr != None, "Could not find query result node!"
-        
+
         # Promote
         expr[id] = map[1]
         sexpr[0] = nodes.Product(sexpr[0], map[0])
         return (expr, True)
-        
-    
+
+
     # Fuse with Select, MapResult or MapValue
     #  Select(r1, MapValue(r2, v))
     #  -> Select(Product(r1, r2), v)
@@ -111,17 +111,17 @@ def promoteMapValue(expr, id):
         expr[id] = map[1]
         expr[0] = nodes.Product(expr[0], map[0])
         return (expr, True)
-    
+
     # Promote out of all other expression nodes
     #  Op(..., MapValue(r, v), ...)
     #  -> MapValue(r, Op(..., v, ...))
-    if isinstance(expr, nodes.ValueNode):        
+    if isinstance(expr, nodes.ValueNode):
         expr[id] = map[1]
         map[1] = expr
         return (map, True)
-    
+
     return (expr, False)
-    
+
 
 def simplifyNode(expr, subexprsModif):
     modif = True
@@ -148,7 +148,7 @@ def simplifyNode(expr, subexprsModif):
         elif isinstance(expr, nodes.Select):
             expr, m = flattenSelect(expr)
             modif = modif or m
-        
+
 #        for i, subexpr in enumerate(expr):
 #            if isinstance(subexpr, nodes.MapValue):
 #                expr, m = promoteMapValue(expr, i)
@@ -157,7 +157,7 @@ def simplifyNode(expr, subexprsModif):
 #                    break
 
         subexprsModif = subexprsModif or modif
-    
+
     return expr, subexprsModif
 
 def simplify(expr):

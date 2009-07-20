@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.localization import _
@@ -82,10 +82,10 @@ def commonType(*exprs):
 
     genType = exprs[0].staticType
     for expr in exprs[1:]:
-        
+
         if expr.staticType is None:
             return nullType
-        
+
         genType = genType.generalizeType(expr.staticType)
 
     return genType
@@ -103,9 +103,9 @@ nullType = NullType()
 
 class TypeType(TypeNode):
     """A type node representing the type of interal type identifiers"""
-    
+
     __slots__ = ()
-    
+
 typeType = TypeType()
 
 class RdfNodeType(TypeNode):

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 import string
@@ -113,42 +113,42 @@ class ModelBase(SyncMethodsMixin):
 
     def getPrefixes(self):
         return self._prefixes
-    
+
     def lookupGraphId(self, graphUri, connection=None, create=False):
 
         # Normalize URI
         graphUri = self._prefixes.normalizeUri(graphUri).encode('utf-8')
-        
+
         # Create connection and get cursor
         ownConnection = False
         if connection is None:
             connection = self.createConnection()
             ownConnection = True
         cursor = connection.cursor()
-                
+
         # Try lookup
-        cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)        
+        cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)
         result = cursor.fetchone()
         if not result is None:
             return result[0]
-        
+
         # Should not create? Return ID of an empty graph
-        # (graph IDs normally start at 1) 
+        # (graph IDs normally start at 1)
         if not create:
             return 0
-        
+
         # Insert new graph
         cursor.execute("INSERT INTO graphs (graph_uri) VALUES ('%s') RETURNING graph_id;" % graphUri)
         result = cursor.fetchone()
         assert not result is None, "Could not create a new graph!"
-        
+
         # Commit
         if ownConnection:
             connection.commit()
 
         # Done
         return result[0]
-    
+
     def prepareTwoWay(self, graphA, graphB):
         cursor = self._connection.cursor()
 
@@ -156,7 +156,7 @@ class ModelBase(SyncMethodsMixin):
         baseGraphName = "cmp_%d_%d_" % (graphA, graphB)
         graphUris = [commonns.relrdf[baseGraphName + suffix + '#'] for suffix in ('A', 'B', 'AB')]
         graphs = [self.lookupGraphId(uri, create=True) for uri in graphUris]
-        
+
         # Clear previous data
         cursor.execute("DELETE FROM graph_statement WHERE graph_id IN (%d, %d, %d)" % (graphs[0], graphs[1], graphs[2]));
 
@@ -172,7 +172,7 @@ class ModelBase(SyncMethodsMixin):
                     (SELECT stmt_id FROM graph_statement WHERE graph_id = %d) AS b
                     ON a.stmt_id = b.stmt_id
              """ % (graphs[0], graphs[1], graphs[2], graphA, graphB))
-        
+
         self._connection.commit()
         return graphUris
 

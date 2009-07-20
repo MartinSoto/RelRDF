@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 import sys
@@ -210,7 +210,7 @@ class BasicExpressionNode(list):
         if startExtents is not None:
             res.startLine = startExtents.startLine
             res.startColumn = startExtents.startColumn
-            res.fileName = startExtents.fileName            
+            res.fileName = startExtents.fileName
 
         if expl.endLine is not None:
             endExtents = expl
@@ -321,7 +321,7 @@ class ExclusiveExpressionNode(BasicExpressionNode):
 
         cp.id = ExclusiveExpressionNode._idCounter
         ExclusiveExpressionNode._idCounter += 1
-        
+
         cp.parent = None
 
         return cp
@@ -466,7 +466,7 @@ class NotSupported(ExpressionNode):
 
 class ValueNode(ExpressionNode):
     """A node that can be evaluated to a single value"""
-    
+
     __slots__ = ()
 
 
@@ -507,7 +507,7 @@ class QName(ValueNode):
     def __init__(self, qname):
         super(QName, self).__init__()
 
-        self.qname = qname 
+        self.qname = qname
 
     def attributesRepr(self):
         return repr(self.qname)
@@ -564,7 +564,7 @@ class Var(ValueNode):
 
 class BlankNode(Var):
     """An expression node representing an unspecified blank node"""
-    
+
     def __init__(self, name):
         super(BlankNode, self).__init__(name)
 
@@ -592,7 +592,7 @@ class Operation(ValueNode):
 
 
 class TypeCompatible(Operation):
-    """Determine if two or more operands are type-compatible (= comparable)""" 
+    """Determine if two or more operands are type-compatible (= comparable)"""
 
     __slots__ = ()
 
@@ -622,31 +622,31 @@ class Comparison(Operation):
 
 
 class Equal(Comparison):
-    """Determine if two or more operands are equal.""" 
+    """Determine if two or more operands are equal."""
 
     __slots__ = ()
 
 
 class LessThan(Comparison, BinaryOperation):
-    """Determine if operand1 < operand2.""" 
+    """Determine if operand1 < operand2."""
 
     __slots__ = ()
 
 
 class LessThanOrEqual(Comparison, BinaryOperation):
-    """Determine if operand1 <= operand2.""" 
+    """Determine if operand1 <= operand2."""
 
     __slots__ = ()
 
 
 class GreaterThan(Comparison, BinaryOperation):
-    """Determine if operand1 > operand2.""" 
+    """Determine if operand1 > operand2."""
 
     __slots__ = ()
 
 
 class GreaterThanOrEqual(Comparison, BinaryOperation):
-    """Determine if operand1 >= operand2.""" 
+    """Determine if operand1 >= operand2."""
 
     __slots__ = ()
 
@@ -654,7 +654,7 @@ class GreaterThanOrEqual(Comparison, BinaryOperation):
 class Different(Comparison):
     """Determine if two or more operands are different from each other.
 
-    The result is True if there are two operands that are different.""" 
+    The result is True if there are two operands that are different."""
 
     __slots__ = ()
 
@@ -727,34 +727,34 @@ class DividedBy(ArithmeticOperation, BinaryOperation):
 
 class IsBound(UnaryOperation):
     """Determines wether a variable is bound to a value"""
-    
+
     __slots__ = ()
 
 
 class IsURI(UnaryOperation):
     """Determines wether some value is an URI"""
-    
+
     __slots__ = ()
 
 
 class IsBlank(UnaryOperation):
     """Determines wether some value is a blank node"""
-    
+
     __slots__ = ()
 
 
 class IsLiteral(UnaryOperation):
     """Determines wether some value is a literal"""
-    
+
     __slots__ = ()
 
 
 class Cast(Operation):
      """Converts the given literal to another datatype, if possible.
         Note that type might be None, which means a cast to a plain literal"""
-    
+
      __slots__ = ('type')
-     
+
      def __init__(self, type, *sexpr):
          self.type = type
          super(Cast, self).__init__(*sexpr)
@@ -762,15 +762,15 @@ class Cast(Operation):
 
 class MapValue(BinaryOperation):
     """Computes the value of a single expression concerning a relation"""
-    
+
     __slots__ = ()
 
 
 class LangMatches(BinaryOperation):
     """Tests wether a language tag matches a language pattern"""
-    
+
     __slots__ = ()
-    
+
 #
 # Pattern Nodes
 #
@@ -807,7 +807,7 @@ class DefaultGraph(ExpressionNode):
 
 class RelationNode(ExpressionNode):
     """An expression that evaluates to a set of triples"""
-    
+
     __slots__ = ()
 
 
@@ -884,7 +884,7 @@ class Project(RelationNode):
         super(Project, self).__init__(rel, *mappingExprs)
 
         self.columnNames = columnNames
-        
+
     def subexprByName(self, columnName):
         """Return the subexpression bound a to a particular column name."""
         return self[self.columnNames.index(columnName) + 1]
@@ -948,7 +948,7 @@ class StatementTemplate(ExpressionNode):
 
 class QueryResultModifier(ExpressionNode):
     """A base class for all nodes working in query results."""
-    
+
     __slots__ = ()
 
 
@@ -957,7 +957,7 @@ class Distinct(QueryResultModifier):
     filtered to eliminate repeated rows."""
 
     __slots__ = ()
-    
+
     def __init__(self, operand):
         super(Distinct, self).__init__(operand)
 
@@ -965,34 +965,34 @@ class Distinct(QueryResultModifier):
 class OffsetLimit(QueryResultModifier):
     """Selects some rows from the results based on their position in
     the result list"""
-    
+
     __slots__ = ('limit',
                  'offset'
                  )
-    
+
     def __init__(self, subexpr):
-        
+
         # Position (from top) of the first row to be returned
         self.offset = None
-        
+
         # Maximum count of rows to return
         self.limit = None
-        
+
         super(ExpressionNode, self).__init__(subexpr)
 
 
 class Sort(QueryResultModifier):
     """Sorts the result rows according to the second subexpression"""
-    
+
     __slots__ = ('ascending',
                 )
-       
+
     def __init__(self, subexpr, orderBy):
-        
+
         # Ascending sort order is the default
         self.ascending = 1
-        
-        super(Sort, self).__init__(subexpr, orderBy)        
+
+        super(Sort, self).__init__(subexpr, orderBy)
 
 #
 # Model Modification Operations

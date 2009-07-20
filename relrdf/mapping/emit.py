@@ -56,7 +56,7 @@ def listJoinIter(*args):
 def listJoin(*args):
     """`listJoinIter` as a tuple."""
     return tuple(listJoinIter(*args))
-    
+
 
 class SqlEmitter(rewrite.ExpressionProcessor):
     """Generate SQL code from a relational expression.

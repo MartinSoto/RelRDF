@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf import Namespace
@@ -92,29 +92,28 @@ class NamespaceUriShortener(dict):
             return self.shortFmt % (prefix, suffix)
 
     def normalizeUri(self, uri):
-        
+
         # Parse URI into parts
         (scheme, auth, path, par, query, frag) = urlparse(uri)
-        
+
         # Skip lookup if there is an authority (so the URI is of the
         # form "http://..." or something similar)
         if auth == '':
             try:
-                
+
                 # Try to get prefix
                 prefix = self[scheme]
-                
+
                 # Compose and re-split URI
                 uri = prefix + urlunparse(('', '', path, par, query, frag))
                 (scheme, auth, path, par, query, frag) = urlparse(uri)
-                
+
             except KeyError:
                 pass
-        
+
         # Normalize path
         path = unquote(path)
-        
+
         # Return result
         return urlunparse((scheme, auth, path, par, query, frag))
-                
-        
+

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 import getopt
 import sys
@@ -34,26 +34,26 @@ USER_SQL = 'schema/create-user.sql'
 scriptDir = path.dirname(__file__)
 
 
-def usage():    
+def usage():
     print """
 Usage:
   python %s [OPTIONS] [ACTION]
-  
+
 Options:
   --help           This helpful text
-  
+
   -d [name]        Database name (default: "relrdf")
-  
-  -h [name]        Server hostname 
+
+  -h [name]        Server hostname
   -p [port]        Server port
   -U [name]        Server login
-  
+
 Actions:
   --fast           Creates and initializes database "relrdf" and user "relrdf"
 
   --create-db      Creates the database
   --init-db        Initializes the database (clears existing data)
-  
+
   --create-user=name  Create a new user
   --init-user=name    Give all necessary privileges to the specified user
 """ % path.basename(sys.argv[0])
@@ -82,7 +82,7 @@ def main():
     for opt, val in opts:
         if opt == '-d':
             db = val
-        elif opt == '-h' or opt == '-p' or opt == '-U': 
+        elif opt == '-h' or opt == '-p' or opt == '-U':
             pgOpts.append(opt)
             pgOpts.append(val)
         elif opt == '--fast':
@@ -127,7 +127,7 @@ def main():
             exit(1)
 
     # Initialize database.
-    if initDB:    
+    if initDB:
         # The schema.
         sqlFile = path.join(scriptDir, SCHEMA_SQL)
         if 0 != call(['psql', '-d', db] + pgOpts + ['-f', sqlFile]):
@@ -135,14 +135,14 @@ def main():
             exit(1)
 
     # Create user(s).
-    for user in createUsers:     
+    for user in createUsers:
         sqlFile = path.join(scriptDir, USER_SQL)
         if 0 != call(['createuser'] + pgOpts + ['-SDRlPE', user]):
             print "Failed to create user '%s' on database '%s'!" % (user, db)
             exit(1)
 
     # Initialize user(s).
-    for user in initUsers:     
+    for user in initUsers:
         sqlFile = path.join(scriptDir, USER_SQL)
         if 0 != call(['psql', '-d', db] + pgOpts +
                      ['-f', sqlFile, '-v', 'user=' + user]):

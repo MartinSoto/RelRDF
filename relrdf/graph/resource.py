@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 """Classes and functions related to the in-memory representation of
@@ -141,7 +141,7 @@ class RdfResourceSide(object):
           - `rel`: A relation URI.
 
         :Returns:
-        
+
           An iterable over a sequence of pairs of the form ``(value,
           subgraph)``, where ``value`` is the relation value like in
           the `values` method, and ``subgraph`` is the subgraph URI of

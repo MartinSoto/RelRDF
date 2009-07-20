@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.expression import uri,  literal
@@ -34,7 +34,7 @@ class RedlandParser(object):
 
     def __init__(self, format="turtle"):
         self.format = format
-        
+
     def _transValue(self, node, blanks):
         if node.is_literal():
             datatype = node.literal_value['datatype']
@@ -55,13 +55,13 @@ class RedlandParser(object):
             assert False, "Received unknown node type from RedLand RDF parser"
 
     def parse(self, source, sink):
- 
+
 
         # Make valid source URI
         source = str(source)
         if source.find("://") < 0:
             source = "file://" + source
-        
+
         # Create parser
         parser = RDF.Parser(name=self.format)
         stream = parser.parse_as_stream(str(source))
@@ -69,7 +69,7 @@ class RedlandParser(object):
         # Insert values into sink
         blanks = {}
         for stmt in stream:
-            sink.triple(self._transValue(stmt.subject, blanks), 
+            sink.triple(self._transValue(stmt.subject, blanks),
                         self._transValue(stmt.predicate, blanks),
                         self._transValue(stmt.object, blanks))
 

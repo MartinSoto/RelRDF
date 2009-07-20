@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.expression import rewrite, nodes
@@ -29,22 +29,22 @@ import sqlnodes
 class SqlBoolTranslator(rewrite.ExpressionTransformer):
     """Translates an expression resulting in a boolean RDF value into
     an expression returning the equivalent raw SQL boolean."""
-    
+
     def __init__(self):
         super(SqlBoolTranslator, self).__init__(prePrefix='pre')
 
     # Recurse only for boolean operators
     def recurse(self, expr):
         return self._recurse(expr)
-    
+
     preOr = recurse
     preAnd = recurse
     preNot = recurse
-    
+
     def preDefault(self, expr):
         # Stop processing at unknown nodes
         return expr[:]
-    
+
     # Convert to the raw SQL equivalents
     def Or(self, expr, *subexpr):
         return sqlnodes.SqlOr(*subexpr)
@@ -52,7 +52,7 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
         return sqlnodes.SqlAnd(*subexpr)
     def Not(self, expr, *subexpr):
         return sqlnodes.SqlNot(*subexpr)
-    
+
     def Equal(self, expr, *subexpr):
         return sqlnodes.SqlEqual(*subexpr)
     def LessThan(self, expr, *subexpr):
@@ -67,7 +67,7 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
         return sqlnodes.SqlDifferent(*subexpr)
     def TypeCompatible(self, expr, *subexpr):
         return sqlnodes.SqlTypeCompatible(*subexpr)
-    
+
     # Keep existing boolean SQL nodes
     def keep(self, expr, *sexpr):
         # (Note we didn't recurse in this case, see above)
@@ -76,7 +76,7 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
     SqlOr = keep
     SqlAnd = keep
     SqlNot = keep
-    
+
     SqlEqual = keep
     SqlIn = keep
     SqlLessThan = keep
@@ -85,7 +85,7 @@ class SqlBoolTranslator(rewrite.ExpressionTransformer):
     SqlGreaterThanOrEqual = keep
     SqlDifferent = keep
     SqlTypeCompatible = keep
-        
+
     # Cast unknown nodes to bool
     def Default(self, expr, *subexpr):
         # (Note we didn't recurse in this case, see above)
@@ -104,8 +104,8 @@ class SqlSelectBoolTranslator(rewrite.ExpressionTransformer):
     nodes returning raw SQL boolean values."""
 
     def __init__(self):
-        super(SqlSelectBoolTranslator, self).__init__(prePrefix='pre')       
-    
+        super(SqlSelectBoolTranslator, self).__init__(prePrefix='pre')
+
     def Select(self, expr, rel, pred):
         # Convert predicate
         expr[1] = translateToSqlBool(pred)
@@ -116,10 +116,10 @@ class SqlSelectBoolTranslator(rewrite.ExpressionTransformer):
         if cond is not None:
             # Convert predicate.
             expr[2] = translateToSqlBool(cond)
-        
+
         return expr
 
-                  
+
 _sqlSelectBoolTranslator = SqlSelectBoolTranslator()
 
 def translateSelectToSqlBool(expr):

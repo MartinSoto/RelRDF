@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 import re
@@ -46,7 +46,7 @@ class StatementResultTransformer(rewrite.ExpressionTransformer):
                 expr.columnNames.append('%s%d' % (colName, i + 1))
                 expr.append(mappingExpr)
         return expr
-    
+
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions
     corresponding to the dynamic data type of each one of the
@@ -69,7 +69,7 @@ class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
                                             stmtTmpl):
                 expr.columnNames.append('%s%d' % (colName, i + 1))
                 expr.append(mappingExpr)
-                
+
                 expr.columnNames.append('type__%s%d' % (colName, i + 1))
                 expr.append(nodes.DynType(mappingExpr.copy()))
         return expr
@@ -88,12 +88,12 @@ class ResultMappingTransformer(rewrite.ExpressionTransformer):
     """Applies a function to all result value columns."""
 
     __slots__ = ('function',)
-    
+
     def __init__(self, function):
         super(ResultMappingTransformer, self).__init__()
-        
+
         self.function = function
-        
+
     def _applyFunction(self, expr):
         f = self.function.copy();
         f.append(expr.copy())
@@ -112,7 +112,7 @@ class ResultMappingTransformer(rewrite.ExpressionTransformer):
                                             stmtTmpl):
                 expr.columnNames.append('%s%d' % (colName, i + 1))
                 expr.append(self._applyFunction(mappingExpr))
-                
+
         return expr
 
     def _setOperation(self, expr, *operands):
@@ -123,7 +123,7 @@ class ResultMappingTransformer(rewrite.ExpressionTransformer):
     Union = _setOperation
     SetDifference = _setOperation
     Intersection = _setOperation
-    
+
 class Incarnator(object):
     """A singleton used to generate unique relation incarnations."""
 
@@ -168,7 +168,7 @@ class Incarnator(object):
             ret.append(rewrite.exprApply(expr.copy(), postOp=postOp)[0])
 
         return ret
-    
+
 class PureRelationalTransformer(rewrite.ExpressionTransformer):
     """An abstract expression transformer that transforms a decoupled
     expression containing patterns into a pure relational expression.
@@ -218,7 +218,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
             # Must be supplied by derived classes
             if isinstance(component, nodes.DefaultGraph):
                 component = self._getDefaultGraph()
-                                
+
             if isinstance(component, nodes.Var):
                 self.varBindings[component.name] = valueExpr
             else:
@@ -229,7 +229,7 @@ class PureRelationalTransformer(rewrite.ExpressionTransformer):
         else:
             # Restrict the core expression with the conditions.
             return nodes.Select(coreExpr, nodes.And(*conds))
-        
+
 
     def preSelect(self, expr):
         # Process the relation subexpression before the condition.

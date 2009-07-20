@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.localization import _
@@ -89,7 +89,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
         else:
             expr.staticType = genericLiteralType
         expr.failSafe = True
-            
+
     def FunctionCall(self, expr, *params):
         self._checkScalarOperands(expr, expr.functionName)
         expr.staticType = genericLiteralType
@@ -191,7 +191,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def UPlus(self, expr, *operands):
         self._checkScalarOperands(expr, '+')
         expr.staticType = genericLiteralType
-        
+
     def Minus(self, expr, *operands):
         self._checkScalarOperands(expr, '-')
         expr.staticType = genericLiteralType
@@ -207,7 +207,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def DividedBy(self, expr, *operands):
         self._checkScalarOperands(expr, '/')
         expr.staticType = genericLiteralType
-        
+
     def IsBound(self, expr, var):
         self._checkScalarOperands(expr, 'BOUND')
         expr.staticType = booleanLiteralType
@@ -227,10 +227,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def Cast(self, expr, sexpr):
         self._checkScalarOperands(expr, 'CAST')
         expr.staticType = LiteralType(expr.type)
-        
+
     def MapValue(self, expr, rel, sexpr):
         expr.staticType = expr[1].staticType
-  
+
     def _checkJoin(self, expr, *ignored):
         typeExpr = RelationType()
         for subexpr in expr:
@@ -266,7 +266,7 @@ class TypeChecker(rewrite.ExpressionProcessor):
                 (not isinstance(expr[2].staticType, LiteralType) or \
                  expr[2].staticType.typeUri != xsd.boolean):
             error(expr, _("Condition must be boolean"))
-        
+
     def preSelect(self, expr):
         # Process the relation subexpression and create a scope from
         # its type.
@@ -337,10 +337,10 @@ class TypeChecker(rewrite.ExpressionProcessor):
 
     def Distinct(self, expr, subexpr):
         expr.staticType = expr[0].staticType
-        
+
     def OffsetLimit(self, expr, subexpr):
         expr.staticType = expr[0].staticType
-        
+
     def Sort(self, expr, subexpr, orderBy):
         expr.staticType = expr[0].staticType
 
@@ -377,17 +377,17 @@ class TypeChecker(rewrite.ExpressionProcessor):
        if not isinstance(expr[0].staticType, StatementRelType):
             error(expr, _("Delete subexpression must be a statement relation"))
        expr.staticType = expr[0].staticType
-       
+
     def DynType(self, expr, *subexprs):
         expr.staticType = resourceType
 
     def Lang(self, expr, *subexprs):
         expr.staticType = genericLiteralType
-        
+
     def LangMatches(self, expr, sexpr1, sexpr2):
         self._checkScalarOperands(expr, 'LANG_MATCHES')
         expr.staticType = booleanLiteralType
-        
+
 
 def typeCheck(expr):
     """Type check `expr`. This function sets the ``staticType`` and

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.expression import uri,  literal
@@ -38,7 +38,7 @@ class RdfLibParser(object):
 
     def __init__(self, format="nt"):
         self.format = format
-        
+
     def _transValue(self, node, blanks):
         if isinstance(node, Literal):
             return literal.Literal(node, node.language, node.datatype)
@@ -54,15 +54,15 @@ class RdfLibParser(object):
             assert False, "Received unknown node type from rdflib: " + node.__class__.__name__
 
     def parse(self, source, sink):
- 
+
         # Create parser
         graph = Graph()
         graph.parse(source, format=self.format)
-        
+
         # Insert values into sink
         blanks = {}
         for stmt in graph:
-            sink.triple(self._transValue(stmt[0], blanks), 
+            sink.triple(self._transValue(stmt[0], blanks),
                         self._transValue(stmt[1], blanks),
                         self._transValue(stmt[2], blanks))
 

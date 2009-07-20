@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.error import InstantiationError
@@ -50,11 +50,11 @@ class SingleGraphRdfSink(object):
         self.connection = connection
         self.cursor = self.connection.cursor()
         self.baseGraph = baseGraph
-        
+
         self._setup()
-        
+
     def _setup(self):
-        
+
         # Lookup graph ID
         self.setGraph(self.baseGraph)
 
@@ -68,18 +68,18 @@ class SingleGraphRdfSink(object):
               object rdf_term
             ) ON COMMIT DROP;
             """)
-        
+
         self.pendingRows = []
 
     def setGraph(self, graphUri):
         """ Sets the name of the graph to receive triples."""
-        
+
         # Get graph ID from database
-        self.graphId = self.modelBase.lookupGraphId(graphUri, 
+        self.graphId = self.modelBase.lookupGraphId(graphUri,
                                                     connection=self.connection,
                                                     create=True)
 
-        
+
     def triple(self, subject, pred, object):
         assert isinstance(subject, uri.Uri)
         assert isinstance(pred, uri.Uri)
@@ -105,36 +105,36 @@ class SingleGraphRdfSink(object):
                                  unicode(pred).encode('utf-8'),
                                  unicode(object).encode('utf-8'),
                                  isResource, typeUri, lang))
-        
+
         if len(self.pendingRows) >= self.ROWS_PER_QUERY:
             self._writePendingRows()
-            
+
     def insertByQuery(self, stmtQuery, stmtsPerRow):
 
         # Collect needed columns
         columns = ["col_%d" % i for i in range(3*stmtsPerRow)]
         colDecls = ["%s rdf_term" % c for c in columns]
-        
+
         # Create temporary table to receive the results
         self.cursor.execute(
             """
             CREATE TEMPORARY TABLE statements_temp_qry (%s) ON COMMIT DROP;
             """ % ','.join(colDecls))
-        
+
         # Insert data
-        self.cursor.execute("INSERT INTO statements_temp_qry (%s);" % stmtQuery)  
-            
+        self.cursor.execute("INSERT INTO statements_temp_qry (%s);" % stmtQuery)
+
         # Move data into main data table
         for i in range(stmtsPerRow):
             self.cursor.execute(
                 """
                 INSERT INTO statements_temp1 SELECT col_%s, col_%s, col_%s FROM statements_temp_qry;
                 """ % (i*3+0, i*3+1, i*3+2))
-        
+
         # Drop intermediate table
         self.cursor.execute("DROP TABLE statements_temp_qry;")
-        
-                                
+
+
     def _writePendingRows(self):
         if len(self.pendingRows) == 0:
             return
@@ -149,32 +149,32 @@ class SingleGraphRdfSink(object):
               rdf_term(0, %s),
               rdf_term_create(%s, %d, %s, %s))""",
             self.pendingRows)
-        
+
         self.pendingRows = []
 
     def finish(self):
         self._writePendingRows()
-      
+
         # Delete?
         if self.delete:
-            
+
             # Drop statements (not needed anymore)
             self.cursor.execute(
                 """
                 TRUNCATE TABLE statements_temp1
-                """)            
-            
+                """)
+
             # Remove existing statements
             if self.verbose:
-                print "Removing statements from graph...",   
+                print "Removing statements from graph...",
             self.cursor.execute(
                 """
                 DELETE FROM graph_statement vs
-                  WHERE graph_id = %d AND stmt_id IN 
+                  WHERE graph_id = %d AND stmt_id IN
                     (SELECT stmt_id FROM graph_statement_temp1)
                 """ % int(self.graphId))
             if self.verbose:
-                print "%d removed" % self.cursor.rowcount             
+                print "%d removed" % self.cursor.rowcount
 
             # Note: This is a /lot/ more efficient than
             # "... WHERE id NOT IN (SELECT stmt_id FROM statements)"
@@ -190,32 +190,32 @@ class SingleGraphRdfSink(object):
                 """)
             if self.verbose:
                 print "%d removed" % self.cursor.rowcount
-                
+
         else:
             if self.verbose:
-                print "Inserting statements...",  
+                print "Inserting statements...",
             self.cursor.execute(
                 """
                 SELECT insert_statements(%d);
                 """ % int(self.graphId))
             if self.verbose:
                 print "%s new" % self.cursor.fetchone()[0]
-        
+
     def rollback(self):
-        
+
         self.connection.rollback()
-        
+
         self._setup()
-                
+
     def close(self):
-                
+
         self.finish()
 
         self.cursor.close()
-        
+
         self.connection.commit()
         self.connection.close()
-        
+
         if self.verbose:
             print "All done!"
 

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 import string
@@ -52,9 +52,9 @@ class GraphUriMapping(valueref.ValueMapping):
 
     # Give this type of mapping priority in comparisons.
     weight = 80
-    
+
     def _subqueryGraph(self, field, value, resultField):
-        
+
         # Build a nested query on the "graphs" table
         (expr,) = transform.Incarnator.reincarnate(nodes.MapValue(
                 nodes.Select(
@@ -66,17 +66,17 @@ class GraphUriMapping(valueref.ValueMapping):
                 ),
                 sqlnodes.SqlFieldRef(1, resultField)
             ))
-        
+
         # Replace null by actual ID (done late so it won't reincarnate)
         assert isinstance(expr[0][1][1], nodes.Null)
         expr[0][1][1] = value
-        
-        return expr        
-            
+
+        return expr
+
     def intToExt(self, internal):
-        return sqlnodes.SqlFunctionCall('rdf_term_resource', 
+        return sqlnodes.SqlFunctionCall('rdf_term_resource',
                                         self._subqueryGraph('graph_id', internal, 'graph_uri'))
-    
+
     def extToInt(self, external):
         return self._subqueryGraph('graph_uri',
                                    sqlnodes.SqlFunctionCall('text',
@@ -91,35 +91,35 @@ class TypeMapping(valueref.ValueMapping):
     """A value mapping that uses type IDs as listed in the
     types SQL table instead of the full type URIs used
     by RDF"""
-    
+
     __slots__ = ('property')
-    
+
     def __init__(self, property):
-        self.property = property        
+        self.property = property
         super(TypeMapping, self).__init__()
-    
+
     def intToExt(self, internal):
         return sqlnodes.SqlFunctionCall('rdf_term_%s_by_id' % self.property, internal)
-    
+
     def extToInt(self, external):
         return sqlnodes.SqlFunctionCall('rdf_term_%s_to_id' % self.property, external)
-    
+
 def typeValueRef(incarnation, fieldId):
-    
+
     valueExpr = sqlnodes.SqlFieldRef(incarnation, fieldId);
-    typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_data_type_id', valueExpr)    
-    
+    typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_data_type_id', valueExpr)
+
     return valueref.ValueRef(TypeMapping('type_uri'), typeIdExpr)
 
 def valueRef(incarnation, fieldId):
     return sqlnodes.SqlTypedFieldRef(incarnation, fieldId)
-    
+
 class BasicMapper(transform.PureRelationalTransformer):
     """A base mapper for the Postgres basic schema. It handles the
     mapping of type expressions."""
 
     __slots__ = ()
-                
+
     def mapTypeExpr(self, typeExpr):
         if isinstance(typeExpr, LiteralType):
             assert not typeExpr.typeUri is None
@@ -132,17 +132,17 @@ class BasicMapper(transform.PureRelationalTransformer):
     def getModifGraph(self):
         """Returns the URI of the graph that should receive modifications."""
         raise NotImplementedError
-    
+
     def DynType(self, expr, subexpr):
         typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_data_type_id', subexpr)
         return valueref.ValueRef(TypeMapping('type_uri'), typeIdExpr)
-    
+
     def Lang(self, expr, subexpr):
         typeIdExpr = sqlnodes.SqlFunctionCall('rdf_term_get_lang_type_id', subexpr)
         return valueref.ValueRef(TypeMapping('lang_tag'), typeIdExpr)
 
 class BasicGraphMapper(BasicMapper):
-    
+
     __slots__ = ('baseGraph',
                  'baseGraphId',
                  'stmtReplDefault',
@@ -155,24 +155,24 @@ class BasicGraphMapper(BasicMapper):
 
         # Lookup base graph
         self.baseGraphId = modelBase.lookupGraphId(baseGraph)
-        
+
         # Cache for the statement pattern replacement expressions.
         self.stmtReplDefault = None
         self.stmtReplOther = None
-        
+
     def _getDefaultGraph(self):
-        return valueref.ValueRef(GraphUriMapping(), 
+        return valueref.ValueRef(GraphUriMapping(),
                                  sqlnodes.SqlInt(self.baseGraphId));
 
     def replStatementPattern(self, expr):
         # Always either select the default graph or the rest.
         if isinstance(expr[0], nodes.DefaultGraph):
             graphSelector = nodes.Equal(sqlnodes.SqlFieldRef(1, 'graph_id'),
-                                        sqlnodes.SqlInt(self.baseGraphId))            
+                                        sqlnodes.SqlInt(self.baseGraphId))
         else:
             graphSelector = nodes.Different(sqlnodes.SqlFieldRef(1, 'graph_id'),
-                                            sqlnodes.SqlInt(self.baseGraphId))            
-        
+                                            sqlnodes.SqlInt(self.baseGraphId))
+
         rel = nodes.Select(
              nodes.Product(
               sqlnodes.SqlRelation(1, 'graph_statement'),
@@ -250,7 +250,7 @@ class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):
 
     def __init__(self, modelBase, baseGraph, **args):
         super(GraphMapper, self).__init__(modelBase, baseGraph)
-    
+
     def getModifGraph(self):
         return self.baseGraph
 
@@ -271,7 +271,7 @@ class BaseResults(object):
         self.cursor.execute(sqlText)
 
         self.length = self.cursor.rowcount
-        
+
         self.types = {}
 
     def resultType(self):
@@ -279,9 +279,9 @@ class BaseResults(object):
 
     def __len__(self):
         return self.length
-    
+
     def _typeLookup(self, typeId):
-        
+
         # Try cache lookup first
         try:
             return self.types[typeId]
@@ -292,13 +292,13 @@ class BaseResults(object):
         cursor = self.connection.cursor()
         cursor.execute("SELECT type_uri, lang_tag FROM types WHERE id = %d" % typeId);
         result = cursor.fetchone()
-        
+
         # Not in database? (Should not happen)
         assert not result is None, "Database result uses unknown type ID %d!" % typeId
-        
+
         # Save back, continue
         self.types[typeId] = result
-        return result        
+        return result
 
     def _convertResult(self, rawValue, typeId, blankMap):
         if isinstance(rawValue, str):
@@ -309,41 +309,41 @@ class BaseResults(object):
 
         if rawValue is None:
             value = None
-            
+
         # Resource
         elif typeId == 0:
             value = uri.Uri(rawValue)
-            
+
             # Needs reinstantiation?
             if value.isBlank() and value.endswith('#reinst'):
                 try:
                     value = blankMap[rawValue]
                 except KeyError:
                     value = blankMap[rawValue] = uri.newBlank()
-        
+
         # Plain literal
         elif typeId == 1:
             value = literal.Literal(rawValue)
-            
+
         # Literal
         else:
-            
+
             # Get type URI and language tag
-            (typeUri, langTag) = self._typeLookup(typeId)        
-            
+            (typeUri, langTag) = self._typeLookup(typeId)
+
             # Expect everything that's not a resource to be some
             # sort of literal
             value = literal.Literal(rawValue, typeUri, langTag)
-        
+
         return value
-    
+
     def _splitPair(self, pair):
-        
+
         # Split the string representation of a value/type-id pair
         # as it's coming from the database into both components
         # (Note the first part is enclosed in quotes and the second
         #  one is a hexadecimal number)
-        
+
         if pair is None:
             return (None, None)
         else:
@@ -405,11 +405,11 @@ class StmtResults(BaseResults):
     def iterAll(self):
         row = self.cursor.fetchone()
         while row is not None:
-            
+
             # The blank node reinstationation map is kept across statements, as
             # statements in the same row might refer to the same blank nodes.
             blankMap = {}
-            
+
             for i in range(self.stmtsPerRow):
                 result = []
                 for pair in row[i*3 : i*3+3]:
@@ -469,11 +469,11 @@ class BasicModel(object):
 
     _versionIdPattern = re.compile('[0-9]')
 
-    
+
     def getSink(self, graphUri=None, delete=False):
-        
+
         # Get from mapping transform, if not set
-        if graphUri is None:            
+        if graphUri is None:
             try:
                 graphUri = self.mappingTransf.getModifGraph()
             except NotImplementedError:
@@ -486,9 +486,9 @@ class BasicModel(object):
 
         # Get the statement per row count before transforming to SQL.
         stmtsPerRow = len(expr[0]) - 1
-        
+
         try:
-            
+
             # Get a sink
             if isinstance(expr, nodes.Insert):
                 sink = self.getSink(expr.graphUri, delete=False)
@@ -500,17 +500,17 @@ class BasicModel(object):
             # Insert data
             sink.insertByQuery(self._exprToSql(expr[0]), stmtsPerRow)
             sink.finish()
-            
-            # Return count of affected rows            
+
+            # Return count of affected rows
             return results.ModifResults(sink.rowsAffected)
-                
+
         except:
             self.rollback()
             raise
-        
+
     def _parse(self, queryLanguageOrTemplate, queryText=None,
               fileName=_("<unknown>"), **keywords):
-        
+
         # FIXME: This code should be in a generic superclass.
         if queryText is None:
             # We should have been called with a template.
@@ -535,12 +535,12 @@ class BasicModel(object):
         for prefix, namespace in self.getPrefixes().items():
             paramPrf[prefix] = uri.Namespace(namespace)
         self.modelArgs['prefixes'] = paramPrf
- 
+
         # Parse the query.
         parser = parserfactory.getQueryParser(queryLanguage,
                                               **self.modelArgs)
-        return parser.parse(queryText, fileName)        
-        
+        return parser.parse(queryText, fileName)
+
     def query(self, queryLanguageOrTemplate, queryText=None,
               fileName=_("<unknown>"), **keywords):
 
@@ -570,9 +570,9 @@ class BasicModel(object):
 
     def querySQL(self, queryLanguageOrTemplate, queryText=None,
               fileName=_("<unknown>"), **keywords):
-        
-        expr = self._parse(queryLanguageOrTemplate, queryText, fileName, **keywords)        
-        
+
+        expr = self._parse(queryLanguageOrTemplate, queryText, fileName, **keywords)
+
         if isinstance(expr, nodes.ModifOperation):
             return self._exprToSql(expr[0])
         else:
@@ -604,30 +604,30 @@ class BasicModel(object):
 
     def __del__(self):
         self.close()
-        
+
 class TwoWayModel(BasicModel):
-    
+
     __slots__ = ('prefixes')
 
-    def __init__(self, modelBase, connection, mappingTransf, graphA, graphB, **modelArgs):        
+    def __init__(self, modelBase, connection, mappingTransf, graphA, graphB, **modelArgs):
         super(TwoWayModel, self).__init__(modelBase, connection, mappingTransf, **modelArgs)
-        
+
         self.prefixes = nsshortener.NamespaceUriShortener()
         self.prefixes.addPrefixes(modelBase.getPrefixes())
-  
-        graphAid = modelBase.lookupGraphId(graphA, connection=connection) 
+
+        graphAid = modelBase.lookupGraphId(graphA, connection=connection)
         graphBid = modelBase.lookupGraphId(graphB, connection=connection)
 
         # Won't be a problem, but won't give interesting results either
         assert graphAid != 0, "Graph A doesn't exist!"
         assert graphBid != 0, "Graph B doesn't exist!"
-        
+
         graphUris = modelBase.prepareTwoWay(graphAid, graphBid)
-  
+
         self.prefixes['compA'] = graphUris[0]
         self.prefixes['compB'] = graphUris[1]
         self.prefixes['compAB'] = graphUris[2]
-  
+
     def getPrefixes(self):
         return self.prefixes
 

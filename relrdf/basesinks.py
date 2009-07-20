@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA. 
+# Boston, MA 02111-1307, USA.
 
 
 from relrdf.localization import _
@@ -50,7 +50,7 @@ class PrintSink(object):
         else:
             assert False, "Unexpected object type '%s'" \
                    % object.__class__.__name__
-            
+
         print "<%s> <%s> %s" % (subject.encode('utf8'),
                                 pred.encode('utf8'), \
                                 objStr.encode('utf8'))
@@ -60,38 +60,38 @@ class PrintSink(object):
 
 class ListSink(list):
     """An RDF sink that stores triples as a list"""
-    
+
     def triple(self, subject, pred, object):
         self.append((subject, pred, object))
 
 class DictSink(dict):
     """An RDF sink that stores triples as a dictionary"""
-    
+
     def triple(self, subject, pred, object):
         self[subject, pred] = object
-        
+
     def getList(self, base):
-        
+
         # Search list elements
         list = []
         visited = set()
-        while True:            
+        while True:
 
             # Invalid node?
             if not isinstance(base, uri.Uri) or not base.isBlank():
                 return list
-            
+
             # Check for loop
             assert not base in visited
             visited.add(base)
-            
+
             # Search list element
             try:
                 first = self[base, rdf.first]
                 rest = self[base, rdf.rest]
             except KeyError:
                 return list
-            
+
             # Add, continue with next element
             list.append(first)
             base = rest

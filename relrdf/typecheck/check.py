@@ -262,10 +262,8 @@ class TypeChecker(rewrite.ExpressionProcessor):
         return (None,) * len(expr)
 
     def LeftJoin(self, expr, *ignored):
-        if len(expr) == 3 and \
-                (not isinstance(expr[2].staticType, LiteralType) or \
-                 expr[2].staticType.typeUri != xsd.boolean):
-            error(expr, _("Condition must be boolean"))
+        # All work was done in the preLeftJoin method.
+        pass
 
     def preSelect(self, expr):
         # Process the relation subexpression and create a scope from
@@ -282,9 +280,6 @@ class TypeChecker(rewrite.ExpressionProcessor):
         return (None,) * len(expr)
 
     def Select(self, expr, rel, predicate):
-        if not isinstance(expr[1].staticType, LiteralType) or \
-           expr[1].staticType.typeUri != xsd.boolean:
-            error(expr, _("Condition must be boolean"))
         expr.staticType = expr[0].staticType
 
     def preMapResult(self, expr):

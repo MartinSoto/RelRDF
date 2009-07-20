@@ -136,6 +136,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-graph-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-6
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-graph-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-graph-5
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/cast/manifest#cast-str

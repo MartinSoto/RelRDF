@@ -23,6 +23,8 @@
 
 
 import sys
+import os.path
+import hashlib
 
 import ns
 import tests
@@ -41,7 +43,13 @@ import textwrap
 def isURI(node):
     return isinstance(node, uri.Uri)
 
-class Manifesto:
+def md5(uri):
+    m = hashlib.md5()
+    m.update(uri.encode('utf-8'))
+    return m.hexdigest()
+
+
+class Manifesto(object):
 
     __slots__ = ('source',
                  'manifests',
@@ -123,7 +131,8 @@ class Manifesto:
         return 1 + sum([m.manifestCount() for m in self.manifests])
 
     def entryCount(self):
-        return len(self.entries) + sum([m.entryCount() for m in self.manifests])
+        return len(self.entries) + sum([m.entryCount()
+                                        for m in self.manifests])
 
     def execute(self, ctx):
 
@@ -142,60 +151,107 @@ class Manifesto:
         for manifest in self.manifests:
             manifest.filter(f)
 
+
 class TestContext(object):
 
     __slots__ = ('model',
                  'sink',
-                 'log',
+                 'destPath',
                  'refSet',
 
+                 '_mainLog',
                  '_currentTest',
+                 '_currentLog',
                  '_results')
 
     OK = 0
     FAIL = 1
     NO_SUPPORT = 2
 
-    def __init__(self, model, sink, log, refSet = set()):
+    def __init__(self, model, sink, destPath, refSet = set()):
         self.model = model
         self.sink = sink
-        self.log = log
+        self.destPath = destPath
         self.refSet = refSet
 
-        # Valid after testStart until testOk, testNoSupport or testFail is called
+        # Valid after testStart until testOk, testNoSupport or
+        # testFail is called.
         self._currentTest = None
 
-        # Map to receive status of all tests
+        # Map to receive status of all tests.
         self._results = {}
 
     def _wrap(self, text):
-        return "\n".join(["\n    ".join(textwrap.wrap(t, 100)) for t in text.split("\n")])
+        return "\n".join(["\n    ".join(textwrap.wrap(t, 100))
+                          for t in text.split("\n")])
+
+    def _htmlHeading(self, title):
+        return \
+            '<?xml version="1.0" encoding="utf-8"?>\n' \
+            '<html xmlns="http://www.w3.org/1999/xhtml">\n' \
+            '<head>\n' \
+            '<title>%s</title>\n' \
+            '<style type="text/css">\n' \
+            '  th {text-align: left;]\n' \
+            '</style>\n' \
+            '</head>\n' \
+            '<body>\n' % title
 
     def start(self):
-        self.log.write("<html><body>\n")
-        self.currentTest = None
+        if os.path.exists(self.destPath):
+            if not os.path.isdir(self.destPath):
+                raise IOError("Destination path '%s' exists but is not "
+                              "a directory" % self.destPath)
+        else:
+            # Try to create the destination directory.
+            os.makedirs(self.destPath)
+
+        self._currentTest = None
+        self._currentLog = None
+
+        # Start the main log.
+        self._mainLog = open(os.path.join(self.destPath, 'index.html'), 'w')
+
+        self._mainLog.write(self._htmlHeading('Test Report'))
+        self._mainLog.write("<h2>Test Report</h2>\n")
+        self._mainLog.write('<table border="1">\n');
 
     def manifestStart(self, source):
-        self.log.write("<h1>Test cases from %s</h1>\n" % source)
+        self._mainLog.write('<tr><th colspan="2">Test cases from %s'
+                            '</th></tr>\n' % source)
+        self._mainLog.write('<tr><th>Case</th><th>Result</th></tr>\n')
 
     def testStart(self, uri, name, testType):
-
         assert self._currentTest is None
         self._currentTest = uri
 
-        self.log.write("<h2>Case %s</h2>\n" % name)
-        self.log.write('<table border="1">\n');
+        # Make a file name for the test.
+        logName = 'log_%s.html' % md5(uri)
+
+        # Start the summary entry for the test.
+        self._mainLog.write('<tr><td><a href="%s">%s</a></td>' %
+                            (logName, name))
+
+        # Open the log file for this test.
+        assert self._currentLog is None
+        self._currentLog = open(os.path.join(self.destPath, logName), 'w')
+
+        self._currentLog.write(self._htmlHeading(name))
+        self._currentLog.write("<h2>Case %s</h2>\n" % name)
+        self._currentLog.write('<table border="1">\n');
         self.testEntry("Type", testType)
 
     def testEntry(self, name, value, pre=False, src=None):
         if not isinstance(value, unicode):
             value = unicode(value, errors='ignore')
         if pre:
-            text = value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            text = value.replace('&', '&amp;').replace('<', '&lt;') \
+                .replace('>', '&gt;')
             value = "<pre>%s</pre>" % self._wrap(text)
         if not src is None:
             value += '<p>(<a href="%s">%s</a>)</p>' % (src, src)
-        self.log.write('<tr><th style="vertical-align:top">%s:</th><td>%s</td></tr>' % (name, value))
+        self._currentLog.write('<tr><th style="vertical-align:top">%s:'
+                       '</th><td>%s</td></tr>' % (name, value))
 
     def testOk(self, value=""):
         self.testEnd(self.OK, ('Ok', 'NEW'), 'green', value)
@@ -211,38 +267,91 @@ class TestContext(object):
         self.testFail(str)
 
     def testNoSupport(self, value=""):
-        self.testEnd(self.NO_SUPPORT, ('REGRESSION', 'No support'), 'orange', value)
+        self.testEnd(self.NO_SUPPORT, ('REGRESSION', 'No support'),
+                     'orange', value)
 
     def testEnd(self, result, statusTags, color, value):
 
-        # Rollback any data put into the database (if any)
+        # Rollback any data put into the database (if any).
         self.sink.rollback()
 
-        # Save result
+        # Save results.
         assert self._currentTest is not None
         self._results[self._currentTest] = result
 
-        # Format message
+        # Format message.
         if not isinstance(value, unicode):
             value = unicode(value, errors='ignore')
 
-        # Status tag
+        # Status tag.
         if self._currentTest in self.refSet:
             heading = statusTags[0]
         else:
             heading = statusTags[1]
 
-        # Write log
-        self.log.write('<tr><th style="color:%s;vertical-align:top">%s</th><td>%s</td></tr>'
-                       % (color, heading, value))
-        self.log.write("</table>\n")
+        # Finish test log.
+        self._currentLog.write('<tr><th style="color:%s;'
+                               'vertical-align:top">%s</th><td>%s</td></tr>'
+                               % (color, heading, value))
+        self._currentLog.write("</table>\n")
+
+        self._currentLog.write("</body></html>\n")
+
+        self._currentLog.close()
+        self._currentLog = None
+
+        # Write the result to the summary and close the row.
+        self._mainLog.write('<td style="color:%s;'
+                            'vertical-align:top">%s</td></tr>\n'
+                            % (color, heading))
 
         # Done
         self._currentTest = None
 
-    def end(self):
+    def end(self, referenceCount):
         assert self._currentTest is None
-        self.log.write("</body></html>\n")
+
+        # Gather some statistics.
+        #totalCount = manifest.entryCount()
+        totalCount = len(self._results)
+        okCount = self.okCount()
+        noSupportCount = self.noSupportCount()
+        failedCount = totalCount - okCount - noSupportCount
+        regressionCount = self.regressionCount()
+        newCount = okCount - (referenceCount - regressionCount)
+
+        # Print out statistics.
+        print "== %d/%d test cases succeeded!" % (okCount, totalCount)
+        print "== (%d new, %d regressions, %d not supported)" % \
+            (newCount, regressionCount, noSupportCount)
+
+        self._mainLog.write('<tr><th colspan="2">Statistics</th></tr>\n')
+        self._mainLog.write('<tr><th>Total</th>'
+                            '<td>%d</td></tr>\n' % totalCount)
+        self._mainLog.write('<tr><th>Succeded</th>'
+                            '<td>%d (%d%%)</td></tr>\n' %
+                            (okCount,
+                             round(100 * okCount / float(totalCount))))
+        self._mainLog.write('<tr><th>Failed</th>'
+                            '<td>%d (%d%%)</td></tr>\n' %
+                            (failedCount,
+                             round(100 * failedCount / float(totalCount))))
+        self._mainLog.write('<tr><th>No support</th>'
+                            '<td>%d (%d%%)</td></tr>\n' %
+                            (noSupportCount,
+                             round(100 * noSupportCount / float(totalCount))))
+        self._mainLog.write('<tr><th>New</th>'
+                            '<td>%d (%d%%)</td></tr>\n' %
+                            (newCount,
+                             round(100 * newCount / float(totalCount))))
+        self._mainLog.write('<tr><th>Regressions</th>'
+                            '<td>%d (%d%%)</td></tr>\n' %
+                            (regressionCount,
+                             round(100 * regressionCount /
+                                   float(totalCount))))
+
+        self._mainLog.write("</table>\n")
+        self._mainLog.write("</body></html>\n")
 
     def okCount(self):
         return self._results.values().count(self.OK)
@@ -254,10 +363,12 @@ class TestContext(object):
         return self._results.values().count(self.NO_SUPPORT)
 
     def okSet(self):
-        return set([uri for (uri, r) in self._results.items() if r == self.OK])
+        return set([uri for (uri, r) in self._results.items()
+                    if r == self.OK])
 
     def regressionCount(self):
         return len(self.refSet - self.okSet())
+
 
 if __name__ == '__main__':
 
@@ -293,20 +404,20 @@ if __name__ == '__main__':
     # Get model base and sink
     try:
 
-        # Open model
+        # Parse command line.
         baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
         modelBase = relrdf.getModelBase(baseType, **baseArgs)
 
-        # Create graph to run test cases in
+        # Create graph to run test cases.
         baseGraphUri = manifest.source
         modelBase.lookupGraphId(baseGraphUri, create=True)
 
-        # Open model
+        # Open model.
         modelType, modelArgs = parseCmdLineArgs(argv, 'model')
         modelArgs['baseGraph'] = baseGraphUri
         model = modelBase.getModel(modelType, **modelArgs)
 
-        # Open sink
+        # Open sink.
         sink = model.getSink()
 
     except InstantiationError, e:
@@ -314,28 +425,17 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Open test context
-    ctx = TestContext(model, sink, open("log.html", "w"), refSet)
+    ctx = TestContext(model, sink, 'report', refSet)
+
+    ctx.start()
 
     # Execute test cases
     successCount = manifest.execute(ctx)
 
-    # Gather some statistics
-    totalCount = manifest.entryCount()
-    okCount = ctx.okCount()
-    noSupportCount = ctx.noSupportCount()
-    regressionCount = ctx.regressionCount()
-    newCount = okCount - len(refSet) + regressionCount
-
-    # Give statistics
-    print "== %d/%d test cases succeeded!" % (okCount, totalCount)
-    print "== (%d new, %d regressions, %d not supported)" % (newCount, regressionCount, noSupportCount)
-
-    ctx.end()
+    ctx.end(len(refSet))
 
     # Write log
     refFile = open(TEST_LOG, "w")
     refFile.writelines([s + '\n' for s in ctx.okSet()])
     refFile.close()
     print "Successful test cases were written to " + TEST_LOG + "\n"
-
-

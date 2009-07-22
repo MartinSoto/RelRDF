@@ -22,14 +22,15 @@
 # Boston, MA 02111-1307, USA.
 
 
+import pprint
+import codecs
+
 import ns
 from result import SelectQueryResult, ConstructQueryResult
 
 from relrdf import error
 from relrdf.sparql import environment
 from relrdf.modelimport.rdflibparse import RdfLibParser
-
-import pprint
 
 def unprefixFileURL(url):
 
@@ -42,7 +43,7 @@ def unprefixFileURL(url):
 def readFileFromURL(fileName):
 
     # Read the file
-    f = file(unprefixFileURL(fileName), "rb")
+    f = codecs.open(unprefixFileURL(fileName), "r", "utf-8")
     data = f.read()
     f.close()
 

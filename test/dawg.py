@@ -25,6 +25,7 @@
 import sys
 import os.path
 import hashlib
+import codecs
 
 import ns
 import tests
@@ -210,7 +211,9 @@ class TestContext(object):
         self._currentLog = None
 
         # Start the main log.
-        self._mainLog = open(os.path.join(self.destPath, 'index.html'), 'w')
+        self._mainLog = codecs.open(os.path.join(self.destPath,
+                                                 'index.html'),
+                                    'w', 'utf-8')
 
         self._mainLog.write(self._htmlHeading('Test Report'))
         self._mainLog.write("<h2>Test Report</h2>\n")
@@ -234,7 +237,9 @@ class TestContext(object):
 
         # Open the log file for this test.
         assert self._currentLog is None
-        self._currentLog = open(os.path.join(self.destPath, logName), 'w')
+        self._currentLog = codecs.open(os.path.join(self.destPath,
+                                                    logName),
+                                       'w', 'utf-8')
 
         self._currentLog.write(self._htmlHeading(name))
         self._currentLog.write("<h2>Case %s</h2>\n" % name)

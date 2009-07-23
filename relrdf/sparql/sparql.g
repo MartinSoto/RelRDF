@@ -228,41 +228,35 @@ offsetLimitClause[expr] returns [expr=expr]
 	;
 
 limitClause[expr]
-    :   LIMIT i:INTEGER { expr.limit = int(i.getText()) }
+    :   LIMIT i:INTEGER
+        { expr.limit = int(i.getText()) }
     ;
 
 offsetClause[expr]
-    :   OFFSET i:INTEGER { expr.offset = int(i.getText()) }
+    :   OFFSET i:INTEGER
+        { expr.offset = int(i.getText()) }
     ;
 
 groupGraphPattern[graph] returns [expr]
     :   { pattern = nodes.Join(); \
           filtersCond = nodes.And() }
-        lb:LBRACE pattern=graphPattern[graph, pattern, filtersCond] rb:RBRACE
+        lb:LBRACE
+        ( triplesBlock[graph, pattern] )?
+        (
+            (   pattern=graphPatternNotTriples[graph, pattern]
+            |   constr=filter
+                { filtersCond.append(constr) }
+            )
+            ( DOT )?
+            ( triplesBlock[graph, pattern] )?
+        )*
+        rb:RBRACE
         { expr = self.makeGroupGraphPattern(pattern, filtersCond); \
           expr.setExtentsStartFromToken(lb, self); \
           expr.setExtentsEndFromToken(rb) }
     ;
 
-graphPattern[graph, pattern, filtersCond] returns [newPattern]
-    :   filteredBasicGraphPattern[graph, pattern, filtersCond]
-        (   pattern=graphPatternNotTriples[graph, pattern]
-            ( DOT )?
-            pattern=graphPattern[graph, pattern, filtersCond]
-        )?
-        { newPattern = pattern }
-    ;
-
-filteredBasicGraphPattern[graph, pattern, filtersCond]
-    :   ( blockOfTriples[graph, pattern] )?
-        (   constr=constraint
-            { filtersCond.append(constr) }
-            ( DOT )?
-            filteredBasicGraphPattern[graph, pattern, filtersCond]
-        )?
-    ;
-
-blockOfTriples[graph, pattern]
+triplesBlock[graph, pattern]
     :   triplesSameSubject[graph, pattern]
         ( DOT ( triplesSameSubject[graph, pattern] )? )*
     ;
@@ -297,9 +291,12 @@ groupOrUnionGraphPattern[graph] returns [expr]
         )?
     ;
 
+filter returns [expr]
+    :   FILTER expr=constraint
+    ;
+
 constraint returns [expr]
-    :   FILTER
-        (   expr=brackettedExpression
+    :   (   expr=brackettedExpression
         |   expr=builtInCall
         |   expr=functionCall
         )

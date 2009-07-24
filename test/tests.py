@@ -164,28 +164,6 @@ class QueryEvaluationTest(object):
 
         # Copy data into database (no commit!)
         try:
-            parser.parse(self.data, ctx.sink)
-            sink.finish()
-        except Exception, detail:
-            ctx.testFailExc("Failed to import data")
-            raise QueryException("Failed to import data", detail)
-
-    def _readData(self, ctx, uri, caption, asGraph):
-
-        # Copy text into log
-        dataText = readFileFromURL(uri)
-        ctx.testEntry(caption, dataText, pre=True, src=uri)
-
-        # Create parser
-        from relrdf.modelimport.redlandparse import RedlandParser
-        parser = RedlandParser("turtle")
-
-        # Set graph
-        if asGraph:
-            ctx.sink.setGraph(uri)
-
-        # Copy data into database (no commit!)
-        try:
             parser.parse(uri, ctx.sink)
             ctx.sink.finish()
         except Exception, detail:

@@ -545,6 +545,11 @@ builtInCall returns [expr]
         { expr = nodes.IsBound(param); \
           expr.setExtentsStartFromToken(bd, self); \
           expr.setExtentsEndFromToken(rp5); }
+    |   st:SAMETERM
+        LPAREN param1=expression COMMA param2=expression rp10:RPAREN
+        { expr = nodes.NotSupported(); \
+          expr.setExtentsStartFromToken(st, self); \
+          expr.setExtentsEndFromToken(rp10); }
     |   ii:IS_IRI LPAREN param=expression rp6:RPAREN
         { expr = nodes.IsURI(param); \
           expr.setExtentsStartFromToken(ii, self); \
@@ -927,6 +932,12 @@ REGEX
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
+SAMETERM
+    :   ('S'|'s') ('A'|'a') ('M'|'m') ('E'|'e') ('T'|'t') ('E'|'e')
+        ('R'|'r') ('M'|'m')
+    ;
+
+protected  /* See QNAME_OR_KEYWORD. */
 SELECT
     :   ('S'|'s') ('E'|'e') ('L'|'l') ('E'|'e') ('C'|'c') ('T'|'t')
     ;
@@ -1037,6 +1048,8 @@ QNAME_OR_KEYWORD
         { $setType(PREFIX) }
     |   ( REGEX ) => REGEX
         { $setType(REGEX) }
+    |   ( SAMETERM ) => SAMETERM
+        { $setType(SAMETERM) }
     |   ( SELECT ) => SELECT
         { $setType(SELECT) }
     |   ( STR ) => STR

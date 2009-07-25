@@ -75,7 +75,8 @@ def _compare(cols, rows1, rows2, idx2, i=0, blankMap={}):
         if len(rows2) == 0:
             return True, "Ok"
         else:
-            return False, "Could not match expected result row %s!" % rows2[0]
+            return False, \
+                "Could not match expected result row %s!" % rows2[0]
 
     # Get row to match
     row1 = rows1[i]
@@ -108,13 +109,15 @@ def _compare(cols, rows1, rows2, idx2, i=0, blankMap={}):
 
         # Index mismatch?
         if j < len(idx2) and idx2[j] != i+1:
-            failmsg = "Matching expected result row %s has wrong index (%d != %d)!" % (unicode(row1), idx2[j], i+1)
+            failmsg = "Matching expected result row %s has wrong " \
+                "index (%d != %d)!" % (unicode(row1), idx2[j], i+1)
             continue
 
         # Recursively match
         rows2_ = rows2[:j] + rows2[j+1:]
         idx2_ = idx2[:j] + idx2[j+1:]
-        result, failmsg = _compare(cols, rows1, rows2_, idx2_, i+1, curBlankMap)
+        result, failmsg = _compare(cols, rows1, rows2_, idx2_,
+                                   i+1, curBlankMap)
         if result:
             return True, "Ok"
 
@@ -129,13 +132,13 @@ def _compare(cols, rows1, rows2, idx2, i=0, blankMap={}):
     # No match => backtrack
     return False, failmsg
 
-class SelectQueryResult:
+class SelectQueryResult(object):
 
     __slots__ = ('variables',
                  'results',
                  'indexes',
 
-                 'blanks'
+                 'blanks',
                  )
 
     def __init__(self, file):
@@ -147,7 +150,7 @@ class SelectQueryResult:
 
         self.blanks = {}
 
-        # guess format by extension
+        # Guess format by extension
         ext = getFileExtension(file)
         if ext == 'srx':
             self.parseXML(file)
@@ -156,7 +159,8 @@ class SelectQueryResult:
         elif ext == 'rdf':
             self.parseTriples(file, RdfXmlParser())
         else:
-            raise QueryResultException(), "invalid file extension for select query result: %d" % ext
+            raise QueryResultException(), \
+                "invalid file extension for select query result: %d" % ext
 
     def parseXML(self, file):
 
@@ -211,7 +215,8 @@ class SelectQueryResult:
         # Get variables
         root = None
         for subject, pred, object in triples:
-            if pred == uri.Uri(ns.rs.resultVariable) and isinstance(object, literal.Literal):
+            if pred == uri.Uri(ns.rs.resultVariable) and \
+                    isinstance(object, literal.Literal):
                 root = subject
                 self.variables.append(object)
 
@@ -222,7 +227,8 @@ class SelectQueryResult:
 
             # Has an index?
             index = dict.get((object, ns.rs["index"]))
-            if isinstance(index, literal.Literal) and len(self.results) == len(self.indexes):
+            if isinstance(index, literal.Literal) and \
+                    len(self.results) == len(self.indexes):
                 self.indexes.append(int(index))
 
             # Get bindings
@@ -267,20 +273,21 @@ class SelectQueryResult:
         # Compare lists
         return _compare(self.variables, resultList, self.results, self.indexes)
 
-class ConstructQueryResult:
+class ConstructQueryResult(object):
 
-    __slots__ = ('triples')
+    __slots__ = ('triples',)
 
     def __init__(self, file):
 
-        # Create praser by extension
+        # Create parser by extension
         ext = getFileExtension(file)
         if ext == 'ttl':
             parser = RedlandParser(format='turtle')
         elif ext == 'rdf':
             parser = RdfXmlParser()
         else:
-            raise QueryResultException(), "invalid file extension for construct query result: %d" % ext
+            raise QueryResultException(), \
+                "invalid file extension for construct query result: %d" % ext
 
         # Create list sink, parse result
         self.triples = ListSink()

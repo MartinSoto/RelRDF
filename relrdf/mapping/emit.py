@@ -311,6 +311,10 @@ class SqlEmitter(rewrite.ExpressionProcessor):
 
         return query
 
+    def ExistsResult(self, expr, rel):
+        return ('SELECT ', 'EXISTS', '(',
+                ('SELECT ', '1', ' FROM ', rel), ')')
+
     def Union(self, expr, *operands):
         return ('(',) + listJoin(')', ' UNION ALL ', '(', operands) + (')',)
 

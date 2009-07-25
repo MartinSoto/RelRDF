@@ -330,6 +330,9 @@ class TypeChecker(rewrite.ExpressionProcessor):
                                stmtTmpl[2].staticType)
         expr.staticType = typeExpr
 
+    def ExistsResult(self, expr, rel):
+        expr.staticType = booleanLiteralType
+
     def Distinct(self, expr, subexpr):
         expr.staticType = expr[0].staticType
 

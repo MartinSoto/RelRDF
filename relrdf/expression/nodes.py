@@ -942,6 +942,16 @@ class StatementTemplate(ExpressionNode):
         super(StatementTemplate, self).__init__(subj, pred, obj)
 
 
+class ExistsResult(QueryResult):
+    """Specify that a query must return a boolean value indicating if
+    the relational subexpressions produces any results or not."""
+
+    __slots__ = ()
+
+    def __init__(self, rel):
+        super(ExistsResult, self).__init__(rel)
+
+
 #
 # Result Modifiers
 #

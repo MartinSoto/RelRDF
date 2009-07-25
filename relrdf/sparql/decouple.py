@@ -159,6 +159,7 @@ class PatternDecoupler(rewrite.ExpressionTransformer):
 
     preMapResult = _processResultOrModifier
     preStatementResult = _processResultOrModifier
+    preExistsResult = _processResultOrModifier
     preDistinct = _processResultOrModifier
     preSort = _processResultOrModifier
     preOffsetLimit = _processResultOrModifier

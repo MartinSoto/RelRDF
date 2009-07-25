@@ -144,7 +144,7 @@ askQuery returns [expr]
     :   ask:ASK
         ( datasetClause )*
         where=whereClause
-        { expr = nodes.NotSupported(); \
+        { expr = nodes.ExistsResult(where); \
           expr.setExtentsStartFromToken(ask, self); }
     ;
 

@@ -424,6 +424,29 @@ class StmtResults(BaseResults):
     __iter__ = iterAll
 
 
+class ExistsResults(BaseResults):
+    __slots__ = ('_value',)
+
+    def __init__(self, connection, sqlText):
+        super(ExistsResults, self).__init__(connection, sqlText)
+        self._value = None
+
+    def resultType(self):
+        return results.RESULTS_EXISTS
+
+    def getValue(self):
+        if self._value is None:
+            # Retrieve the value.
+            assert self.length == 1
+            row = self.cursor.fetchone()
+            assert len(row) == 1
+            self._value = row[0]
+
+        return self._value
+
+    value = property(getValue)
+
+
 class BasicModel(object):
     __slots__ = ('modelBase',
                  'mappingTransf',
@@ -565,6 +588,8 @@ class BasicModel(object):
             stmtsPerRow = len(mappingExpr) - 1
             return StmtResults(self._connection, stmtsPerRow,
                                self._exprToSql(expr))
+        elif mappingExpr.__class__ == nodes.ExistsResult:
+            return ExistsResults(self._connection, self._exprToSql(expr))
         else:
             assert False, 'No mapping expression'
 

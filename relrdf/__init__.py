@@ -28,7 +28,8 @@
 from error import *
 
 # Result types.
-from results import RESULTS_COLUMNS, RESULTS_STMTS, RESULTS_MODIF
+from results import RESULTS_COLUMNS, RESULTS_STMTS, RESULTS_MODIF, \
+    RESULTS_EXISTS, RESULTS_ASK
 
 # The basic building blocks of RDF.
 from relrdf.expression.uri import Uri, Namespace

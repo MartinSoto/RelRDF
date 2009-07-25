@@ -959,37 +959,41 @@ WHERE
 
 protected  /* See QNAME_OR_KEYWORD. */
 RDF_TYPE_ABBREV
+    /* This is the only SPARQL keyword that must be written in
+       lowercase. */
     :   "a"
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
 TRUE
-    :   "true"
+    :   ('T'|'t') ('R'|'r') ('U'|'u') ('E'|'e')
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
 FALSE
-    :   "false"
+    :   ('F' | 'f') ('A' | 'a') ('L' | 'l') ('S' | 's') ('E' | 'e')
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_BLANK
-    :   "isBlank"
+    :   ('I' | 'i') ('S' | 's') ('B' | 'b') ('L' | 'l') ('A' | 'a')
+        ('N' | 'n') ('K' | 'k')
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_IRI
-    :   "isIRI"
+    :   ('I' | 'i') ('S' | 's') ('I' | 'i') ('R' | 'r') ('I' | 'i')
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_LITERAL
-    :   "isLiteral"
+    :   ('I' | 'i') ('S' | 's') ('L' | 'l') ('I' | 'i') ('T' | 't')
+        ('E' | 'e') ('R' | 'r') ('A' | 'a') ('L' | 'l')
     ;
 
 protected  /* See QNAME_OR_KEYWORD. */
 IS_URI
-    :   "isURI"
+    :   ('I' | 'i') ('S' | 's') ('U' | 'u') ('R' | 'r') ('I' | 'i') 
     ;
 
 

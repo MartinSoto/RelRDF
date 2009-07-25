@@ -296,3 +296,47 @@ class ConstructQueryResult:
         # Compare the results
         return _compare([0,1,2], resultList, self.triples, [])
 
+
+class AskQueryResult(object):
+
+    __slots__ = ('value')
+
+    def __init__(self, file):
+        self.value = None
+
+        # Guess format by extension.
+        ext = getFileExtension(file)
+        if ext == 'srx':
+            self.parseXML(file)
+        elif ext == 'ttl':
+            self.parseTriples(file, RedlandParser(format='turtle'))
+        elif ext == 'rdf':
+            self.parseTriples(file, RdfXmlParser())
+        else:
+            raise QueryResultException(), \
+                "Invalid file extension for select query result: %d" % ext
+
+    def parseXML(self, file):
+        # Parse the result file
+        doc = parse(file)
+
+        # Get result.
+        booleanElem = doc.getElementsByTagName("boolean")[0]
+        self.value = getTextContent(booleanElem) == 'true'
+
+    def parseTriples(self, file, parser):
+        # Parse into list.
+        triples = ListSink()
+        parser.parse(file, triples)
+
+        # Get the result.
+        for subject, pred, object in triples:
+            if pred == uri.Uri(ns.rs.boolean) and \
+                    isinstance(object, literal.Literal) and \
+                    object.typeUri == ns.xsd.boolean:
+                if self.value is not None:
+                    raise QueryResultException("Multiple boolean results")
+                self.value = object.value
+
+        if self.value is None:
+            raise QueryResultException("No boolean result found")

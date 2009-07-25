@@ -26,7 +26,7 @@ import pprint
 import codecs
 
 import ns
-from result import SelectQueryResult, ConstructQueryResult
+from result import SelectQueryResult, ConstructQueryResult, AskQueryResult
 
 from relrdf import error
 from relrdf.sparql import environment
@@ -298,7 +298,37 @@ class AskQueryEvaluationTest(QueryEvaluationTest):
 
     def execute(self, ctx):
         print "Running %s..." % self.name,
-        print "Not implemented yet!"
-        ctx.testStart(self.uri, self.name, "Construct query test")
-        ctx.testNoSupport()
-        return False
+        ctx.testStart(self.uri, self.name, "Ask query test")
+        if self.comment is not None:
+            ctx.testEntry("Comment", self.comment)
+
+        # Read the expected result.
+        try:
+            # Read text for log.
+            ctx.testEntry("Expected", "", src=self.result)
+
+            expectedResult = AskQueryResult(unprefixFileURL(self.result))
+        except Exception, detail:
+            ctx.testFailExc("Failed to read expected result")
+            print "Failed to read expected result (%s)" % detail
+            return False
+
+        # Evaluate the query.
+        try:
+            result = self.evaluate(ctx)
+        except QueryException, detail:
+            print "%s (%s)" % (detail.msg, detail.nested)
+            return False
+
+        # Compare result
+        ctx.testEntry('Result', str(result.getValue()))
+        ctx.testEntry('Expected', str(expectedResult.value))
+        if result.getValue() != expectedResult.value:
+            ctx.testFail("Failed result match")
+            print "Failed result match"
+            return False
+
+        # Okay
+        ctx.testOk()
+        print "Ok"
+        return True

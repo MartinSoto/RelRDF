@@ -39,10 +39,10 @@ def formatTerm(term, shortener):
     else:
         return "'%s'" % term
 
-def showResults(results, sep = '|'):
+def showColumnResults(results, sep = '|'):
     # Create an appropriate URI shortener.
     shortener = nsshortener.NamespaceUriShortener(shortFmt='%s:%s',
-                                                       longFmt='<%s>')
+                                                  longFmt='<%s>')
     shortener.addPrefix('rdf', relrdf.ns.rdf)
     shortener.addPrefix('rdfs', relrdf.ns.rdfs)
     shortener.addPrefix('relrdf', relrdf.ns.relrdf)
@@ -90,7 +90,13 @@ try:
 except relrdf.Error, e:
     error(e)
 
-showResults(results)
+# TODO: Contruct results.
+if results.resultType() == relrdf.RESULTS_COLUMNS:
+    showColumnResults(results)
+elif results.resultType() == relrdf.RESULTS_EXISTS:
+    print results.value
+else:
+    error(_("Query returned an unknown result type"))
 
 
 model.close()

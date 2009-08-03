@@ -76,7 +76,6 @@ class SingleGraphRdfSink(object):
 
         # Get graph ID from database
         self.graphId = self.modelBase.lookupGraphId(graphUri,
-                                                    connection=self.connection,
                                                     create=True)
 
 

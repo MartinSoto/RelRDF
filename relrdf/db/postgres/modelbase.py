@@ -25,25 +25,21 @@
 import string
 
 import pgdb
-from  sqlalchemy import pool
 
 from relrdf.localization import _
 from relrdf import error
 from relrdf.expression import uri
-from relrdf.util.methodsync import SyncMethodsMixin, synchronized
 from relrdf.util.nsshortener import NamespaceUriShortener
 from relrdf import commonns
 
 import basicquery
 import basicsinks
 
-class ModelBase(SyncMethodsMixin):
+class ModelBase(object):
     __slots__ = ('db',
-                 'params',
                  'querySchema',
                  'sinkSchema',
 
-                 '_connPool',
                  '_connection',
                  '_prefixes',)
 
@@ -67,16 +63,9 @@ class ModelBase(SyncMethodsMixin):
         self.querySchema = basicquery
 
         self.db = db
-        self.params = params
 
-        # Create the connection pool.
-        self._connPool = pool.QueuePool(self._setupConnection,
-                                        pool_size=5,
-                                        use_threadlocal=False)
-
-        # The control connection. Public methods using it must be
-        # synchronized.
-        self._connection = self.createConnection()
+        # Create the connection.
+        self._connection = pgdb.connect(database=self.db, **params)
 
         # Get the prefixes from the database:
         cursor = self._connection.cursor()
@@ -94,37 +83,24 @@ class ModelBase(SyncMethodsMixin):
             row = cursor.fetchone()
 
         cursor.close()
-        self._connection.commit()
-
-    def _setupConnection(self):
-
-        connection = pgdb.connect(database=self.db, **self.params)
-
-        return connection
-
-    def createConnection(self):
-        return self._connPool.connect()
 
     def getSink(self, sinkType, **sinkArgs):
-        return self.sinkSchema.getSink(self, self.createConnection(), sinkType, **sinkArgs)
+        return self.sinkSchema.getSink(self, self._connection, sinkType,
+                                       **sinkArgs)
 
     def getModel(self, modelType, **modelArgs):
-        return self.querySchema.getModel(self, self.createConnection(), modelType, **modelArgs)
+        return self.querySchema.getModel(self, self._connection, modelType,
+                                         **modelArgs)
 
     def getPrefixes(self):
         return self._prefixes
 
-    def lookupGraphId(self, graphUri, connection=None, create=False):
-
+    def lookupGraphId(self, graphUri, create=False):
         # Normalize URI
         graphUri = self._prefixes.normalizeUri(graphUri).encode('utf-8')
 
-        # Create connection and get cursor
-        ownConnection = False
-        if connection is None:
-            connection = self.createConnection()
-            ownConnection = True
-        cursor = connection.cursor()
+        # Get a cursor.
+        cursor = self._connection.cursor()
 
         # Try lookup
         cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)
@@ -141,10 +117,6 @@ class ModelBase(SyncMethodsMixin):
         cursor.execute("INSERT INTO graphs (graph_uri) VALUES ('%s') RETURNING graph_id;" % graphUri)
         result = cursor.fetchone()
         assert not result is None, "Could not create a new graph!"
-
-        # Commit
-        if ownConnection:
-            connection.commit()
 
         # Done
         return result[0]
@@ -173,13 +145,10 @@ class ModelBase(SyncMethodsMixin):
                     ON a.stmt_id = b.stmt_id
              """ % (graphs[0], graphs[1], graphs[2], graphA, graphB))
 
-        self._connection.commit()
         return graphUris
 
-    @synchronized
     def close(self):
-
-        # Close the control connection.
+        # Close the connection.
         self._connection.close()
 
 

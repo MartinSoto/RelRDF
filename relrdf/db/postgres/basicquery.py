@@ -640,8 +640,8 @@ class TwoWayModel(BasicModel):
         self.prefixes = nsshortener.NamespaceUriShortener()
         self.prefixes.addPrefixes(modelBase.getPrefixes())
 
-        graphAid = modelBase.lookupGraphId(graphA, connection=connection)
-        graphBid = modelBase.lookupGraphId(graphB, connection=connection)
+        graphAid = modelBase.lookupGraphId(graphA)
+        graphBid = modelBase.lookupGraphId(graphB)
 
         # Won't be a problem, but won't give interesting results either
         assert graphAid != 0, "Graph A doesn't exist!"

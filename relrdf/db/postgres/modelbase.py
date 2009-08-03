@@ -44,10 +44,29 @@ class ModelBase(object):
                  '_prefixes',)
 
     name = "PostgreSQL"
-    parameterInfo = ({"name":"host",    "label":"Database Host", "tip":"Enter the name or the IP-Address of the database host", "default":"localhost", "assert":"host!=''", "asserterror":"host must not be empty"},
-                     {"name":"user",    "label":"Username",      "tip":"Enter the username required to log into your database", "assert":"user!=''", "asserterror":"username must not be empty"},
-                     {"name":"password","label":"Password",      "tip":"Enter the password required to log into your database", "hidden":True},
-                     {"name":"database","label":"Database",      "tip":"Enter the name of the database to open or leave blank for default", "omit":"db==''"})
+    parameterInfo = ({"name": "host",
+                      "label": "Database Host",
+                      "tip": "Enter the name or the IP-Address of the "
+                      "database host",
+                      "default": "localhost",
+                      "assert": "host!=''",
+                      "asserterror": "host must not be empty"},
+                     {"name": "user",
+                      "label": "Username",
+                      "tip": "Enter thn---e username required to log "
+                      "into your database",
+                      "assert": "user!=''",
+                      "asserterror": "username must not be empty"},
+                     {"name": "password",
+                      "label": "Password",
+                      "tip": "Enter the password required to log into "
+                      "your database",
+                      "hidden": True},
+                     {"name": "database",
+                      "label": "Database",
+                      "tip": "Enter the name of the database to open or "
+                      "leave blank for default",
+                      "omit": "db==''"})
 
     @classmethod
     def getModelInfo(self, **parameters):
@@ -102,23 +121,29 @@ class ModelBase(object):
         # Get a cursor.
         cursor = self._connection.cursor()
 
-        # Try lookup
-        cursor.execute("""SELECT graph_id FROM graphs WHERE graph_uri = '%s';""" % graphUri)
+        # Lookup the graph.
+        cursor.execute("""
+            SELECT graph_id
+            FROM graphs
+            WHERE graph_uri = '%s';""" % graphUri)
         result = cursor.fetchone()
         if not result is None:
             return result[0]
 
         # Should not create? Return ID of an empty graph
-        # (graph IDs normally start at 1)
+        # (graph IDs normally start at 1).
         if not create:
             return 0
 
-        # Insert new graph
-        cursor.execute("INSERT INTO graphs (graph_uri) VALUES ('%s') RETURNING graph_id;" % graphUri)
+        # Insert new graph.
+        cursor.execute("""
+            INSERT INTO graphs (graph_uri)
+            VALUES ('%s')
+            RETURNING graph_id;""" % graphUri)
         result = cursor.fetchone()
         assert not result is None, "Could not create a new graph!"
 
-        # Done
+        # Done.
         return result[0]
 
     def prepareTwoWay(self, graphA, graphB):
@@ -126,22 +151,30 @@ class ModelBase(object):
 
         # Create comparison graphs
         baseGraphName = "cmp_%d_%d_" % (graphA, graphB)
-        graphUris = [commonns.relrdf[baseGraphName + suffix + '#'] for suffix in ('A', 'B', 'AB')]
+        graphUris = [commonns.relrdf[baseGraphName + suffix + '#']
+                     for suffix in ('A', 'B', 'AB')]
         graphs = [self.lookupGraphId(uri, create=True) for uri in graphUris]
 
         # Clear previous data
-        cursor.execute("DELETE FROM graph_statement WHERE graph_id IN (%d, %d, %d)" % (graphs[0], graphs[1], graphs[2]));
+        cursor.execute("""
+            DELETE FROM graph_statement
+            WHERE graph_id
+            IN (%d, %d, %d)""" % (graphs[0], graphs[1], graphs[2]));
 
         # Insert data
-        cursor.execute(
-             """
+        cursor.execute("""
              INSERT INTO graph_statement (stmt_id, graph_id)
                SELECT COALESCE(a.stmt_id, b.stmt_id),
                       CASE WHEN a.stmt_id IS NULL THEN %d
                            WHEN b.stmt_id IS NULL THEN %d
                            ELSE %d END
-               FROM (SELECT stmt_id FROM graph_statement WHERE graph_id = %d) AS a FULL JOIN
-                    (SELECT stmt_id FROM graph_statement WHERE graph_id = %d) AS b
+               FROM (SELECT stmt_id
+                     FROM graph_statement
+                     WHERE graph_id = %d) AS a
+                    FULL JOIN
+                    (SELECT stmt_id
+                     FROM graph_statement
+                     WHERE graph_id = %d) AS b
                     ON a.stmt_id = b.stmt_id
              """ % (graphs[0], graphs[1], graphs[2], graphA, graphB))
 

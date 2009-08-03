@@ -27,7 +27,8 @@ from relrdf.expression import uri, literal
 from relrdf import commonns
 
 class SingleGraphRdfSink(object):
-    """An RDF sink that sends all tuples to a single graph in the database."""
+    """An RDF sink that sends all tuples to a single graph in the
+    database."""
 
     __slots__ = ('modelBase',
                  'connection',
@@ -42,7 +43,8 @@ class SingleGraphRdfSink(object):
     # Maximum number of rows per insert query.
     ROWS_PER_QUERY = 10000
 
-    def __init__(self, modelBase, connection, baseGraph, verbose=False, delete=False):
+    def __init__(self, modelBase, connection, baseGraph, verbose=False,
+                 delete=False):
         self.verbose = verbose
         self.delete = delete
 
@@ -60,8 +62,7 @@ class SingleGraphRdfSink(object):
 
         # Create (if it doesn't exist already) a temporary table to
         # hold the results.
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             CREATE TEMPORARY TABLE statements_temp1 (
               subject rdf_term,
               predicate rdf_term,
@@ -121,14 +122,15 @@ class SingleGraphRdfSink(object):
             """ % ','.join(colDecls))
 
         # Insert data
-        self.cursor.execute("INSERT INTO statements_temp_qry (%s);" % stmtQuery)
+        self.cursor.execute("INSERT INTO statements_temp_qry (%s);" %
+                            stmtQuery)
 
         # Move data into main data table
         for i in range(stmtsPerRow):
-            self.cursor.execute(
-                """
-                INSERT INTO statements_temp1 SELECT col_%s, col_%s, col_%s FROM statements_temp_qry;
-                """ % (i*3+0, i*3+1, i*3+2))
+            self.cursor.execute("""
+                INSERT INTO statements_temp1
+                SELECT col_%s, col_%s, col_%s
+                FROM statements_temp_qry""" % (i*3+0, i*3+1, i*3+2))
 
         # Drop intermediate table
         self.cursor.execute("DROP TABLE statements_temp_qry;")
@@ -141,9 +143,9 @@ class SingleGraphRdfSink(object):
         if self.verbose:
             print "Inserting %d rows..." % (len(self.pendingRows))
 
-        self.cursor.executemany(
-            """
-            INSERT INTO statements_temp1 (subject, predicate, object) VALUES (
+        self.cursor.executemany("""
+            INSERT INTO statements_temp1 (subject, predicate, object)
+            VALUES (
               rdf_term(0, %s),
               rdf_term(0, %s),
               rdf_term_create(%s, %d, %s, %s))""",
@@ -158,16 +160,14 @@ class SingleGraphRdfSink(object):
         if self.delete:
 
             # Drop statements (not needed anymore)
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 TRUNCATE TABLE statements_temp1
                 """)
 
             # Remove existing statements
             if self.verbose:
                 print "Removing statements from graph...",
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 DELETE FROM graph_statement vs
                   WHERE graph_id = %d AND stmt_id IN
                     (SELECT stmt_id FROM graph_statement_temp1)
@@ -179,8 +179,7 @@ class SingleGraphRdfSink(object):
             # "... WHERE id NOT IN (SELECT stmt_id FROM statements)"
             if self.verbose:
                 print "Removing unused statements..."
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 DELETE FROM statements WHERE id IN
                   (SELECT ss.id FROM statements ss
                                 LEFT JOIN graph_statement gs
@@ -193,8 +192,7 @@ class SingleGraphRdfSink(object):
         else:
             if self.verbose:
                 print "Inserting statements...",
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 SELECT insert_statements(%d);
                 """ % int(self.graphId))
             if self.verbose:

@@ -1,4 +1,4 @@
--- -*- Python -*-
+-- -*- SQL -*-
 --
 -- This file is part of RelRDF, a library for storage and
 -- comparison of RDF models.

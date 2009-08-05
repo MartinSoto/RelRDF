@@ -143,7 +143,8 @@ class BasicMapper(transform.PureRelationalTransformer):
 
 class BasicGraphMapper(BasicMapper):
 
-    __slots__ = ('baseGraph',
+    __slots__ = ('modelBase',
+                 'baseGraph',
                  'baseGraphId',
                  'stmtReplDefault',
                  'stmtReplOther')
@@ -151,10 +152,8 @@ class BasicGraphMapper(BasicMapper):
     def __init__(self, modelBase, baseGraph):
         super(BasicGraphMapper, self).__init__()
 
+        self.modelBase = modelBase
         self.baseGraph = baseGraph
-
-        # Lookup base graph
-        self.baseGraphId = modelBase.lookupGraphId(baseGraph)
 
         # Cache for the statement pattern replacement expressions.
         self.stmtReplDefault = None
@@ -239,6 +238,12 @@ class BasicGraphMapper(BasicMapper):
             expr.columnNames[i] = sqlName
 
         return sqlnodes.SqlAs(incarnation, expr)
+
+    def process(self, expr):
+        # Lookup the base graph for every transformation.
+        self.baseGraphId = self.modelBase.lookupGraphId(self.baseGraph)
+
+        return super(BasicGraphMapper, self).process(expr)
 
 
 class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):

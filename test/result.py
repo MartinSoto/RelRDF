@@ -76,7 +76,7 @@ def _compare(cols, rows1, rows2, idx2, i=0, blankMap={}):
             return True, "Ok"
         else:
             return False, \
-                "Could not match expected result row %s!" % rows2[0]
+                "Could not match expected result row %s!" % (rows2[0],)
 
     # Get row to match
     row1 = rows1[i]

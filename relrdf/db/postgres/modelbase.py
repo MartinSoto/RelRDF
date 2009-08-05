@@ -28,6 +28,7 @@ import pgdb
 
 from relrdf.localization import _
 from relrdf import error
+from relrdf.error import InstantiationError
 from relrdf.expression import uri
 from relrdf.util.nsshortener import NamespaceUriShortener
 from relrdf import commonns
@@ -35,15 +36,15 @@ from relrdf import commonns
 import basicquery
 import basicsinks
 
-class ModelBase(object):
+class BasicModelBase(object):
+    """Model base for the basic schema."""
+
     __slots__ = ('db',
-                 'querySchema',
-                 'sinkSchema',
 
                  '_connection',
                  '_prefixes',)
 
-    name = "PostgreSQL"
+    name = "PostgreSQL (basic schema)"
     parameterInfo = ({"name": "host",
                       "label": "Database Host",
                       "tip": "Enter the name or the IP-Address of the "
@@ -73,14 +74,6 @@ class ModelBase(object):
         return basicquery.getModelMappers()
 
     def __init__(self, db, **params):
-        super(ModelBase, self).__init__()
-
-        import sys
-
-        # We have only one database schema at this time.
-        self.sinkSchema = basicsinks
-        self.querySchema = basicquery
-
         self.db = db
 
         # Create the connection.
@@ -104,12 +97,12 @@ class ModelBase(object):
         cursor.close()
 
     def getSink(self, sinkType, **sinkArgs):
-        return self.sinkSchema.getSink(self, self._connection, sinkType,
-                                       **sinkArgs)
+        return basicsinks.getSink(self, self._connection, sinkType,
+                                  **sinkArgs)
 
     def getModel(self, modelType, **modelArgs):
-        return self.querySchema.getModel(self, self._connection, modelType,
-                                         **modelArgs)
+        return basicquery.getModel(self, self._connection, modelType,
+                                   **modelArgs)
 
     def getPrefixes(self):
         return self._prefixes
@@ -185,5 +178,34 @@ class ModelBase(object):
         self._connection.close()
 
 
-def getModelBase(**modelBaseArgs):
-    return ModelBase(**modelBaseArgs)
+def checkSchemaVersion(name, version, minVer, maxVer):
+    if version < minVer:
+        raise InstantiationError(_("Version %d of schema '%s' is too old "
+                                   "for this version of RelRDF. You probably "
+                                   "need to upgrade your schema or use an "
+                                   "older version of RelRDF") %
+                                 (version, name))
+    if version > maxVer:
+        raise InstantiationError(_("Version %d of schema '%s' is not "
+                                   "supported by this version of RelRDF. "
+                                   "You probably need to upgrade your "
+                                   "RelRDF installation") %
+                                 (version, name))
+
+def getModelBase(db, **modelBaseArgs):
+    # FIXME: This will cause slowness in situations where many
+    # model bases must be created (e.g., Internet server).
+    conn = pgdb.connect(database=db, **modelBaseArgs)
+
+    cursor = conn.cursor()
+    cursor.execute("select name, version from relrdf_schema_version")
+    name, version = cursor.fetchone()
+    cursor.close()
+
+    conn.close()
+
+    if name == 'basic':
+        checkSchemaVersion(name, version, 1, 1)
+        return BasicModelBase(db, **modelBaseArgs)
+    else:
+        raise InstantiationError(_("Unsupported schema '%s'") % name)

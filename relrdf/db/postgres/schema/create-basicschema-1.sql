@@ -132,10 +132,11 @@ INSERT INTO prefixes (prefix, namespace) VALUES
 
 -- Insert raw statements from statements_temp1 into the graph with the
 -- given internal id.
-CREATE OR REPLACE FUNCTION insert_statements(graph integer)
+CREATE OR REPLACE FUNCTION insert_statements()
     RETURNS integer AS $$
   DECLARE
-    stmt integer;
+    stmtId integer;
+    graphId integer;
     sbj rdf_term;
     pred rdf_term;
     obj rdf_term;
@@ -143,25 +144,25 @@ CREATE OR REPLACE FUNCTION insert_statements(graph integer)
   BEGIN
     inserted := 0;
 
-    FOR stmt, sbj, pred, obj IN
-      SELECT ss.id, s.subject, s.predicate, s.object
-      FROM statements_temp1 s LEFT JOIN statements ss
-        ON ss.subject = s.subject AND
-           ss.predicate = s.predicate AND
-           ss.object = s.object
-      WHERE s.subject IS NOT NULL AND
-            s.predicate IS NOT NULL AND
-            s.object IS NOT NULL
+    FOR stmtId, graphId, sbj, pred, obj IN
+      SELECT s.id, st.graph_id, st.subject, st.predicate, st.object
+      FROM statements_temp1 st LEFT JOIN statements s
+        ON s.subject = st.subject AND
+           s.predicate = st.predicate AND
+           s.object = st.object
+      WHERE st.subject IS NOT NULL AND
+            st.predicate IS NOT NULL AND
+            st.object IS NOT NULL
     LOOP
       -- If necessary, insert the statement into the statements table.
-      IF stmt IS NULL THEN
+      IF stmtId IS NULL THEN
         -- We have to check for duplicates because the input
         -- statements are not guaranteed to be duplicate-free.
         BEGIN
 	  INSERT INTO statements (subject, predicate, object)
 	  VALUES (sbj, pred, obj)                      
 	  RETURNING id
-	  INTO STRICT stmt;
+	  INTO STRICT stmtId;
 	  inserted := inserted + 1;
         EXCEPTION WHEN unique_violation THEN
           -- Do nothing.
@@ -171,7 +172,7 @@ CREATE OR REPLACE FUNCTION insert_statements(graph integer)
       -- Add the statement to the graph.
       BEGIN
 	INSERT INTO graph_statement (graph_id, stmt_id)
-	VALUES (graph, stmt);
+	VALUES (graphId, stmtId);
       EXCEPTION WHEN unique_violation THEN
 	-- Do nothing.
       END;

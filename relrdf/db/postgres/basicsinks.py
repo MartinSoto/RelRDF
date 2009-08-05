@@ -56,7 +56,6 @@ class SingleGraphRdfSink(object):
         self._setup()
 
     def _setup(self):
-
         # Lookup graph ID
         self.setGraph(self.baseGraph)
 
@@ -64,10 +63,11 @@ class SingleGraphRdfSink(object):
         # hold the results.
         self.cursor.execute("""
             CREATE TEMPORARY TABLE statements_temp1 (
+              graph_id integer,
               subject rdf_term,
               predicate rdf_term,
               object rdf_term
-            ) ON COMMIT DROP;
+            );
             """)
 
         self.pendingRows = []
@@ -76,9 +76,8 @@ class SingleGraphRdfSink(object):
         """ Sets the name of the graph to receive triples."""
 
         # Get graph ID from database
-        self.graphId = self.modelBase.lookupGraphId(graphUri,
-                                                    create=True)
-
+        self.graphId = int(self.modelBase.lookupGraphId(graphUri,
+                                                        create=True))
 
     def triple(self, subject, pred, object):
         assert isinstance(subject, uri.Uri)
@@ -101,7 +100,8 @@ class SingleGraphRdfSink(object):
                    % object.__class__.__name__
 
         # Collect the row.
-        self.pendingRows.append((unicode(subject).encode('utf-8'),
+        self.pendingRows.append((self.graphId,
+                                 unicode(subject).encode('utf-8'),
                                  unicode(pred).encode('utf-8'),
                                  unicode(object).encode('utf-8'),
                                  isResource, typeUri, lang))
@@ -110,14 +110,12 @@ class SingleGraphRdfSink(object):
             self._writePendingRows()
 
     def insertByQuery(self, stmtQuery, stmtsPerRow):
-
         # Collect needed columns
         columns = ["col_%d" % i for i in range(3*stmtsPerRow)]
         colDecls = ["%s rdf_term" % c for c in columns]
 
         # Create temporary table to receive the results
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             CREATE TEMPORARY TABLE statements_temp_qry (%s) ON COMMIT DROP;
             """ % ','.join(colDecls))
 
@@ -128,13 +126,14 @@ class SingleGraphRdfSink(object):
         # Move data into main data table
         for i in range(stmtsPerRow):
             self.cursor.execute("""
-                INSERT INTO statements_temp1
-                SELECT col_%s, col_%s, col_%s
-                FROM statements_temp_qry""" % (i*3+0, i*3+1, i*3+2))
+                INSERT INTO
+                  statements_temp1 (graph_id, subject, predicate, object)
+                SELECT %d, col_%d, col_%d, col_%d
+                FROM statements_temp_qry""" % (self.graphId,
+                                               i*3+0, i*3+1, i*3+2))
 
         # Drop intermediate table
         self.cursor.execute("DROP TABLE statements_temp_qry;")
-
 
     def _writePendingRows(self):
         if len(self.pendingRows) == 0:
@@ -144,8 +143,10 @@ class SingleGraphRdfSink(object):
             print "Inserting %d rows..." % (len(self.pendingRows))
 
         self.cursor.executemany("""
-            INSERT INTO statements_temp1 (subject, predicate, object)
+            INSERT INTO statements_temp1 (graph_id, subject, predicate,
+                                          object)
             VALUES (
+              %d,
               rdf_term(0, %s),
               rdf_term(0, %s),
               rdf_term_create(%s, %d, %s, %s))""",
@@ -158,20 +159,18 @@ class SingleGraphRdfSink(object):
 
         # Delete?
         if self.delete:
-
-            # Drop statements (not needed anymore)
-            self.cursor.execute("""
-                TRUNCATE TABLE statements_temp1
-                """)
-
-            # Remove existing statements
+            # Remove existing statements.
             if self.verbose:
                 print "Removing statements from graph...",
             self.cursor.execute("""
-                DELETE FROM graph_statement vs
-                  WHERE graph_id = %d AND stmt_id IN
-                    (SELECT stmt_id FROM graph_statement_temp1)
-                """ % int(self.graphId))
+                DELETE FROM graph_statement gs
+                USING  statements s, statements_temp1 st
+                WHERE s.subject = st.subject AND
+                      s.predicate = st.predicate AND
+                      s.object = st.object AND
+                      gs.stmt_id = s.id AND
+                      gs.graph_id = st.graph_id
+                """)
             if self.verbose:
                 print "%d removed" % self.cursor.rowcount
 
@@ -180,11 +179,10 @@ class SingleGraphRdfSink(object):
             if self.verbose:
                 print "Removing unused statements..."
             self.cursor.execute("""
-                DELETE FROM statements WHERE id IN
-                  (SELECT ss.id FROM statements ss
-                                LEFT JOIN graph_statement gs
-                                ON gs.stmt_id = ss.id
-                   WHERE gs.stmt_id IS NULL);
+                DELETE FROM statements
+                USING statements ss LEFT JOIN graph_statement gs
+                      ON gs.stmt_id = ss.id
+                WHERE gs.stmt_id IS NULL);
                 """)
             if self.verbose:
                 print "%d removed" % self.cursor.rowcount
@@ -193,19 +191,22 @@ class SingleGraphRdfSink(object):
             if self.verbose:
                 print "Inserting statements...",
             self.cursor.execute("""
-                SELECT insert_statements(%d);
-                """ % int(self.graphId))
+                SELECT insert_statements();
+                """)
             if self.verbose:
                 print "%s new" % self.cursor.fetchone()[0]
 
-    def rollback(self):
+        # Drop statements.
+        self.cursor.execute("""
+            TRUNCATE TABLE statements_temp1
+            """)
 
+    def rollback(self):
         self.connection.rollback()
 
         self._setup()
 
     def close(self):
-
         self.finish()
 
         self.cursor.close()

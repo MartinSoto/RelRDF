@@ -155,8 +155,8 @@ class Manifesto(object):
 
 class TestContext(object):
 
-    __slots__ = ('model',
-                 'sink',
+    __slots__ = ('modelBase',
+                 'baseGraphUri',
                  'destPath',
                  'refSet',
 
@@ -169,9 +169,9 @@ class TestContext(object):
     FAIL = 1
     NO_SUPPORT = 2
 
-    def __init__(self, model, sink, destPath, refSet = set()):
-        self.model = model
-        self.sink = sink
+    def __init__(self, modelBase, baseGraphUri, destPath, refSet = set()):
+        self.modelBase = modelBase
+        self.baseGraphUri = baseGraphUri
         self.destPath = destPath
         self.refSet = refSet
 
@@ -276,9 +276,8 @@ class TestContext(object):
                      'orange', value)
 
     def testEnd(self, result, statusTags, color, value):
-
-        # Rollback any data put into the database (if any).
-        self.sink.rollback()
+        # Rollback any changes done on database (if any).
+        self.modelBase.rollback()
 
         # Save results.
         assert self._currentTest is not None
@@ -406,31 +405,16 @@ if __name__ == '__main__':
             print >> sys.stderr, "Could not read reference list: %s" % e
             sys.exit(1)
 
-    # Get model base and sink
+    # Get model base
     try:
-
-        # Parse command line.
         baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
         modelBase = relrdf.getModelBase(baseType, **baseArgs)
-
-        # Create graph to run test cases.
-        baseGraphUri = manifest.source
-        modelBase.lookupGraphId(baseGraphUri, create=True)
-
-        # Open model.
-        modelType, modelArgs = parseCmdLineArgs(argv, 'model')
-        modelArgs['baseGraph'] = baseGraphUri
-        model = modelBase.getModel(modelType, **modelArgs)
-
-        # Open sink.
-        sink = model.getSink()
-
     except InstantiationError, e:
         print >> sys.stderr, ("error: %s") % e
         sys.exit(1)
 
     # Open test context
-    ctx = TestContext(model, sink, 'report', refSet)
+    ctx = TestContext(modelBase, manifest.source, 'report', refSet)
 
     ctx.start()
 

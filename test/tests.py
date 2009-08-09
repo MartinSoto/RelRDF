@@ -158,17 +158,21 @@ class QueryEvaluationTest(object):
         from relrdf.modelimport.redlandparse import RedlandParser
         parser = RedlandParser("turtle")
 
-        # Set graph
+        # Create a sink for the test model.
         if asGraph:
-            ctx.sink.setGraph(uri)
+            sink = ctx.modelBase.getSink('singlegraph', baseGraph=uri)
+        else:
+            sink = ctx.modelBase.getSink('singlegraph',
+                                         baseGraph=ctx.baseGraphUri)
 
         # Copy data into database (no commit!)
         try:
-            parser.parse(uri, ctx.sink)
-            ctx.sink.finish()
+            parser.parse(uri, sink)
         except Exception, detail:
             ctx.testFailExc("Failed to import data")
             raise QueryException("Failed to import data", detail)
+        finally:
+            sink.close()
 
     def evaluate(self, ctx):
 
@@ -186,22 +190,26 @@ class QueryEvaluationTest(object):
         if self.graphData is not None:
             self._readData(ctx, self.graphData, "Graph Data", True)
 
+        # Create the model.
+        model = ctx.modelBase.getModel('plain',
+                                       baseGraph=ctx.baseGraphUri)
+
         # Execute the query
         try:
-
             # Parse query, log SQL
-            sql = ctx.model.querySQL('SPARQL', query, self.query)
+            sql = model.querySQL('SPARQL', query, self.query)
             ctx.testEntry("SQL", sql, pre=True)
 
             # Try to execute the query
-            result = ctx.model.query('SPARQL', query, self.query)
-
+            result = model.query('SPARQL', query, self.query)
         except Exception, detail:
             if not isinstance(detail, error.NotSupportedError):
                 ctx.testFailExc("Failed to run query")
             else:
                 ctx.testNoSupport("Failed to run query")
             raise QueryException("Failed to run query", detail)
+        finally:
+            model.close()
 
         return result
 

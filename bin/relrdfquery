@@ -98,6 +98,7 @@ elif results.resultType() == relrdf.RESULTS_EXISTS:
 else:
     error(_("Query returned an unknown result type"))
 
+modelBase.commit()
 
 model.close()
 modelBase.close()

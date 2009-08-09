@@ -499,39 +499,35 @@ class BasicModel(object):
 
 
     def getSink(self, graphUri=None, delete=False):
-
-        # Get from mapping transform, if not set
+        # Get from mapping transform, if not set.
         if graphUri is None:
             try:
                 graphUri = self.mappingTransf.getModifGraph()
             except NotImplementedError:
                 raise ModifyError(_("Destination model is read-only"))
 
-        # Return the appropriate sink
-        return SingleGraphRdfSink(self.modelBase, self._connection, graphUri, delete=delete)
+        # Return the appropriate sink.
+        return SingleGraphRdfSink(self.modelBase, graphUri, delete=delete)
 
     def _processModifOp(self, expr):
-
         # Get the statement per row count before transforming to SQL.
         stmtsPerRow = len(expr[0]) - 1
 
         try:
-
-            # Get a sink
+            # Determine the type of operation we are executing.
             if isinstance(expr, nodes.Insert):
-                sink = self.getSink(expr.graphUri, delete=False)
+                delete = False
             elif isinstance(expr, nodes.Delete):
-                sink = self.getSink(expr.graphUri, delete=True)
+                delete = True
             else:
                 assert False, "Unexpected expression type"
 
-            # Insert data
-            sink.insertByQuery(self._exprToSql(expr[0]), stmtsPerRow)
-            sink.finish()
+            # Process the data.
+            self.modelBase.insertByQuery(self._exprToSql(expr[0]),
+                                         stmtsPerRow)
 
             # Return count of affected rows
             return results.ModifResults(sink.rowsAffected)
-
         except:
             self.rollback()
             raise
@@ -571,9 +567,13 @@ class BasicModel(object):
 
     def query(self, queryLanguageOrTemplate, queryText=None,
               fileName=_("<unknown>"), **keywords):
-
         # Parse the query
-        expr = self._parse(queryLanguageOrTemplate, queryText, fileName, **keywords)
+        expr = self._parse(queryLanguageOrTemplate, queryText, fileName,
+                           **keywords)
+
+        # The query may produce invalid results if there is still
+        # unprocessed data.
+        self.modelBase.flush()
 
         if isinstance(expr, nodes.ModifOperation):
             return self._processModifOp(expr)
@@ -608,32 +608,12 @@ class BasicModel(object):
         else:
             return self._exprToSql(expr)
 
-    def commit(self):
-        if self._connection is None:
-            return
-
-        self._connection.commit()
-        self._changeCursor = None
-        self._connection.close()
-        self._connection = None
-
-    def rollback(self):
-        if self._connection is None:
-            return
-
-        self._connection.rollback()
-        self._changeCursor = None
-        self._connection.close()
-        self._connection = None
-
     def getPrefixes(self):
         return self.modelBase.getPrefixes()
 
     def close(self):
-        self.rollback()
+        self.modelBase = None
 
-    def __del__(self):
-        self.close()
 
 class TwoWayModel(BasicModel):
 

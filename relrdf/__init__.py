@@ -46,7 +46,7 @@ from relrdf.util.nsshortener import NamespaceUriShortener
 from modelbasefactory import getModelBase
 
 # Factory function for creating query templates.
-from templatefactory import makeTemplate
+from parsequery import makeTemplate, parseQuery
 
 # Graph API.
 import graph

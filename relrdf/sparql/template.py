@@ -22,7 +22,7 @@
 # Boston, MA 02111-1307, USA.
 
 
-"""(More) Secure query template for SPARQL."""
+"""Less insecure query template for SPARQL."""
 
 import string
 import StringIO
@@ -35,8 +35,10 @@ from relrdf.localization import _
 from relrdf import TemplateError
 from relrdf import Uri, Literal
 
+from relrdf.parsequerybase import BaseTemplate
 
-class Template(string.Template):
+
+class Template(BaseTemplate, string.Template):
     """A string template for SPARQL queries, with safe substitution.
 
     This is an extension of the standard Python `string.Template`

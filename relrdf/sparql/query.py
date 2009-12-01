@@ -31,6 +31,8 @@ from relrdf import error
 
 from relrdf.expression import nodes
 from relrdf import typecheck
+from relrdf.parsequerybase import BaseQuery
+from relrdf.util import nsshortener
 
 import simplify
 
@@ -52,23 +54,15 @@ def checkNotSupported(expr):
         checkNotSupported(subexpr)
 
 
-class ParseEnvironment(object):
-    """A parsing environment for SPARQL. It contains high level
-    operations for obtaining expression trees out of SPARQL queries."""
+class Query(BaseQuery):
+    """A class representing a parsed SPARQL query."""
 
-    __slots__ = ('prefixes',)
+    __slots__ = ('expr')
 
-    def __init__(self, prefixes={}):
-        self.prefixes = prefixes
-
-    def setPrefixes(self, prefixes):
-        self.prefixes = prefixes
-
-    def getPrefixes(self):
-        return self.prefixes
-
-    def parse(self, queryText, fileName=_("<unknown>")):
-        if isinstance(queryText, str) or isinstance(queryText, unicode):
+    def __init__(self, queryText, fileName=_("<unknown>"),
+                 prefixes=nsshortener.NamespaceUriShortener(),
+                 **ignoredArgs):
+        if isinstance(queryText, basestring):
             stream = StringIO.StringIO(queryText)
         else:
             stream = queryText
@@ -76,7 +70,7 @@ class ParseEnvironment(object):
         lexer = SparqlLexer.Lexer()
         lexer.setInput(stream)
 
-        parser = SparqlParser.Parser(lexer, prefixes=self.prefixes,
+        parser = SparqlParser.Parser(lexer, prefixes=prefixes,
                                      baseUri=fileName)
         parser.setFilename(fileName)
 
@@ -113,4 +107,6 @@ class ParseEnvironment(object):
         transf = decouple.PatternDecoupler()
         expr = transf.process(expr)
 
-        return expr
+        # Store the final expression in the object.
+        self.expr = expr
+

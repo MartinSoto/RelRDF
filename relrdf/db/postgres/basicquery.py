@@ -29,7 +29,7 @@ import relrdf
 
 from relrdf.localization import _
 from relrdf.error import InstantiationError, ModifyError
-from relrdf import results, mapping, parserfactory, commonns
+from relrdf import results, mapping, parsequery, commonns
 
 from relrdf.typecheck import dynamic
 from relrdf.expression import uri, literal, nodes, build, simplify
@@ -532,47 +532,17 @@ class BasicModel(object):
             self.rollback()
             raise
 
-    def _parse(self, queryLanguageOrTemplate, queryText=None,
-              fileName=_("<unknown>"), **keywords):
-
-        # FIXME: This code should be in a generic superclass.
-        if queryText is None:
-            # We should have been called with a template.
-            template = queryLanguageOrTemplate
-            assert hasattr(template, 'substitute')
-            assert callable(template.substitute)
-
-            # Expand the template:
-            queryLanguage = template.queryLanguage
-            queryText = template.substitute(keywords)
-        else:
-            queryLanguage = queryLanguageOrTemplate
-
-            if len(keywords) > 0:
-                # Treat the queryText as a template.
-                template = relrdf.makeTemplate(queryLanguage, queryText)
-                queryText = template.substitute(keywords)
-
-        # Add the prefixes from the model base to modelArgs, so that
-        # the parser receives them.
-        paramPrf = self.modelArgs.get('prefixes', {})
-        for prefix, namespace in self.getPrefixes().items():
-            paramPrf[prefix] = uri.Namespace(namespace)
-        self.modelArgs['prefixes'] = paramPrf
-
-        # Parse the query.
-        parser = parserfactory.getQueryParser(queryLanguage,
-                                              **self.modelArgs)
-        return parser.parse(queryText, fileName)
-
     def query(self, queryLanguageOrTemplate, queryText=None,
               fileName=_("<unknown>"), **keywords):
-        # Parse the query
-        expr = self._parse(queryLanguageOrTemplate, queryText, fileName,
-                           **keywords)
+        # Parse the query.
+        queryObject = parsequery.parseQuery(queryLanguageOrTemplate,
+                                            queryText, fileName=fileName,
+                                            model=self, **self.modelArgs)
+        expr = queryObject.expr
 
-        # The query may produce invalid results if there is still
-        # unprocessed data.
+        # Flush the buffers in the model base in order to prevent the
+        # query from producing invalid results due to unprocessed
+        # data.
         self.modelBase.flush()
 
         if isinstance(expr, nodes.ModifOperation):
@@ -600,8 +570,11 @@ class BasicModel(object):
 
     def querySQL(self, queryLanguageOrTemplate, queryText=None,
               fileName=_("<unknown>"), **keywords):
-
-        expr = self._parse(queryLanguageOrTemplate, queryText, fileName, **keywords)
+        # Parse the query.
+        queryObject = parsequery.parseQuery(queryLanguageOrTemplate,
+                                            queryText, fileName=fileName,
+                                            model=self, **self.modelArgs)
+        expr = queryObject.expr
 
         if isinstance(expr, nodes.ModifOperation):
             return self._exprToSql(expr[0])

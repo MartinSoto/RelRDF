@@ -29,7 +29,7 @@ import ns
 from result import SelectQueryResult, ConstructQueryResult, AskQueryResult
 
 from relrdf import error
-from relrdf.sparql import environment
+#from relrdf.sparql import environment
 from relrdf.modelimport.rdflibparse import RdfLibParser
 
 def unprefixFileURL(url):

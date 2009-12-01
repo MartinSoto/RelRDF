@@ -22,6 +22,6 @@
 # Boston, MA 02111-1307, USA.
 
 
-from environment import ParseEnvironment as Parser
+from query import Query
 from template import Template
 

@@ -22,18 +22,15 @@
 # Boston, MA 02111-1307, USA.
 
 
-import sparql
+"""Abstract base classes for the query parsing mechanism."""
 
-def getQueryParser(queryLanguage, **parserArgs):
-    try:
-        prefixes = parserArgs['prefixes']
-    except KeyError:
-        prefixes = {}
 
-    queryLanguageNorm = queryLanguage.lower()
-    if queryLanguageNorm == 'sparql':
-        return sparql.Parser(prefixes)
-    else:
-        assert False, "invalid query language '%s'" % queryLanguage
+class BaseTemplate(object):
+    """Base class for all query templates."""
+    __slots__ = ()
 
+
+class BaseQuery(object):
+    """Base class for all query objects."""
+    __slots__ = ()
 

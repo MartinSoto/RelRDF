@@ -532,13 +532,16 @@ class BasicModel(object):
             self.rollback()
             raise
 
-    def query(self, queryLanguageOrTemplate, queryText=None,
-              fileName=_("<unknown>"), **keywords):
-        # Parse the query.
-        queryObject = parsequery.parseQuery(queryLanguageOrTemplate,
-                                            queryText, fileName=fileName,
-                                            model=self, **self.modelArgs)
-        expr = queryObject.expr
+    def query(self, firstArg, queryText=None, fileName=_("<unknown>"),
+              **keywords):
+        if isinstance(firstArg, parsequery.BaseQuery):
+            queryObject = firstArg
+        else:
+            # Parse the query.
+            queryObject = parsequery.parseQuery(firstArg,
+                                                queryText, fileName=fileName,
+                                                model=self, **self.modelArgs)
+        expr = queryObject.getExpression()
 
         # Flush the buffers in the model base in order to prevent the
         # query from producing invalid results due to unprocessed
@@ -568,13 +571,16 @@ class BasicModel(object):
         else:
             assert False, 'No mapping expression'
 
-    def querySQL(self, queryLanguageOrTemplate, queryText=None,
-              fileName=_("<unknown>"), **keywords):
-        # Parse the query.
-        queryObject = parsequery.parseQuery(queryLanguageOrTemplate,
-                                            queryText, fileName=fileName,
-                                            model=self, **self.modelArgs)
-        expr = queryObject.expr
+    def querySQL(self, firstArg, queryText=None, fileName=_("<unknown>"),
+                 **keywords):
+        if isinstance(firstArg, parsequery.BaseQuery):
+            queryObject = firstArg
+        else:
+            # Parse the query.
+            queryObject = parsequery.parseQuery(firstArg,
+                                                queryText, fileName=fileName,
+                                                model=self, **self.modelArgs)
+        expr = queryObject.getExpression()
 
         if isinstance(expr, nodes.ModifOperation):
             return self._exprToSql(expr[0])

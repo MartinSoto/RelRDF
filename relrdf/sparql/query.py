@@ -57,7 +57,7 @@ def checkNotSupported(expr):
 class Query(BaseQuery):
     """A class representing a parsed SPARQL query."""
 
-    __slots__ = ('expr')
+    __slots__ = ('_expr')
 
     def __init__(self, queryText, fileName=_("<unknown>"),
                  prefixes=nsshortener.NamespaceUriShortener(),
@@ -108,5 +108,16 @@ class Query(BaseQuery):
         expr = transf.process(expr)
 
         # Store the final expression in the object.
-        self.expr = expr
+        self._expr = expr
+
+    def getExpression(self):
+        """Retrieve the expression associated to this query.
+
+        Since the expression in a query can be modified, it can be
+        retrieved only once safely. Further attempts at retrieving it
+        will fail with an assertion error."""
+        assert self._expr is not None
+        expr = self._expr
+        self._expr = None
+        return expr
 

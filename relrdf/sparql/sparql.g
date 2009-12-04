@@ -84,15 +84,16 @@ selectQuery returns [expr]
         	{ times = True }
         )
 
-        ( datasetClause )*
+        datasetPair=datasetClauses
 
-        where=whereClause
+        expr=whereClause
         {
           if times:
               names = list(self.variables);
               mappingExprs = [nodes.Var(name) for name in names];
 
-          expr = where;
+          expr = nodes.Dataset(expr, datasetPair[0], datasetPair[1]);
+
           if distinct:
              expr = nodes.Distinct(expr);
           expr.setExtentsStartFromToken(sl, self); }
@@ -105,6 +106,7 @@ selectQuery returns [expr]
 selectColumnList[names, mappingExprs]
     :   ( columnSpec[names, mappingExprs] )+
     ;
+
 /* RelRDF extension. */
 columnSpec[names, mappingExprs]
     :   var=var
@@ -122,18 +124,18 @@ columnSpec[names, mappingExprs]
 constructQuery returns [expr]
     :   ct:CONSTRUCT
         tmplList=constructTemplate
-        ( datasetClause )*
-        where=whereClause
-        { expr = where }
+        datasetPair=datasetClauses
+        expr=whereClause
         expr=solutionModifier[expr]
-        { expr = nodes.StatementResult(where, *tmplList); \
+        { expr = nodes.Dataset(expr, datasetPair[0], datasetPair[1]); \
+          expr = nodes.StatementResult(expr, *tmplList); \
           expr.setExtentsStartFromToken(ct, self); }
     ;
 
 describeQuery returns [expr]
     :   dc:DESCRIBE
         ( ( iriRef=varOrIriRef )+ | TIMES )
-        ( datasetClause )*
+        datasetPair=datasetClauses
         ( where=whereClause )?
         { expr = nodes.NotSupported(); \
           expr.setExtentsStartFromToken(dc, self); }
@@ -142,25 +144,37 @@ describeQuery returns [expr]
 
 askQuery returns [expr]
     :   ask:ASK
-        ( datasetClause )*
-        where=whereClause
-        { expr = nodes.ExistsResult(where); \
+        datasetPair=datasetClauses
+        expr=whereClause
+        { expr = nodes.Dataset(expr, datasetPair[0], datasetPair[1]); \
+          expr = nodes.ExistsResult(expr); \
           expr.setExtentsStartFromToken(ask, self); }
     ;
 
-datasetClause
-    :   FROM
-        (   defaultGraphClause
-        |   namedGraphClause
+datasetClauses returns [datasetPair]
+    :   { default, named = [], [] }
+        ( datasetClause[default, named] )*
+        { datasetPair  = (nodes.DefaultGraphs(*default),
+                          nodes.NamedGraphs(*named)); }
+    ;
+
+datasetClause[default, named]
+    :   frm:FROM
+        (   expr=defaultGraphClause
+            { expr.setExtentsStartFromToken(frm, self); \
+              default.append(expr); }
+        |   expr=namedGraphClause
+            { expr.setExtentsStartFromToken(frm, self); \
+              named.append(expr); }
         )
     ;
 
-defaultGraphClause
-    :   selector=sourceSelector
+defaultGraphClause returns [expr]
+    :   expr=sourceSelector
     ;
 
-namedGraphClause
-    :   NAMED source=sourceSelector
+namedGraphClause returns [expr]
+    :   NAMED expr=sourceSelector
     ;
 
 sourceSelector returns [expr]

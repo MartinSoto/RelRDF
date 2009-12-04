@@ -282,6 +282,15 @@ class TypeChecker(rewrite.ExpressionProcessor):
     def Select(self, expr, rel, predicate):
         expr.staticType = expr[0].staticType
 
+    def preDataset(self, expr):
+        # Process only the main subexpression.
+        self.process(expr[0])
+
+        return (None,) * len(expr)
+
+    def Dataset(self, expr, *ignored):
+        expr.staticType = expr[0].staticType
+
     def preMapResult(self, expr):
         # Process the relation subexpression and create a scope from
         # its type.

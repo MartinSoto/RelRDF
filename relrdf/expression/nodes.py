@@ -771,6 +771,7 @@ class LangMatches(BinaryOperation):
 
     __slots__ = ()
 
+
 #
 # Pattern Nodes
 #
@@ -800,6 +801,7 @@ class DefaultGraph(ExpressionNode):
 
     def __init__(self):
         super(DefaultGraph, self).__init__()
+
 
 #
 # Relational Operations
@@ -903,6 +905,40 @@ class Project(RelationNode):
 
 
 #
+# Dataset Specification
+#
+
+class Dataset(ExpressionNode):
+    """Specify the dataset used as a data source for a query.
+
+    A dataset consists of a collection of default graphs and a
+    collection of named graphs."""
+
+    __slots__ = ()
+
+    def __init__(self, expr, default, named):
+        assert isinstance(default, DefaultGraphs)
+        assert isinstance(named, NamedGraphs)
+        super(Dataset, self).__init__(expr, default, named)
+
+
+class DefaultGraphs(ExpressionNode):
+    """Specify the default graphs used by a query.
+
+    The subpressions must be ``Uri`` nodes."""
+
+    __slots__ = ()
+
+
+class NamedGraphs(ExpressionNode):
+    """Specify the named graphs used by a query.
+
+    The subpressions must be ``Uri`` nodes."""
+
+    __slots__ = ()
+
+
+#
 # Query Results
 #
 
@@ -1003,6 +1039,7 @@ class Sort(QueryResultModifier):
         self.ascending = 1
 
         super(Sort, self).__init__(subexpr, orderBy)
+
 
 #
 # Model Modification Operations

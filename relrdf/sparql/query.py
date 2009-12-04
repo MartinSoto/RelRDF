@@ -102,7 +102,7 @@ class Query(BaseQuery):
         # checker.
         expr = typecheck.typeCheck(expr)
 
-        # Decouple the patterns and translate special SPARQL
+        # Decouple the patterns and translate especial SPARQL
         # constructs.
         transf = decouple.PatternDecoupler()
         expr = transf.process(expr)
@@ -116,8 +116,31 @@ class Query(BaseQuery):
         Since the expression in a query can be modified, it can be
         retrieved only once safely. Further attempts at retrieving it
         will fail with an assertion error."""
-        assert self._expr is not None
+        assert self._expr is not None, \
+            "Query expressions can be retrieved only once."
         expr = self._expr
         self._expr = None
         return expr
 
+    def _getDatasetNode(self):
+        datasetExpr = self._expr
+        while not isinstance(datasetExpr, nodes.Dataset):
+            datasetExpr = datasetExpr[0]
+
+        return datasetExpr
+
+    def getDefaultGraphs(self):
+        """Retrieve the set of default graph URIs for this query.
+
+        These are the URIs in the FROM clauses in the query, but not
+        in the FROM NAMED clauses. The result is an inmutable set of
+        URIs."""
+        return frozenset((expr.uri for expr in self._getDatasetNode()[1]))
+
+    def getNamedGraphs(self):
+        """Retrieve the set of named graph URIs for this query.
+
+        These are the URIs in the FROM NAMED clauses in the query, but
+        not in the plain FROM clauses. The result is an inmutable set
+        of URIs."""
+        return frozenset((expr.uri for expr in self._getDatasetNode()[2]))

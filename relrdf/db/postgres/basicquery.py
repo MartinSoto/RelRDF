@@ -470,6 +470,9 @@ class BasicModel(object):
         self._changeCursor = None
 
     def _exprToSql(self, expr):
+        # Get rid of Dataset nodes.
+        expr = transform.DatasetTransformer().process(expr)
+        
         # Transform occurrences of StatementResult
         expr = transform.StatementResultTransformer().process(expr)
 

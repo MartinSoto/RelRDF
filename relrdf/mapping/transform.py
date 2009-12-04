@@ -33,6 +33,16 @@ from relrdf.typecheck.typeexpr import resourceType
 
 import sqlnodes
 
+
+class DatasetTransformer(rewrite.ExpressionTransformer):
+    """Eliminates dataset nodes from a tree."""
+
+    __slots__ = ()
+
+    def Dataset(self, expr, subexpr, default, named):
+        return subexpr
+
+
 class StatementResultTransformer(rewrite.ExpressionTransformer):
     """Transforms StatementResult into MapResult."""
 
@@ -46,6 +56,7 @@ class StatementResultTransformer(rewrite.ExpressionTransformer):
                 expr.columnNames.append('%s%d' % (colName, i + 1))
                 expr.append(mappingExpr)
         return expr
+
 
 class ExplicitTypeTransformer(rewrite.ExpressionTransformer):
     """Add explicit columns to all MapResult subexpressions
@@ -124,6 +135,7 @@ class ResultMappingTransformer(rewrite.ExpressionTransformer):
     SetDifference = _setOperation
     Intersection = _setOperation
 
+
 class Incarnator(object):
     """A singleton used to generate unique relation incarnations."""
 
@@ -168,6 +180,7 @@ class Incarnator(object):
             ret.append(rewrite.exprApply(expr.copy(), postOp=postOp)[0])
 
         return ret
+
 
 class PureRelationalTransformer(rewrite.ExpressionTransformer):
     """An abstract expression transformer that transforms a decoupled

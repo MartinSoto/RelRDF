@@ -28,6 +28,7 @@ import codecs
 import ns
 from result import SelectQueryResult, ConstructQueryResult, AskQueryResult
 
+import relrdf
 from relrdf import error
 #from relrdf.sparql import environment
 from relrdf.modelimport.rdflibparse import RdfLibParser
@@ -184,30 +185,52 @@ class QueryEvaluationTest(object):
             ctx.testFailExc(ref, "Failed to read query")
             raise QueryException("Failed to read query", detail)
 
-        # Data to read?
-        if self.data is not None:
-            self._readData(ctx, self.data, "Data", False)
-        if self.graphData is not None:
-            self._readData(ctx, self.graphData, "Graph Data", True)
-
         # Create the model.
         model = ctx.modelBase.getModel('plain',
                                        baseGraph=ctx.baseGraphUri)
 
-        # Execute the query
         try:
-            # Parse query, log SQL
-            sql = model.querySQL('SPARQL', query, self.query)
-            ctx.testEntry("SQL", sql, pre=True)
+            # Parse the query.
+            try:
+                queryObj = relrdf.parseQuery('SPARQL', query, self.query,
+                                             model=model)
+            except Exception, detail:
+                if not isinstance(detail, error.NotSupportedError):
+                    ctx.testFailExc("Failed to parse query")
+                else:
+                    ctx.testNoSupport("Failed to parse query")
+                raise QueryException("Failed to parse query", detail)
 
-            # Try to execute the query
-            result = model.query('SPARQL', query, self.query)
-        except Exception, detail:
-            if not isinstance(detail, error.NotSupportedError):
-                ctx.testFailExc("Failed to run query")
-            else:
-                ctx.testNoSupport("Failed to run query")
-            raise QueryException("Failed to run query", detail)
+            # Default graph data to read?
+            defaultGraphs = queryObj.getDefaultGraphs()
+            if len(defaultGraphs) > 0:
+                for uri in defaultGraphs:
+                    self._readData(ctx, uri, "Data", False)
+            elif self.data is not None:
+                self._readData(ctx, self.data, "Data", False)
+
+            # Named graph data to read?
+            namedGraphs = queryObj.getNamedGraphs()
+            if len(namedGraphs) > 0:
+                for uri in namedGraphs:
+                    self._readData(ctx, uri, "Graph Data", True)
+            elif self.graphData is not None:
+                self._readData(ctx, self.graphData, "Graph Data", True)
+
+            # Execute the query
+            try:
+                # Parse query, log SQL
+                sql = model.querySQL('SPARQL', query, self.query)
+                ctx.testEntry("SQL", sql, pre=True)
+
+                # Try to execute the query
+                result = model.query(queryObj, self.query)
+            except Exception, detail:
+                if not isinstance(detail, error.NotSupportedError):
+                    ctx.testFailExc("Failed to run query")
+                else:
+                    ctx.testNoSupport("Failed to run query")
+                raise QueryException("Failed to run query", detail)
         finally:
             model.close()
 

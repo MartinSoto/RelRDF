@@ -7,6 +7,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-la
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/type-promotion/manifest#type-promotion-01
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-langMatches-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-2
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-06
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-4
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-scope-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-10b
@@ -22,6 +23,8 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-neste
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-nested-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/algebra/manifest#filter-place-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-10
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-11
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-12
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-09
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/open-world/manifest#date-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-4
@@ -124,6 +127,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-ops/manifest#minus-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-str-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-1
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/graph/manifest#dawg-graph-10
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#distinct-star-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/optional/manifest#dawg-union-001
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/construct/manifest#construct-3
@@ -134,10 +138,14 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#no-distinct
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-lang-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-builtin/manifest#dawg-lang-2
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#no-distinct-4
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-08
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-07
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-builtin
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-05
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/distinct/manifest#no-distinct-9
-http://www.w3.org/2001/sw/DataAccess/tests/data-r2/graph/manifest#dawg-graph-10
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-03
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-3
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-01
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-numbers
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/sort/manifest#dawg-sort-9
@@ -149,6 +157,7 @@ http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#term-8
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/basic/manifest#spoo-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#limit-1
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/solution-seq/manifest#slice-4
+http://www.w3.org/2001/sw/DataAccess/tests/data-r2/dataset/manifest#dawg-dataset-12b
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/expr-equals/manifest#eq-graph-3
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-6
 http://www.w3.org/2001/sw/DataAccess/tests/data-r2/boolean-effective-value/manifest#dawg-bev-1

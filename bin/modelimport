@@ -77,6 +77,11 @@ elif fileType == 'turtle':
 
     parser = redlandparse.RedlandParser(format='turtle')
     parser.parse(fileName, sink)
+elif fileType == 'ntriples':
+    from relrdf.modelimport import redlandparse
+
+    parser = redlandparse.RedlandParser(format='ntriples')
+    parser.parse(fileName, sink)
 else:
     error(_("Invalid file type '%s'") % fileType)
 

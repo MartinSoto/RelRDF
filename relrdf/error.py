@@ -77,6 +77,12 @@ class SerializationError(Error):
     pass
 
 
+class ConfigurationError(Error):
+    """Exception class for errors related to the configuration
+    system."""
+    pass
+
+
 class PositionError(Error):
     """Base class for exceptions containing an error position."""
 
@@ -176,3 +182,4 @@ class NotSupportedError(PositionError):
     """Exception raised when there is an attempt to use planned, but
     not yet supported features from a query language."""
     pass
+

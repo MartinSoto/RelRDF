@@ -30,6 +30,7 @@ import os, tempfile, shutil
 
 from relrdf.error import ConfigurationError
 from relrdf import config
+from relrdf.debug import DebugConfig
 
 from common import raises
 
@@ -332,3 +333,34 @@ class FileLocationTestCase(unittest.TestCase):
         os.environ['HOME'] = self.dir
         self.create()
         self.assertEqual(os.stat(self.reg.getFileName()).st_mode & 0177, 0)
+
+
+class ConfigObjectTestCase(BasicTestCase):
+    """Test the methods dealing with configuration objects."""
+
+    # If we were doing pure black-box testing, we would have to repeat
+    # everything we did for the raw case here. This should suffice for
+    # the moment, though.
+
+    def init(self):
+        self.config = DebugConfig('theFoo', 42, True)
+
+    def testStoreRetrieve(self):
+        name = 'entry1'
+        descr = 'The description'
+        self.reg.setEntry(name, descr, self.config)
+        self.maybeReopen()
+        descr2, config = self.reg.getEntry(name)
+
+        self.assertEqual(descr2, descr)
+        self.assertEqual(self.config.foo, config.foo)
+        self.assertEqual(self.config.bar, config.bar)
+        self.assertEqual(self.config.baz, config.baz)
+
+
+class ConfigObjectTestCaseNoReopen(ConfigObjectTestCase):
+    """Test the methods dealing with configuration objects, no reopen."""
+
+    def maybeReopen(self):
+        pass
+

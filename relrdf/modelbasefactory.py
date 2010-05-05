@@ -3,7 +3,7 @@
 # This file is part of RelRDF, a library for storage and
 # comparison of RDF models.
 #
-# Copyright (c) 2005-2009 Fraunhofer-Institut fuer Experimentelles
+# Copyright (c) 2005-2010 Fraunhofer-Institut fuer Experimentelles
 #                         Software Engineering (IESE).
 #
 # RelRDF is free software; you can redistribute it and/or
@@ -23,27 +23,72 @@
 
 
 from relrdf.localization import _
-from error import InstantiationError
+from error import InstantiationError, ConfigurationError
 
 
-def getModelBase(modelBaseType, **modelBaseArgs):
+def _getModule(modelBaseType):
+    """Retrieve the Python module associated to a particular modelbase
+    type.
+    """
     modelBaseTypeNorm = modelBaseType.lower()
 
     if modelBaseTypeNorm == "postgres":
         from db import postgres
-        module = postgres
+        return postgres
     elif modelBaseTypeNorm == "debug":
-        import basesinks
-        module = basesinks
+        import debug
+        return debug
     else:
         raise InstantiationError("invalid model base type '%s'"
                                  % modelBaseType)
+
+def getModelBase(modelBaseType, **modelBaseArgs):
+    module = _getModule(modelBaseType)
 
     try:
         return module.getModelBase(**modelBaseArgs)
     except TypeError, e:
         raise InstantiationError(
             _("Missing or invalid model base arguments: %s") % e)
+
+def thawModelbaseConfig(modelBaseType, version, configData):
+    """Create a configuration object from serialized ("frozen") data.
+
+    Parameters:
+
+    * `modelBaseType`: A unique identifier for the modelbase backend
+      (e.g., ``postgres``).
+    * `version`: A positive integer identifying the version of the
+      configuration data format used for the configuration data. This
+      can be used by backends to mark backwards-incompatible format
+      changes, so that older versions of RelRDF can simply reject to
+      read the data.
+    * `configData`: An arbitrary Python object
+      used by the backend to represent the configuration
+      internally.
+
+    Both the `version` and `configData` parameters are normally
+    obtained by invoking the
+    :meth:`relrdf.config.ModelbaseConfig.freeze` on a configuration
+    object.
+
+    The return value must be an instance of
+    :class:`relrdf.config.ModelbaseConfig`.
+    An error of type :exc:`relrdf.error.ConfigurationError`
+    will be raised if the data cannot be thawed.
+    """
+
+    # This is implemented this way in order to import only the modules
+    # that are requested.
+
+    try:
+        module = _getModule(modelBaseType)
+    except InstantiationError, e:
+        raise ConfigurationError(str(e))
+
+    configCls = module.ModelbaseConfig
+
+    return configCls.thaw(version, configData)
 
 def getModelBases():
     import db.mysql

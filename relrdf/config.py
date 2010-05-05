@@ -53,6 +53,67 @@ import json
 
 from relrdf.localization import _
 from relrdf.error import ConfigurationError
+from relrdf import modelbasefactory
+
+
+class ModelbaseConfig(object):
+    """
+    Interface for a modelbase configuration.
+
+    Modelbase configurations are objects that uniquely identify a
+    modelbase. The :meth:`getModelbase` method can be used to
+    instantiate the actual modelbase from a configuration. The
+    :meth:`thaw` and :meth:`freeze` methods can be used to "freeze" a
+    configuration into a JSON-serializable form that can be stored
+    persistently (see class :class:`ModelbaseRegistry`) and to later
+    "thaw" this persistent representation back into a configuration
+    object.
+    """
+
+    @staticmethod
+    def thaw(version, configData):
+        """Create a configuration object from serialized ("frozen") data.
+
+        `version` is a positive integer indicating the format version
+        for the returned configuration data. `configData` is an
+        arbitrary, JSON-serializable Python object used by the backend
+        to represent the configuration internally. Both values are
+        normally originally obtained by running the :meth:`freeze` on
+        an instance of this class.
+
+	The return value must be an instance of this class. A
+        :exc:`ConfigurationError` will be raised if the data cannot be
+        thawed.
+	"""
+        raise NotImplementedError
+
+    def freeze(self):
+        """Return a static, JSON-serializable ("frozen")
+        representation of this object.
+
+	The return value is a tuple of the form ``(backend, version,
+        configData)``:
+
+	* `backend`: a string identifying the backend.
+	* `version` is a positive integer indicating the format version for the
+        returned configuration data.
+	* `configData` is an arbitrary
+        Python object, which must be serializable using the standard
+        :mod:`json` module. 
+
+	These values can be passed to the
+        :func:`modelbasefactory.thawModelbaseConfig` to produce a
+        configuration object that is equivalent to this one. This
+        function, in turn, calls the :meth:`thaw` method in this
+        class.
+	"""
+        raise NotImplementedError
+
+    def getModelbase(self):
+        """Return a live modelbase object corresponding to this
+        configuration.
+	"""
+        raise NotImplementedError
 
 
 class ModelbaseRegistry(object):
@@ -156,7 +217,8 @@ class ModelbaseRegistry(object):
 
     def _loadEntries(self):
         """Load the entries from the registry file if they haven't
-        been loaded already."""
+        been loaded already.
+	"""
         if self.entries is not None:
             # Entries are already there.
             return
@@ -211,7 +273,8 @@ class ModelbaseRegistry(object):
         self.default = default
 
     def _saveEntries(self):
-        """Write the entries to the registry file."""
+        """Write the entries to the registry file.
+	"""
         if not os.path.exists(self.fileName):
             dirName = os.path.dirname(self.fileName)
             if not os.path.exists(dirName):
@@ -262,7 +325,8 @@ class ModelbaseRegistry(object):
                 (self.fileName, unicode(e)))
 
     def setRawEntry(self, name, backend, version, descr, configData):
-        """Create or change a registry entry.
+        """Create or change a registry entry from raw configuration
+        data.
 
 	The parameters specify the entry contents:
 
@@ -303,6 +367,25 @@ class ModelbaseRegistry(object):
             }
         self._saveEntries()
 
+    def setEntry(self, name, descr, config):
+        """Create or change a registry entry.
+
+	The parameters specify the entry contents:
+
+	* `name`: The entry name; an arbitrary string. If an entry
+          with the given name does not already exist in the registry,
+          a new one will be created. Otherwise, the contents of the
+          previously exiting entry will be replaced. This means that
+          names are guaranteed to be unique in the registry.
+	* `descr`: Descriptive text for the entry, usually provided by
+	  the user creating the entry.
+	* `config`: A configuration object encapsulating the modelbase
+	  configuration. It is expected to be an instance of
+	  :class:`ModelbaseConfig`.
+	"""
+        backend, version, configData = config.freeze()
+        self.setRawEntry(name, backend, version, descr, configData)
+
     def setDefaultEntry(self, default):
         """
 	Make the entry named `default` the default entry.
@@ -335,14 +418,14 @@ class ModelbaseRegistry(object):
         return self.default
 
     def getRawEntry(self, name=None):
-        """Retrieve the contents of an entry.
+        """Retrieve the raw contents of an entry.
 
 	`name` identifies the entry to be retrieved. If it is `None`
 	(the default), the registry's default entry (see
 	:meth:`setDefaultEntry`) will be retrieved.
 
-	The return value is a triple of the form ``(backend, version,
-	descr, configData)``.  This triple's components correspond to
+	The return value is a tuple of the form ``(backend, version,
+	descr, configData)``.  This tuple's components correspond to
 	the values of the similarly-named parameters given to the
 	:meth:`setRawEntry` method while creating the entry.
 
@@ -360,6 +443,26 @@ class ModelbaseRegistry(object):
  
         return (entry['backend'], entry['version'], entry['descr'],
                 entry['configData'],)
+
+    def getEntry(self, name=None):
+        """Retrieve the contents of an entry.
+
+	`name` identifies the entry to be retrieved. If it is `None`
+	(the default), the registry's default entry (see
+	:meth:`setDefaultEntry`) will be retrieved.
+
+	The return value is a tuple of the form ``(descr,
+	config)``.  This tuples's components correspond to 
+	the values of the similarly-named parameters given to the
+	:meth:`setEntry` method while creating the entry.
+
+	Raises a :exc:`ConfigurationError` if the specified entry does
+	not exist in the registry.
+	"""
+        backend, version, descr, configData = self.getRawEntry(name)
+        config = modelbasefactory.thawModelbaseConfig(backend, version,
+                                                      configData)
+        return (descr, config)
 
     def removeEntry(self, name):
         """

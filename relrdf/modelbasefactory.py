@@ -23,7 +23,9 @@
 
 
 from relrdf.localization import _
+
 from error import InstantiationError, ConfigurationError
+import cmdline
 
 
 def _getModule(modelBaseType):
@@ -44,6 +46,9 @@ def _getModule(modelBaseType):
 
 def getModelBase(modelBaseType, **modelBaseArgs):
     module = _getModule(modelBaseType)
+
+    # This is implemented this way in order to import only the modules
+    # that are requested.
 
     try:
         return module.getModelBase(**modelBaseArgs)
@@ -90,6 +95,22 @@ def thawModelbaseConfig(modelBaseType, version, configData):
 
     return configCls.thaw(version, configData)
 
+def getCmdLineBackend(modelBaseType):
+    """Retrieve the command-line backend for the modelbase type given
+    by `modelBaseType`. The returned object must be an instance of
+    `relrdf.cmdline.CmdLineBackend`.
+    """
+
+    try:
+        module = _getModule(modelBaseType)
+    except InstantiationError, e:
+        raise CommandLineError(str(e))
+
+    backend = module.cmdLineBackend
+    assert isinstance(backend, cmdline.CmdLineBackend)
+
+    return backend
+ 
 def getModelBases():
     import db.mysql
     return {"postgres": db.postgres.modelbase.ModelBase}

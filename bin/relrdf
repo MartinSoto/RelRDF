@@ -1,10 +1,10 @@
-# -*- Python -*-
+#!/usr/bin/env python
 #
 # This file is part of RelRDF, a library for storage and
 # comparison of RDF models.
 #
-# Copyright (c) 2005-2010 Fraunhofer-Institut fuer Experimentelles
-#                         Software Engineering (IESE).
+# Copyright (C) 2005-2010, Fraunhofer Institut Experimentelles
+# Software Engineering (IESE).
 #
 # RelRDF is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,11 +19,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA.
+# Boston, MA 02111-1307, USA. 
 
-from config import DebugConfig
+import sys
+from os import path
 
-# Required by modelbasefactory.thawModelbaseConfig
-ModelbaseConfig = DebugConfig
+sys.path.append(path.dirname(path.dirname(__file__)))
 
-from cmdline import cmdLineBackend
+from relrdf.cmdline import maincmd
+from relrdf.error import CommandLineError
+
+sys.exit(maincmd.mainCmd(sys.argv))

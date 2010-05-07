@@ -77,6 +77,14 @@ class SerializationError(Error):
     pass
 
 
+class CommandLineError(Error):
+    """Exception class for errors in command-line related code. Error
+    messages contained in instances of this class are expected to be
+    printed out to the user as regular error messages, i.e., without
+    the contents of the stack trace."""
+    pass
+
+
 class ConfigurationError(Error):
     """Exception class for errors related to the configuration
     system."""

@@ -68,7 +68,7 @@ class HelpOperation(backend.CmdLineOperation):
     name = 'help'
     usage = '%prog [OPERATION]'
 
-    def run(self, config, options, args):
+    def run(self, options, args, **kwArgs):
         if len(args) == 0:
             sys.stdout.write(_("RelRDF - A system for storage, analysis and"
                                " comparison of RDF models\n"))
@@ -91,9 +91,6 @@ class HelpOperation(backend.CmdLineOperation):
             operation.help()
         else:
             raise CommandLineError(_("Too many arguments"))
-
-    def listCommands(self):
-        pass
 
 
 # List of operation names.
@@ -139,8 +136,10 @@ def mainCmd(args):
         helpMessage(cmdName)
         return 0
 
+    mbConf = None
+    registry = None
+
     try:
-        # Obtain a modelbase configuration.
         if args[0].startswith('::'):
             # We have an explicit modelbase specification, parse it.
             backend = modelbasefactory.getCmdLineBackend(args[0][2:])
@@ -149,31 +148,41 @@ def mainCmd(args):
             # We have a named modelbase configuration, retrieve it from
             # the default registry.
             try:
-                mbConf = config.getDefaultRegistry().getEntry(args[0][1:])
+                registry = config.getDefaultRegistry()
+                mbConf = registry.getEntry(args[0][1:])
             except ConfigurationError, e:
                 raise CommandLineError(str(e))
 
             # Get rid of the first argument.
             args = args[1:]
-        else:
-            # Use the default configuration, if any.
-            try:
-                mbConf = config.getDefaultRegistry().getEntry()
-            except ConfigurationError, e:
-                # Some commands don't require a modelbase.
-                mbConf = None
 
-        # The first argument must now be a subcommand name.
+        # The first argument must now be an operation name.
         if len(args) == 0:
             raise CommandLineError(_("No operation name specified"))
 
-        # Retrieve the subcommand.
+        # Retrieve the operation.
         operation = getOperation(args[0])
         if operation is None:
             raise CommandLineError(_("Unknown operation '%s'") % args[0])
 
-        # Run it.
-        return operation(mbConf, args)
+        # Run the operation.
+        if operation.needsMbConf:
+            if mbConf is None:
+                # No explicit modelbase configuration was specified,
+                # try to use the default configuration.
+                try:
+                    registry = config.getDefaultRegistry()
+                    mbConf = registry.getEntry()
+                except ConfigurationError, e:
+                    raise CommandLineError(_("Command '%s' requires a "
+                                             "modelbase but none was "
+                                             "specified (and no default "
+                                             "is set)" %
+                                             operation.name))
+
+            return operation(args, registry=registry, mbConf=mbConf)
+        else:
+            return operation(args)
     except CommandLineError, e:
         print >> sys.stderr, '%s: %s' % (cmdName, str(e))
         return 1

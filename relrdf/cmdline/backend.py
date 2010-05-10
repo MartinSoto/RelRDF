@@ -245,9 +245,20 @@ class CmdLineBackend(CmdLineObject):
 class CmdLineOperation(CmdLineObject):
     """Base class for the command-line operations (subcommands) of the
     ``relrdf`` command.
+
+    Operations are command objects, called with a set of command-line
+    parameters (strings). They can also optionally take a model base
+    configuration as parameter (an instance of
+    :class:`relrdf.config.ModelbaseConfig`) which refers to the
+    modelbase this operation is expected to work on. Operations that
+    require a modelbase must signal this by setting the
+    :attr:`needsMbConf` attribute to true.
     """
 
     __slots__ = ()
+
+    needsMbConf = False
+    """True if this operations requires a modelbase configuration."""
 
     def makeParser(self):
         """Add a help option (:option:`-h` or :option:`--help`) to the
@@ -261,16 +272,30 @@ class CmdLineOperation(CmdLineObject):
 
         return parser
 
-    def __call__(self, mbConf, cmdLineArgs):
+    def __call__(self, cmdLineArgs, **kwArgs):
         """Execute the operation implemented by this object.
 
-	`mbConf` is a modelbase configuration, i.e., an instance of
-	:class:`relrdf.config.ModelbaseConfig`. This represents the
-	modelbase this operation is expected to work on. `cmdLineArgs`
-	is a list of strings. The first element contains the operation
-	name, while subsequent elements are expected to be standard
-	command-line options (that is, they start with ``-``).  Option
-	names and formats are specific to each particular operation.
+	`cmdLineArgs` is a list of strings. The first element contains
+	the operation name, while subsequent elements are expected to
+	be standard command-line options (that is, they start with
+	``-``). Option names and formats are specific to each
+	particular operation.
+
+	`kwArgs` may contain additional data required by the
+	operation. These data are all optional:
+
+	* ``mbConf``: a modelbase configuration (an instance of
+	  :class:`relrdf.config.ModelbaseConfig`) that represents the
+	  modelbase this operation is expected to work on. This
+	  parameter should only be passed to operation instances
+	  having the :attr:`needsMbConf` attribute set to true.
+	* ``registry``: The registry from where ``mbConf`` was
+          retrieved. Can be ``None`` if no registry was used.
+
+	Operations redefining this method or the :meth:`run` method in
+	this class, may have explicit parameters for any of these
+	values. However, they must always provide a ``**kwArgs``
+	argument as a placeholder for any passed but unused data.
 
 	The return value is an integer that will be returned as status
 	value by the :command:`relrdf` command when the operation is
@@ -279,28 +304,27 @@ class CmdLineOperation(CmdLineObject):
 	The default implementation parses the command-line arguments
 	using the option parser stored in the :attr:`parser` attribute
 	(see the standard :mod:`optparse` module) and passes the
-	resulting options object and remaining arguments to the
-	:meth:`run` method. If the help option (see method
-	:meth:`makeParser`) is present in the argument list, the
-	:meth:`help` method in this class will be called and
+	resulting options object, the remaining arguments and all
+	keyword argumens to the :meth:`run` method. If the help option
+	(see method :meth:`makeParser`) is present in the argument
+	list, the :meth:`help` method in this class will be called and
 	:meth:`run` *will not* be called.
 	"""
         options, args = self.parser.parse_args(cmdLineArgs[1:])
         if options.help:
             self.help()
             return 0
-        return self.run(mbConf, options, args)
+        return self.run(options, args, **kwArgs)
 
-    def run(self, mbConf, options, args):
-        """Execute the operation implemented by this object, after argument
-        parsing.
+    def run(self, options, args, **kwArgs):
+        """Execute the operation implemented by this object, after
+        argument parsing.
 
-	`mbConf` is a modelbase configuration, as received by the
-	:meth:`__call__` method. `options` and `args` are the results
-	of running the option parser's
-	:method:`~optparse.OptionParser.parse_args` method on this
-	operation's command-line arguments (see the :meth:`__call__`
-	method.
+	`options` and `args` are the results of running the option
+	parser's :method:`~optparse.OptionParser.parse_args` method on
+	this operation's command-line arguments (see the
+	:meth:`__call__` method. `kwArgs` are the same keyword
+	arguments passed to the :meth:`__call__` method.
 
 	The return value is an integer that will be returned by the
 	``relrdf`` command as status value when the operation is run.

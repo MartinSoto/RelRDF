@@ -47,6 +47,8 @@ class RegisterOperation(backend.CmdLineOperation):
     name = 'register'
     usage = 'register NAME'
 
+    needsMbConf = True
+
     def makeParser(self):
         parser = super(RegisterOperation, self).makeParser()
 
@@ -58,6 +60,6 @@ class RegisterOperation(backend.CmdLineOperation):
 
         return parser
 
-    def run(self, mbConf, options, args, registry=None):
+    def run(self, options, args, mbConf, registry=None, **kwArgs):
         if registry is None:
             registry = config.getDefaultRegistry()

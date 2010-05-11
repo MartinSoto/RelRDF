@@ -139,8 +139,10 @@ class RegisterTestCase(BasicTestCase):
         self.checkCommand(['register', '-h'])
 
     def testRegister1(self):
-        self.checkCommand(['::debug', '--foo=theFoo', '--bar=43',
-                           '--baz', 'register', 'entry1'])
+        stdout = self.checkCommand(['::debug', '--foo=theFoo', '--bar=43',
+                                    '--baz', 'register', 'entry1'])
+
+        self.assertTrue('entry1' in stdout)
 
         reg = self.getRegistry()
         self.assertEqual(set(reg.getEntryNames()), set(['entry1']))
@@ -249,7 +251,9 @@ class ForgetTestCase(BasicTestCase):
         reg.setDefaultEntry('entry1')
         del reg
 
-        self.checkCommand([':entry1', 'forget'])
+        stdout = self.checkCommand([':entry1', 'forget'])
+
+        self.assertTrue('entry1' in stdout)
 
     def testForget2(self):
         reg = self.getRegistry()

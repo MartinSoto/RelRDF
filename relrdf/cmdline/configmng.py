@@ -77,6 +77,8 @@ class RegisterOperation(backend.CmdLineOperation):
         except ConfigurationError, e:
             raise CommandLineError(e)
 
+        sys.stdout.write(_("Added entry '%s'") % args[0])
+
         return 0
 
 
@@ -137,7 +139,7 @@ class ForgetOperation(backend.CmdLineOperation):
             raise CommandLineError(_("Too many arguments"))
 
         if mbConfName is None:
-            raise CommandLineError(_("No sotored modelbase selected, "
+            raise CommandLineError(_("No stored modelbase selected, "
                                      "nothing to forget!"))
 
         try:
@@ -145,6 +147,6 @@ class ForgetOperation(backend.CmdLineOperation):
         except ConfigurationError, e:
             raise CommandLineError(e)
 
-        sys.stdout.write(_("Entry '%s' forgotten"))
+        sys.stdout.write(_("Entry '%s' forgotten") % mbConfName)
 
         return 0

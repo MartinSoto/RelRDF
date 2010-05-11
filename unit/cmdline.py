@@ -138,12 +138,28 @@ class RegisterTestCase(BasicTestCase):
     def testHelp(self):
         self.checkCommand(['register', '-h'])
 
-    def testRegister(self):
+    def testRegister1(self):
         self.checkCommand(['::debug', '--foo=theFoo', '--bar=43',
                            '--baz', 'register', 'entry1'])
 
         reg = self.getRegistry()
         self.assertEqual(set(reg.getEntryNames()), set(['entry1']))
+        descr, config = reg.getEntry('entry1')
+        self.assertEqual(descr, '')
+        self.assertEqual(config.foo, 'theFoo')
+        self.assertEqual(config.bar, 43)
+        self.assertTrue(config.baz)
+
+    def testRegister2(self):
+        # Make sure that the registry isn't overwritten by a second
+        # command.
+        self.checkCommand(['::debug', '--foo=theFoo', '--bar=43',
+                           '--baz', 'register', 'entry1'])
+        self.checkCommand(['::debug', '--foo=anotherFoo', 'register',
+                           'entry2'])
+
+        reg = self.getRegistry()
+        self.assertEqual(set(reg.getEntryNames()), set(['entry1', 'entry2']))
         descr, config = reg.getEntry('entry1')
         self.assertEqual(descr, '')
         self.assertEqual(config.foo, 'theFoo')
@@ -227,13 +243,45 @@ class ForgetTestCase(BasicTestCase):
     def testHelp(self):
         self.checkCommand(['forget', '-h'])
 
-    def testForget(self):
+    def testForget1(self):
         reg = self.getRegistry()
         reg.setEntry('entry1', '', DebugConfig())
         reg.setDefaultEntry('entry1')
         del reg
 
         self.checkCommand([':entry1', 'forget'])
+
+    def testForget2(self):
+        reg = self.getRegistry()
+        reg.setEntry('entry1', '', DebugConfig(bar=14))
+        reg.setEntry('entry2', '', DebugConfig())
+        reg.setEntry('entry3', '', DebugConfig())
+        reg.setDefaultEntry('entry1')
+        del reg
+
+        self.checkCommand([':entry3', 'forget'])
+        self.checkCommand([':entry2', 'forget'])
+
+        reg = self.getRegistry()
+        self.assertEqual(set(reg.getEntryNames()), set(['entry1']))
+        descr, config = reg.getEntry('entry1')
+        self.assertEqual(config.bar, 14)
+
+    def testForgetDefault(self):
+        reg = self.getRegistry()
+        reg.setEntry('entry1', '', DebugConfig(bar=14))
+        reg.setEntry('entry2', '', DebugConfig())
+        reg.setEntry('entry3', '', DebugConfig())
+        reg.setDefaultEntry('entry2')
+        del reg
+
+        self.checkCommand(['forget'])
+
+        reg = self.getRegistry()
+        self.assertEqual(set(reg.getEntryNames()),
+                         set(['entry1', 'entry3']))
+        descr, config = reg.getEntry('entry1')
+        self.assertEqual(config.bar, 14)        
 
     def testForgetInexistent(self):
         self.checkCommandError([':entry1', 'forget'])

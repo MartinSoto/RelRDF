@@ -26,7 +26,16 @@ from os import path
 
 sys.path.append(path.dirname(path.dirname(__file__)))
 
+from relrdf.localization import _
 from relrdf.cmdline import maincmd
 from relrdf.error import CommandLineError
 
-sys.exit(maincmd.mainCmd(sys.argv))
+try:
+    sys.exit(maincmd.mainCmd(sys.argv))
+except Exception:
+    sys.stderr.write(_("Program failed with an exception, please consider"
+                       " reporting a bug!\n\n"))
+
+    # Marker for the testing fixtures.
+    sys.stderr.write("+++ Exception +++\n")
+    raise

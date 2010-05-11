@@ -290,7 +290,11 @@ class CmdLineOperation(CmdLineObject):
 	  parameter should only be passed to operation instances
 	  having the :attr:`needsMbConf` attribute set to true.
 	* ``registry``: The registry from where ``mbConf`` was
-          retrieved. Can be ``None`` if no registry was used.
+          retrieved. Can be ``None`` or absent if no registry was
+          used.
+	* ``mbConfName``: The name used to retrieve ``mbConf`` from
+          ``registry``.  Can be ``None`` or absent if no registry was
+          used.
 
 	Operations redefining this method or the :meth:`run` method in
 	this class, may have explicit parameters for any of these
@@ -308,12 +312,23 @@ class CmdLineOperation(CmdLineObject):
 	keyword argumens to the :meth:`run` method. If the help option
 	(see method :meth:`makeParser`) is present in the argument
 	list, the :meth:`help` method in this class will be called and
-	:meth:`run` *will not* be called.
+	:meth:`run` *will not* be called. Also, if :attr:`needsMbConf`
+	is set in this object and no ``mbConf`` keyword argument was
+	provided, the method fails with a :exc:`CommandLineError`
+	before calling :meth:`run`.
 	"""
         options, args = self.parser.parse_args(cmdLineArgs[1:])
+
         if options.help:
             self.help()
             return 0
+
+        if self.needsMbConf and (kwArgs.get('mbConf') is None):
+            raise CommandLineError(_("Command '%s' requires a "
+                                     "modelbase but none was "
+                                     "specified (and no default "
+                                     "is set)" % self.name))
+
         return self.run(options, args, **kwArgs)
 
     def run(self, options, args, **kwArgs):

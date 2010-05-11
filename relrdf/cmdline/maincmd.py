@@ -138,6 +138,7 @@ def mainCmd(args):
 
     mbConf = None
     registry = None
+    mbConfName = None
 
     try:
         if args[0].startswith('::'):
@@ -149,7 +150,8 @@ def mainCmd(args):
             # the default registry.
             try:
                 registry = config.getDefaultRegistry()
-                mbConf = registry.getEntry(args[0][1:])
+                mbConfName = args[0][1:]
+                mbConf = registry.getEntry(mbConfName)
             except ConfigurationError, e:
                 raise CommandLineError(str(e))
 
@@ -170,17 +172,17 @@ def mainCmd(args):
             if mbConf is None:
                 # No explicit modelbase configuration was specified,
                 # try to use the default configuration.
+                registry = config.getDefaultRegistry()
                 try:
-                    registry = config.getDefaultRegistry()
                     mbConf = registry.getEntry()
-                except ConfigurationError, e:
-                    raise CommandLineError(_("Command '%s' requires a "
-                                             "modelbase but none was "
-                                             "specified (and no default "
-                                             "is set)" %
-                                             operation.name))
+                    mbConfName = registry.getDefaultName()
+                except ConfigurationError:
+                    # Commands must deal with the absence of a
+                    # modelbase.
+                    mbConf = None
 
-            return operation(args, registry=registry, mbConf=mbConf)
+            return operation(args, mbConf=mbConf, registry=registry,
+                             mbConfName=mbConfName)
         else:
             return operation(args)
     except CommandLineError, e:

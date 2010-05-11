@@ -97,7 +97,8 @@ class HelpOperation(backend.CmdLineOperation):
 operationNames = [
     'help',
     'register',
-    'list'
+    'list',
+    'setdefault',
     ]
 
 def getOperation(name):
@@ -121,6 +122,9 @@ def getOperation(name):
     if name == 'forget':
         import configmng
         return configmng.ForgetOperation()
+    if name == 'setdefault':
+        import configmng
+        return configmng.SetDefaultOperation()
     else:
         return None
 

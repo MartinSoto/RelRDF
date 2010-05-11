@@ -150,3 +150,34 @@ class ForgetOperation(backend.CmdLineOperation):
         sys.stdout.write(_("Entry '%s' forgotten") % mbConfName)
 
         return 0
+
+
+class SetDefaultOperation(backend.CmdLineOperation):
+    """Set the default modelbase for the local registry
+
+    The selected modelbase will become the default.
+    """
+
+    __slots__ = ()
+
+    name = 'setdefault'
+    usage = '%prog'
+
+    needsMbConf = True
+
+    def run(self, options, args, registry=None, mbConfName=None, **kwArgs):
+        if len(args) > 0:
+            raise CommandLineError(_("Too many arguments"))
+
+        if mbConfName is None:
+            raise CommandLineError(_("A modelbase that is not stored "
+                                     "cannot be set as default"))
+
+        try:
+            registry.setDefaultEntry(mbConfName)
+        except ConfigurationError, e:
+            raise CommandLineError(e)
+
+        sys.stdout.write(_("'%s' is now the default entry") % mbConfName)
+
+        return 0

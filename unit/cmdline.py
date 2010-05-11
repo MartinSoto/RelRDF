@@ -298,3 +298,64 @@ class ForgetTestCase(BasicTestCase):
 
     def testWithOptions(self):
         self.checkCommandError(['forget', 'someoption'])
+
+
+class SetDefaultTestCase(BasicTestCase):
+    """Test the set default operation."""
+
+    def testHelp(self):
+        self.checkCommand(['setdefault', '-h'])
+
+    def testSetDefault1(self):
+        reg = self.getRegistry()
+        reg.setEntry('entry1', '', DebugConfig())
+        del reg
+
+        stdout = self.checkCommand([':entry1', 'setdefault'])
+
+        self.assertTrue('entry1' in stdout)
+
+        reg = self.getRegistry()
+        self.assertEqual(reg.getDefaultName(), 'entry1')
+
+    def testSetDefault2(self):
+        reg = self.getRegistry()
+        reg.setEntry('entry1', '', DebugConfig(bar=14))
+        reg.setEntry('entry2', '', DebugConfig())
+        reg.setEntry('entry3', '', DebugConfig())
+        del reg
+
+        self.checkCommand([':entry3', 'setdefault'])
+
+        reg = self.getRegistry()
+        self.assertEqual(reg.getDefaultName(), 'entry3')
+
+        self.checkCommand([':entry2', 'setdefault'])
+
+        reg = self.getRegistry()
+        self.assertEqual(reg.getDefaultName(), 'entry2')
+
+    def testSetDefaultDefault(self):
+        reg = self.getRegistry()
+        reg.setEntry('entry1', '', DebugConfig(bar=14))
+        reg.setEntry('entry2', '', DebugConfig())
+        reg.setEntry('entry3', '', DebugConfig())
+        reg.setDefaultEntry('entry2')
+        del reg
+
+        self.checkCommand(['setdefault'])
+
+        reg = self.getRegistry()
+        self.assertEqual(reg.getDefaultName(), 'entry2')
+
+    def testSetDefaultInexistent(self):
+        self.checkCommandError([':entry1', 'setdefault'])
+
+    def testSetDefaultExplicit(self):
+        self.checkCommandError(['::debug', 'setdefault'])
+
+    def testNoModelbase(self):
+        self.checkCommandError([':entry1', 'setdefault'])
+
+    def testWithOptions(self):
+        self.checkCommandError(['setdefault', 'someoption'])

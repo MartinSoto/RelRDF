@@ -38,7 +38,7 @@ class DebugConfig(config.ModelbaseConfig):
                  'bar',
                  'baz')
 
-    def __init__(self, foo, bar, baz):
+    def __init__(self, foo='The Real Foo', bar=39, baz=False):
         self.foo = foo
         self.bar = bar
         self.baz = baz

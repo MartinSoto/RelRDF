@@ -25,7 +25,10 @@
 Command-line operations for managing modelbase configurations
 """
 
+import sys
+
 from relrdf.localization import _
+from relrdf.error import CommandLineError, ConfigurationError
 from relrdf import config
 
 import backend
@@ -34,8 +37,7 @@ import backend
 class RegisterOperation(backend.CmdLineOperation):
     """Register a modelbase in the local registry
 
-    The selected modelbase will be registered under the given
-    NAME.
+    Registers the selected modelbase under the given NAME.
 
     This command can also be used to copy a modelbase
     configuration, by selecting the source configuration and
@@ -45,7 +47,7 @@ class RegisterOperation(backend.CmdLineOperation):
     __slots__ = ()
 
     name = 'register'
-    usage = 'register NAME'
+    usage = '%prog NAME'
 
     needsMbConf = True
 
@@ -56,10 +58,93 @@ class RegisterOperation(backend.CmdLineOperation):
                           metavar=_("DESCR"), action='store',
                           type='string', dest='descr', default='',
                           help=_("Use description DESCR for this "
-                                 "modelbase"))
+                                 "modelbase (default: empty)"))
 
         return parser
 
+
     def run(self, options, args, mbConf, registry=None, **kwArgs):
+        if len(args) == 0:
+            raise CommandLineError(_("No name specified"))
+        elif len(args) > 1:
+            raise CommandLineError(_("Too many arguments"))
+
         if registry is None:
             registry = config.getDefaultRegistry()
+
+        try:
+            registry.setEntry(args[0], options.descr, mbConf)
+        except ConfigurationError, e:
+            raise CommandLineError(e)
+
+        return 0
+
+
+class ListOperation(backend.CmdLineOperation):
+    """List the modelbase names in the local registry
+
+    List modelbase names in alphabetical order, one per line. The
+    current default modelbase, if any, will be marked with "(default)"
+    """
+
+    __slots__ = ()
+
+    name = 'list'
+    usage = '%prog NAME'
+
+    def run(self, options, args, registry=None, **kwArgs):
+        if len(args) > 0:
+            raise CommandLineError(_("Too many arguments"))
+
+        if registry is None:
+            registry = config.getDefaultRegistry()
+
+        try:
+            default = registry.getDefaultName()
+            names = list(registry.getEntryNames())
+            names.sort()
+            for name in names:
+                sys.stdout.write(name)
+                if name == default:
+                    sys.stdout.write(' (default)')
+                sys.stdout.write('\n')
+        except ConfigurationError, e:
+            raise CommandLineError(e)
+
+        return 0
+
+
+class ForgetOperation(backend.CmdLineOperation):
+    """Remove a modelbase configuration from the local registry
+
+    Removes the selected modelbase.
+
+    The modelbase will only be removed from the local registry (i.e.,
+    it will be forgotten) but not destroyed. If the configuration data
+    is (manually) provided again, the modelbase should still be
+    accessible.
+    """
+
+    __slots__ = ()
+
+    name = 'forget'
+    usage = '%prog'
+
+    needsMbConf = True
+
+    def run(self, options, args, registry=None, mbConfName=None, **kwArgs):
+        if len(args) > 0:
+            raise CommandLineError(_("Too many arguments"))
+
+        if mbConfName is None:
+            raise CommandLineError(_("No sotored modelbase selected, "
+                                     "nothing to forget!"))
+
+        try:
+            registry.removeEntry(mbConfName)
+        except ConfigurationError, e:
+            raise CommandLineError(e)
+
+        sys.stdout.write(_("Entry '%s' forgotten"))
+
+        return 0

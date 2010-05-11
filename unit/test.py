@@ -31,10 +31,12 @@ sys.path.insert(0, baseDir)
 import unittest
 
 import config
+import cmdline
 
 
 _moduleSuites = [
     unittest.defaultTestLoader.loadTestsFromModule(config),
+    unittest.defaultTestLoader.loadTestsFromModule(cmdline),
     ]
 
 mainSuite = unittest.TestSuite(_moduleSuites)

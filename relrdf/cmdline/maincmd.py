@@ -97,6 +97,7 @@ class HelpOperation(backend.CmdLineOperation):
 operationNames = [
     'help',
     'register',
+    'list'
     ]
 
 def getOperation(name):
@@ -114,6 +115,12 @@ def getOperation(name):
     if name == 'register':
         import configmng
         return configmng.RegisterOperation()
+    if name == 'list':
+        import configmng
+        return configmng.ListOperation()
+    if name == 'forget':
+        import configmng
+        return configmng.ForgetOperation()
     else:
         return None
 

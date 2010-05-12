@@ -24,8 +24,8 @@
 
 """
 
-:mod:`mbregistry`: A Modelbase Registry
-=======================================
+:mod:`config`: A Registry for Modelbase and Model Configuration Data
+====================================================================
 
 Depending on where and how a modelbase is physically stored, a
 number of parameters may be required to access it. For
@@ -95,11 +95,10 @@ class ModelbaseConfig(object):
         configData)``:
 
 	* `backend`: a string identifying the backend.
-	* `version` is a positive integer indicating the format version for the
-        returned configuration data.
-	* `configData` is an arbitrary
-        Python object, which must be serializable using the standard
-        :mod:`json` module. 
+	* `version` is a positive integer indicating the format
+          version for the returned configuration data.
+	* `configData` is an arbitrary Python object, which must be
+          serializable using the standard :mod:`json` module.
 
 	These values can be passed to the
         :func:`modelbasefactory.thawModelbaseConfig` to produce a

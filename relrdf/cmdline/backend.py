@@ -24,8 +24,8 @@
 
 """
 
-Base code for command-line support in RelRDF backends
-=====================================================
+:mod:`backend`: Base code for command-line support in RelRDF backends
+=====================================================================
 
 
 
@@ -58,7 +58,7 @@ class OptionParser(optparse.OptionParser):
 
 class CmdLineObject(object):
     """Base class for objects accessible from the command line through
-    the ``relrdf`` command."""
+    the :command:`relrdf` command."""
 
     __slots__ = ('parser',)
 
@@ -247,18 +247,18 @@ class CmdLineOperation(CmdLineObject):
     ``relrdf`` command.
 
     Operations are command objects, called with a set of command-line
-    parameters (strings). They can also optionally take a model base
+    parameters (strings). They can also optionally take a modelbase
     configuration as parameter (an instance of
     :class:`relrdf.config.ModelbaseConfig`) which refers to the
-    modelbase this operation is expected to work on. Operations that
-    require a modelbase must signal this by setting the
+    modelbase on which this operation is expected to work. Operations
+    that require a modelbase must signal this by setting the
     :attr:`needsMbConf` attribute to true.
     """
 
     __slots__ = ()
 
     needsMbConf = False
-    """True if this operations requires a modelbase configuration."""
+    """True if this operation requires a modelbase configuration."""
 
     def makeParser(self):
         """Add a help option (:option:`-h` or :option:`--help`) to the
@@ -336,7 +336,7 @@ class CmdLineOperation(CmdLineObject):
         argument parsing.
 
 	`options` and `args` are the results of running the option
-	parser's :method:`~optparse.OptionParser.parse_args` method on
+	parser's :meth:`~optparse.OptionParser.parse_args` method on
 	this operation's command-line arguments (see the
 	:meth:`__call__` method. `kwArgs` are the same keyword
 	arguments passed to the :meth:`__call__` method.

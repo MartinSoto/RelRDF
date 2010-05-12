@@ -31,6 +31,8 @@ Contents:
    :maxdepth: 2
 
    intro
+   api/intro
+
 
 Indices and tables
 ==================

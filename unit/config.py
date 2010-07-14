@@ -49,8 +49,8 @@ class BasicTestCase(unittest.TestCase):
     def create(self):
         """Discard the current registry object (if any) and make a new
         one for the same file."""
-        self.reg = config.ModelbaseRegistry(os.path.join(self.dir,
-                                                         'registry.json'))
+        self.reg = config.Registry(os.path.join(self.dir,
+                                                'registry.json'))
 
     def init(self):
         """Add entries to the registry as necessary."""
@@ -72,39 +72,39 @@ class CreationTestCase(BasicTestCase):
     def testStoreEntry(self):
         entry = ('backend1', 1, 'descr1',
                  {'field1': 'A', 'field2': 5})
-        self.reg.setRawEntry('entry1', *entry)
+        self.reg.setRawEntry(('entry1',), *entry)
         self.maybeReopen()
-        self.assertEqual(self.reg.getRawEntry('entry1'), entry)
+        self.assertEqual(self.reg.getRawEntry(('entry1',)), entry)
 
     def testNames(self):
         entry = ('backend1', 1, 'descr1',
                  {'field1': 'A', 'field2': 5})
 
-        self.assertEqual(len(list(self.reg.getEntryNames())), 0)
-        self.reg.setRawEntry('entry1', *entry)
+        self.assertEqual(len(list(self.reg.getEntryNames(()))), 0)
+        self.reg.setRawEntry(('entry1',), *entry)
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 1)
         self.assertTrue('entry1' in names)
 
-        self.reg.setRawEntry('entry2', *entry)
+        self.reg.setRawEntry(('entry2',), *entry)
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 2)
         self.assertTrue('entry1' in names)
         self.assertTrue('entry2' in names)
 
     def testNoDefault1(self):
-        self.assertTrue(self.reg.getDefaultName() is None)
+        self.assertTrue(self.reg.getDefaultName(()) is None)
 
     def testNoDefault2(self):
         entry = ('backend1', 1, 'descr1',
                  {'field1': 'A', 'field2': 5})
-        self.reg.setRawEntry('entry1', *entry)
+        self.reg.setRawEntry(('entry1',), *entry)
         self.maybeReopen()
-        self.assertTrue(self.reg.getDefaultName() is None)
+        self.assertTrue(self.reg.getDefaultName(()) is None)
 
 
 class CreationTestCaseNoReopen(CreationTestCase):
@@ -129,140 +129,140 @@ class MultientryTestCase(BasicTestCase):
         self.entry4 = ('backend2', 1, 'descr4',
                        {'field3': 'D'})
 
-        self.reg.setRawEntry('entry1', *self.entry1)
-        self.reg.setRawEntry('entry2', *self.entry2)
-        self.reg.setRawEntry('entry3', *self.entry3)
+        self.reg.setRawEntry(('entry1',), *self.entry1)
+        self.reg.setRawEntry(('entry2',), *self.entry2)
+        self.reg.setRawEntry(('entry3',), *self.entry3)
 
     def testNoRemove(self):
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 3)
-        self.assertEqual(self.reg.getRawEntry('entry1'), self.entry1)
-        self.assertEqual(self.reg.getRawEntry('entry2'), self.entry2)
-        self.assertEqual(self.reg.getRawEntry('entry3'), self.entry3)
+        self.assertEqual(self.reg.getRawEntry(('entry1',)), self.entry1)
+        self.assertEqual(self.reg.getRawEntry(('entry2',)), self.entry2)
+        self.assertEqual(self.reg.getRawEntry(('entry3',)), self.entry3)
 
     def testRemove1(self):
-        self.reg.removeEntry('entry2')
+        self.reg.removeEntry(('entry2',))
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 2)
-        self.assertEqual(self.reg.getRawEntry('entry1'), self.entry1)
-        self.assertEqual(self.reg.getRawEntry('entry3'), self.entry3)
+        self.assertEqual(self.reg.getRawEntry(('entry1',)), self.entry1)
+        self.assertEqual(self.reg.getRawEntry(('entry3',)), self.entry3)
 
     def testRemove2(self):
-        self.reg.removeEntry('entry1')
-        self.reg.removeEntry('entry3')
+        self.reg.removeEntry(('entry1',))
+        self.reg.removeEntry(('entry3',))
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 1)
-        self.assertEqual(self.reg.getRawEntry('entry2'), self.entry2)
+        self.assertEqual(self.reg.getRawEntry(('entry2',)), self.entry2)
 
     def testRemoveAll(self):
-        self.reg.removeEntry('entry1')
-        self.reg.removeEntry('entry2')
-        self.reg.removeEntry('entry3')
+        self.reg.removeEntry(('entry1',))
+        self.reg.removeEntry(('entry2',))
+        self.reg.removeEntry(('entry3',))
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 0)
 
     def testNoRemoveAdd(self):
-        self.reg.setRawEntry('entry4', *self.entry4)
+        self.reg.setRawEntry(('entry4',), *self.entry4)
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 4)
-        self.assertEqual(self.reg.getRawEntry('entry1'), self.entry1)
-        self.assertEqual(self.reg.getRawEntry('entry2'), self.entry2)
-        self.assertEqual(self.reg.getRawEntry('entry3'), self.entry3)
-        self.assertEqual(self.reg.getRawEntry('entry4'), self.entry4)
+        self.assertEqual(self.reg.getRawEntry(('entry1',)), self.entry1)
+        self.assertEqual(self.reg.getRawEntry(('entry2',)), self.entry2)
+        self.assertEqual(self.reg.getRawEntry(('entry3',)), self.entry3)
+        self.assertEqual(self.reg.getRawEntry(('entry4',)), self.entry4)
 
     def testRemove1Add(self):
-        self.reg.removeEntry('entry2')
-        self.reg.setRawEntry('entry4', *self.entry4)
+        self.reg.removeEntry(('entry2',))
+        self.reg.setRawEntry(('entry4',), *self.entry4)
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 3)
-        self.assertEqual(self.reg.getRawEntry('entry1'), self.entry1)
-        self.assertEqual(self.reg.getRawEntry('entry3'), self.entry3)
-        self.assertEqual(self.reg.getRawEntry('entry4'), self.entry4)
+        self.assertEqual(self.reg.getRawEntry(('entry1',)), self.entry1)
+        self.assertEqual(self.reg.getRawEntry(('entry3',)), self.entry3)
+        self.assertEqual(self.reg.getRawEntry(('entry4',)), self.entry4)
 
     def testRemove2Add(self):
-        self.reg.removeEntry('entry1')
-        self.reg.removeEntry('entry3')
-        self.reg.setRawEntry('entry4', *self.entry4)
+        self.reg.removeEntry(('entry1',))
+        self.reg.removeEntry(('entry3',))
+        self.reg.setRawEntry(('entry4',), *self.entry4)
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 2)
-        self.assertEqual(self.reg.getRawEntry('entry2'), self.entry2)
-        self.assertEqual(self.reg.getRawEntry('entry4'), self.entry4)
+        self.assertEqual(self.reg.getRawEntry(('entry2',)), self.entry2)
+        self.assertEqual(self.reg.getRawEntry(('entry4',)), self.entry4)
 
     def testRemoveAllAdd(self):
-        self.reg.removeEntry('entry1')
-        self.reg.removeEntry('entry2')
-        self.reg.removeEntry('entry3')
-        self.reg.setRawEntry('entry4', *self.entry4)
+        self.reg.removeEntry(('entry1',))
+        self.reg.removeEntry(('entry2',))
+        self.reg.removeEntry(('entry3',))
+        self.reg.setRawEntry(('entry4',), *self.entry4)
         self.maybeReopen()
 
-        names = list(self.reg.getEntryNames())
+        names = list(self.reg.getEntryNames(()))
         self.assertEqual(len(names), 1)
-        self.assertEqual(self.reg.getRawEntry('entry4'), self.entry4)
+        self.assertEqual(self.reg.getRawEntry(('entry4',)), self.entry4)
 
     @raises(ConfigurationError)
     def testGetInexistent(self):
         self.maybeReopen()
-        self.reg.getRawEntry('entry5')
+        self.reg.getRawEntry(('entry5',))
 
     @raises(ConfigurationError)
     def testGetRemoved(self):
-        self.reg.removeEntry('entry2')
+        self.reg.removeEntry(('entry2',))
         self.maybeReopen()
-        self.reg.getRawEntry('entry2')
+        self.reg.getRawEntry(('entry2',))
 
     @raises(ConfigurationError)
     def testRemoveInexistent(self):
         self.maybeReopen()
-        self.reg.removeEntry('entry5')
+        self.reg.removeEntry(('entry5',))
 
     @raises(ConfigurationError)
     def testRemoveRemoved(self):
-        self.reg.removeEntry('entry2')
+        self.reg.removeEntry(('entry2',))
         self.maybeReopen()
-        self.reg.removeEntry('entry2')
+        self.reg.removeEntry(('entry2',))
 
     def testGetDefaultNameUnset(self):
         self.maybeReopen()
-        self.assertTrue(self.reg.getDefaultName() is None)
+        self.assertTrue(self.reg.getDefaultName(()) is None)
 
     @raises(ConfigurationError)
     def testGetDefaultUnset(self):
         self.maybeReopen()
-        self.reg.getRawEntry()
+        self.reg.getRawEntry((None,))
 
     def testGetDefaultName(self):
-        self.reg.setDefaultEntry('entry2')
+        self.reg.setDefaultEntry(('entry2',))
         self.maybeReopen()
-        self.assertEqual(self.reg.getDefaultName(), 'entry2')
+        self.assertEqual(self.reg.getDefaultName(()), 'entry2')
 
     def testGetDefault(self):
-        self.reg.setDefaultEntry('entry2')
+        self.reg.setDefaultEntry(('entry2',))
         self.maybeReopen()
-        self.assertEqual(self.reg.getDefaultName(), 'entry2')
+        self.assertEqual(self.reg.getDefaultName(()), 'entry2')
 
     @raises(ConfigurationError)
     def testSetDefaultInexistent(self):
-        self.reg.setDefaultEntry('entry4')
+        self.reg.setDefaultEntry(('entry4',))
 
     def testRemoveDefaultEntry(self):
-        self.reg.setDefaultEntry('entry2')
-        self.reg.removeEntry('entry2')
+        self.reg.setDefaultEntry(('entry2',))
+        self.reg.removeEntry(('entry2',))
         self.maybeReopen()
-        self.assertTrue(self.reg.getDefaultName() is None)
+        self.assertTrue(self.reg.getDefaultName(()) is None)
 
 
 class MultientryTestCaseNoReopen(MultientryTestCase):
@@ -298,10 +298,10 @@ class FileLocationTestCase(unittest.TestCase):
 
     def create(self):
         """Create a registry object and add an entry to it."""
-        self.reg = config.ModelbaseRegistry()
+        self.reg = config.Registry()
         entry = ('backend1', 1, 'descr1',
                  {'field1': 'A', 'field2': 5})
-        self.reg.setRawEntry('entry1', *entry)
+        self.reg.setRawEntry(('entry1',), *entry)
 
     @raises(ConfigurationError)
     def testNoEnv(self):
@@ -312,7 +312,7 @@ class FileLocationTestCase(unittest.TestCase):
         self.create()
         self.assertTrue(os.path.exists(os.path.join(self.dir,
                                                     '.config',
-                                                    config.ModelbaseRegistry.\
+                                                    config.Registry.\
                                                         DEFAULT_REGISTRY_NAME)))
 
     def testXdg(self):
@@ -320,7 +320,7 @@ class FileLocationTestCase(unittest.TestCase):
         self.create()
         self.assertTrue(os.path.exists(os.path.join(self.dir,
                                                     'config',
-                                                    config.ModelbaseRegistry.\
+                                                    config.Registry.\
                                                         DEFAULT_REGISTRY_NAME)))
 
     def testConf(self):
@@ -346,11 +346,11 @@ class ConfigObjectTestCase(BasicTestCase):
         self.config = DebugConfig('theFoo', 42, True)
 
     def testStoreRetrieve(self):
-        name = 'entry1'
+        path = ('entry1',)
         descr = 'The description'
-        self.reg.setEntry(name, descr, self.config)
+        self.reg.setEntry(path, descr, self.config)
         self.maybeReopen()
-        descr2, config = self.reg.getEntry(name)
+        descr2, config = self.reg.getEntry(path)
 
         self.assertEqual(descr2, descr)
         self.assertEqual(self.config.foo, config.foo)

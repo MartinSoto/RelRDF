@@ -73,7 +73,7 @@ class RegisterOperation(backend.CmdLineOperation):
             registry = config.getDefaultRegistry()
 
         try:
-            registry.setEntry(args[0], options.descr, mbConf)
+            registry.setEntry((args[0],), options.descr, mbConf)
         except ConfigurationError, e:
             raise CommandLineError(e)
 
@@ -102,8 +102,8 @@ class ListOperation(backend.CmdLineOperation):
             registry = config.getDefaultRegistry()
 
         try:
-            default = registry.getDefaultName()
-            names = list(registry.getEntryNames())
+            default = registry.getDefaultName(())
+            names = list(registry.getEntryNames(()))
             names.sort()
             for name in names:
                 sys.stdout.write(name)
@@ -143,7 +143,7 @@ class ForgetOperation(backend.CmdLineOperation):
                                      "nothing to forget!"))
 
         try:
-            registry.removeEntry(mbConfName)
+            registry.removeEntry((mbConfName,))
         except ConfigurationError, e:
             raise CommandLineError(e)
 
@@ -174,7 +174,7 @@ class SetDefaultOperation(backend.CmdLineOperation):
                                      "cannot be set as default"))
 
         try:
-            registry.setDefaultEntry(mbConfName)
+            registry.setDefaultEntry((mbConfName,))
         except ConfigurationError, e:
             raise CommandLineError(e)
 

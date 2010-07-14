@@ -162,7 +162,7 @@ def mainCmd(args):
             try:
                 registry = config.getDefaultRegistry()
                 mbConfName = args[0][1:]
-                mbConf = registry.getEntry(mbConfName)
+                mbConf = registry.getEntry((mbConfName,))
             except ConfigurationError, e:
                 raise CommandLineError(str(e))
 
@@ -185,8 +185,8 @@ def mainCmd(args):
                 # try to use the default configuration.
                 registry = config.getDefaultRegistry()
                 try:
-                    mbConf = registry.getEntry()
-                    mbConfName = registry.getDefaultName()
+                    mbConf = registry.getEntry((None,))
+                    mbConfName = registry.getDefaultName(())
                 except ConfigurationError:
                     # Commands must deal with the absence of a
                     # modelbase.

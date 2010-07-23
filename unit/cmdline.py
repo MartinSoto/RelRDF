@@ -28,7 +28,7 @@ import unittest
 import os, tempfile, shutil, subprocess
 
 from relrdf import config
-from relrdf.debug import DebugConfig
+from relrdf.debug import DebugConfiguration
 
 
 class BasicTestCase(unittest.TestCase):
@@ -148,9 +148,9 @@ class RegisterTestCase(BasicTestCase):
         self.assertEqual(set(reg.getEntryNames(())), set(['entry1']))
         descr, config = reg.getEntry(('entry1',))
         self.assertEqual(descr, '')
-        self.assertEqual(config.foo, 'theFoo')
-        self.assertEqual(config.bar, 43)
-        self.assertTrue(config.baz)
+        self.assertEqual(config.getParam('foo'), 'theFoo')
+        self.assertEqual(config.getParam('bar'), 43)
+        self.assertTrue(config.getParam('baz'))
 
     def testRegister2(self):
         # Make sure that the registry isn't overwritten by a second
@@ -164,9 +164,9 @@ class RegisterTestCase(BasicTestCase):
         self.assertEqual(set(reg.getEntryNames(())), set(['entry1', 'entry2']))
         descr, config = reg.getEntry(('entry1',))
         self.assertEqual(descr, '')
-        self.assertEqual(config.foo, 'theFoo')
-        self.assertEqual(config.bar, 43)
-        self.assertTrue(config.baz)
+        self.assertEqual(config.getParam('foo'), 'theFoo')
+        self.assertEqual(config.getParam('bar'), 43)
+        self.assertTrue(config.getParam('baz'))
 
     def testRegisterDescr(self):
         descrText = 'The description'
@@ -177,9 +177,9 @@ class RegisterTestCase(BasicTestCase):
         self.assertEqual(set(reg.getEntryNames(())), set(['entry1']))
         descr, config = reg.getEntry(('entry1',))
         self.assertEqual(descr, descrText)
-        self.assertEqual(config.foo, 'theFoo')
-        self.assertEqual(config.bar, 42)
-        self.assertFalse(config.baz)
+        self.assertEqual(config.getParam('foo'), 'theFoo')
+        self.assertEqual(config.getParam('bar'), 42)
+        self.assertFalse(config.getParam('baz'))
 
     def testNoModelbase(self):
         self.checkCommandError(['register', 'entry1'])
@@ -203,15 +203,15 @@ class ListTestCase(BasicTestCase):
 
     def testListOne(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration())
         del reg
 
         self.assertEqual(self.checkCommand(['list']), 'entry1\n')
 
     def testListTwo(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry2',), '', DebugConfig())
-        reg.setEntry(('entry1',), '', DebugConfig())
+        reg.setEntry(('entry2',), '', DebugConfiguration())
+        reg.setEntry(('entry1',), '', DebugConfiguration())
         del reg
 
         self.assertEqual(self.checkCommand(['list']),
@@ -219,7 +219,7 @@ class ListTestCase(BasicTestCase):
 
     def testListOneDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration())
         reg.setDefaultEntry(('entry1',))
         del reg
 
@@ -227,8 +227,8 @@ class ListTestCase(BasicTestCase):
 
     def testListTwoDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry2',), '', DebugConfig())
-        reg.setEntry(('entry1',), '', DebugConfig())
+        reg.setEntry(('entry2',), '', DebugConfiguration())
+        reg.setEntry(('entry1',), '', DebugConfiguration())
         reg.setDefaultEntry(('entry2',))
         del reg
 
@@ -247,7 +247,7 @@ class ForgetTestCase(BasicTestCase):
 
     def testForget1(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration())
         reg.setDefaultEntry(('entry1',))
         del reg
 
@@ -257,9 +257,9 @@ class ForgetTestCase(BasicTestCase):
 
     def testForget2(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfig())
-        reg.setEntry(('entry3',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
+        reg.setEntry(('entry2',), '', DebugConfiguration())
+        reg.setEntry(('entry3',), '', DebugConfiguration())
         reg.setDefaultEntry(('entry1',))
         del reg
 
@@ -269,13 +269,13 @@ class ForgetTestCase(BasicTestCase):
         reg = self.getRegistry()
         self.assertEqual(set(reg.getEntryNames(())), set(['entry1']))
         descr, config = reg.getEntry(('entry1',))
-        self.assertEqual(config.bar, 14)
+        self.assertEqual(config.getParam('bar'), 14)
 
     def testForgetDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfig())
-        reg.setEntry(('entry3',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
+        reg.setEntry(('entry2',), '', DebugConfiguration())
+        reg.setEntry(('entry3',), '', DebugConfiguration())
         reg.setDefaultEntry(('entry2',))
         del reg
 
@@ -285,7 +285,7 @@ class ForgetTestCase(BasicTestCase):
         self.assertEqual(set(reg.getEntryNames(())),
                          set(['entry1', 'entry3']))
         descr, config = reg.getEntry(('entry1',))
-        self.assertEqual(config.bar, 14)        
+        self.assertEqual(config.getParam('bar'), 14)        
 
     def testForgetInexistent(self):
         self.checkCommandError([':entry1', 'forget'])
@@ -308,7 +308,7 @@ class SetDefaultTestCase(BasicTestCase):
 
     def testSetDefault1(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration())
         del reg
 
         stdout = self.checkCommand([':entry1', 'setdefault'])
@@ -320,9 +320,9 @@ class SetDefaultTestCase(BasicTestCase):
 
     def testSetDefault2(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfig())
-        reg.setEntry(('entry3',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
+        reg.setEntry(('entry2',), '', DebugConfiguration())
+        reg.setEntry(('entry3',), '', DebugConfiguration())
         del reg
 
         self.checkCommand([':entry3', 'setdefault'])
@@ -337,9 +337,9 @@ class SetDefaultTestCase(BasicTestCase):
 
     def testSetDefaultDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfig(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfig())
-        reg.setEntry(('entry3',), '', DebugConfig())
+        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
+        reg.setEntry(('entry2',), '', DebugConfiguration())
+        reg.setEntry(('entry3',), '', DebugConfiguration())
         reg.setDefaultEntry(('entry2',))
         del reg
 

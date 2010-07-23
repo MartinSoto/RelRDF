@@ -30,7 +30,7 @@ import os, tempfile, shutil
 
 from relrdf.error import ConfigurationError
 from relrdf import config
-from relrdf.debug import DebugConfig
+from relrdf.debug import DebugConfiguration
 
 from common import raises
 
@@ -497,7 +497,7 @@ class ConfigObjectTestCase(BasicTestCase):
     # the moment, though.
 
     def init(self):
-        self.config = DebugConfig('theFoo', 42, True)
+        self.config = DebugConfiguration(foo='theFoo', bar=42, baz=True)
 
     def testStoreRetrieve(self):
         path = self.basePath + ('entry1',)
@@ -507,9 +507,7 @@ class ConfigObjectTestCase(BasicTestCase):
         descr2, config = self.reg.getEntry(path)
 
         self.assertEqual(descr2, descr)
-        self.assertEqual(self.config.foo, config.foo)
-        self.assertEqual(self.config.bar, config.bar)
-        self.assertEqual(self.config.baz, config.baz)
+        self.assertEqual(self.config.getParams(), config.getParams())
 
 
 class ConfigObjectTestCaseNoReopen(ConfigObjectTestCase):

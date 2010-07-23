@@ -26,50 +26,54 @@
 Command-line support for the debugging backend
 """
 
-from optparse import OptionParser
+import argparse
 
 from relrdf.error import ConfigurationError
-from relrdf.cmdline import backend
-
-import config
+from relrdf.config import Configuration
 
 
-class DebugBackend(backend.CmdLineBackend):
+class DebugConfiguration(Configuration):
     """Debug command-line backend.
     """
 
     __slots__ = ()
 
-    identifier = 'debug'
-    name = 'Debug backend'
+    name = 'debug'
+    version = 1
+    schema = {
+        'foo': {
+            'type': str,
+            'default': 'The Real Foo',
+            },
+        'bar': {
+            'type': int,
+            'default': 42,
+            },
+        'baz': {
+            'type': bool,
+            'default': False,
+            },
+        }
 
-    def makeParser(self):
-        parser = super(DebugBackend, self).makeParser()
+    @classmethod
+    def _createCmdLineParser(cls):
+        parser = argparse.ArgumentParser(
+            description="Options for the FooBar frobnicating modelbase")
 
-        parser.add_option('--foo', metavar="STRING", action='store',
-                          type='string', dest='foo', default='slatfatf',
-                          help="Set first segment of the FUBAR "
-                          "access block to STRING")
-        parser.add_option('--bar', metavar="INT", action='store',
-                          type='int', dest='bar', default=42,
-                          help="Set second segment of the FUBAR "
-                          "access block to INT")
-        parser.add_option('--baz', action='store_true',
-                          dest='baz', default=False,
-                          help="Use the BAZ data subblock if available")
+        parser.add_argument('--foo', metavar="STRING", type=str,
+                            help="Set first segment of the FUBAR "
+                            "access block to STRING")
+        parser.add_argument('--bar', metavar="INT", type=int,
+                            help="Set second segment of the FUBAR "
+                            "access block to INT")
+        parser.add_argument('--baz', action='store_true',
+                            help="Use the BAZ data subblock if available")
 
         return parser
 
-    def optionsToConfig(self, mbId, options):
-        assert mbId == '::debug'
-        return config.DebugConfig(options.foo, options.bar, options.baz)
 
-    def getOperation(self, name):
-        raise NotImplementedError
-
-    def getOperationNames(self):
-        raise NotImplementedError
-
-
-# Singleton instance.
-cmdLineBackend = DebugBackend()
+def getConfigClass(path):
+    if len(path) == 0:
+        return DebugConfiguration
+    else:
+        return None

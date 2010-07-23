@@ -56,61 +56,17 @@ def getModelBase(modelBaseType, **modelBaseArgs):
         raise InstantiationError(
             _("Missing or invalid model base arguments: %s") % e)
 
-def thawModelbaseConfig(modelBaseType, version, configData):
-    """Create a configuration object from serialized ("frozen") data.
-
-    Parameters:
-
-    * `modelBaseType`: A unique identifier for the modelbase backend
-      (e.g., ``postgres``).
-    * `version`: A positive integer identifying the version of the
-      configuration data format used for the configuration data. This
-      can be used by backends to mark backwards-incompatible format
-      changes, so that older versions of RelRDF can simply reject to
-      read the data.
-    * `configData`: An arbitrary Python object
-      used by the backend to represent the configuration
-      internally.
-
-    Both the `version` and `configData` parameters are normally
-    obtained by invoking the
-    :meth:`relrdf.config.ModelbaseConfig.freeze` on a configuration
-    object.
-
-    The return value must be an instance of
-    :class:`relrdf.config.ModelbaseConfig`.
-    An error of type :exc:`relrdf.error.ConfigurationError`
-    will be raised if the data cannot be thawed.
-    """
-
+def getConfigClass(path):
     # This is implemented this way in order to import only the modules
     # that are requested.
 
     try:
-        module = _getModule(modelBaseType)
+        module = _getModule(path[0])
     except InstantiationError, e:
         raise ConfigurationError(str(e))
 
-    configCls = module.ModelbaseConfig
+    return module.getConfigClass(path[1:])
 
-    return configCls.thaw(version, configData)
-
-def getCmdLineBackend(modelBaseType):
-    """Retrieve the command-line backend for the modelbase type given
-    by `modelBaseType`. The returned object must be an instance of
-    `relrdf.cmdline.CmdLineBackend`.
-    """
-
-    try:
-        module = _getModule(modelBaseType)
-    except InstantiationError, e:
-        raise CommandLineError(str(e))
-
-    backend = module.cmdLineBackend
-    assert isinstance(backend, cmdline.CmdLineBackend)
-
-    return backend
- 
 def getModelBases():
     import db.mysql
     return {"postgres": db.postgres.modelbase.ModelBase}

@@ -23,4 +23,4 @@
 
 
 from registry import Registry, getDefaultRegistry
-from config import ModelbaseConfig
+from config import Configuration

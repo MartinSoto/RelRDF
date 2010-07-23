@@ -25,37 +25,60 @@
 """
 """
 
+from relrdf.localization import _
+from relrdf.error import ConfigurationError
 
-class ModelbaseConfig(object):
+
+class Configuration(object):
     """
-    Interface for a modelbase configuration.
+    Configuration base class.
 
-    Modelbase configurations are objects that uniquely identify a
-    modelbase. The :meth:`getModelbase` method can be used to
-    instantiate the actual modelbase from a configuration. The
-    :meth:`thaw` and :meth:`freeze` methods can be used to "freeze" a
-    configuration into a JSON-serializable form that can be stored
-    persistently (see class :class:`Registry`) and to later
-    "thaw" this persistent representation back into a configuration
-    object.
+    Configurations are objects that uniquely identify a modelbase, a
+    model or other similar object. The :meth:`thaw` and :meth:`freeze`
+    methods can be used to "freeze" a configuration into a
+    JSON-serializable form that can be stored persistently (see class
+    :class:`Registry`) and to later "thaw" this persistent
+    representation back into a configuration object.
     """
 
-    @staticmethod
-    def thaw(version, configData):
-        """Create a configuration object from serialized ("frozen") data.
+    __slots__ = ('params',)
 
-        `version` is a positive integer indicating the format version
-        for the returned configuration data. `configData` is an
-        arbitrary, JSON-serializable Python object used by the backend
-        to represent the configuration internally. Both values are
-        normally originally obtained by running the :meth:`freeze` on
-        an instance of this class.
+    name = None
+    version = None
+    schema = {}
 
-	The return value must be an instance of this class. A
-        :exc:`ConfigurationError` will be raised if the data cannot be
-        thawed.
-	"""
-        raise NotImplementedError
+    _cmdLineParser = None 
+
+    def __init__(self, **kwArgs):
+        self.params = {}
+
+        # Set parameters from the argument list.
+        for name, value in kwArgs.iteritems():
+            try:
+                paramSchema = self.schema[name]
+            except KeyError:
+                raise ConfigurationError, _("unexpected configuration "
+                                            "parameter '%s'") % name
+            if not isinstance(value, paramSchema['type']):
+                raise ConfigurationError, _("invalid type for configuration "
+                                            "parameter '%s'") % name
+            self.params[name] = value
+
+        # Set remaining parameters to their default values.
+        for name, paramSchema in self.schema.iteritems():
+            if name not in self.params:
+                try:
+                    default = paramSchema['default']
+                except KeyError:
+                    raise ConfigurationError, _("required parameter '%s' "
+                                                "not specified") % name
+                self.params[name] = default
+
+    def getParam(self, name):
+        return self.params[name]
+
+    def getParams(self):
+        return dict(self.params)
 
     def freeze(self):
         """Return a static, JSON-serializable ("frozen")
@@ -76,12 +99,76 @@ class ModelbaseConfig(object):
         function, in turn, calls the :meth:`thaw` method in this
         class.
 	"""
-        raise NotImplementedError
+        return (self.name, self.version, self.params)
 
-    def getModelbase(self):
-        """Return a live modelbase object corresponding to this
-        configuration.
+    @classmethod
+    def thaw(cls, version, data):
+        """Create a configuration object from serialized ("frozen") data.
+
+        `version` is a positive integer indicating the format version
+        for the returned configuration data. `configData` is an
+        arbitrary, JSON-serializable Python object used by the backend
+        to represent the configuration internally. Both values are
+        normally originally obtained by running the :meth:`freeze` on
+        an instance of this class.
+
+	The return value must be an instance of this class. A
+        :exc:`ConfigurationError` will be raised if the data cannot be
+        thawed.
 	"""
+        if int(version) != int(cls.version):
+            raise ConfigurationError("Version %d of config data is not "
+                                     "supported. Upgrade RelRDF" % version)
+        return cls.fromUnchecked(**data)
+
+    @classmethod
+    def fromUnchecked(cls, **kwArgs):
+        # Convert parameters from the argument list to their expected
+        # types.
+        for name, value in kwArgs.iteritems():
+            try:
+                paramSchema = cls.schema[name]
+            except KeyError:
+                raise ConfigurationError, _("unexpected configuration "
+                                            "parameter '%s'") % name
+            kwArgs[name] = paramSchema['type'](value)
+
+        # Create the actual object.
+        return cls(**kwArgs)
+
+    @classmethod
+    def _createCmdLineParser(cls):
         raise NotImplementedError
 
+    @classmethod
+    def _getCmdLineParser(cls):
+        if cls._cmdLineParser is None:
+            cls._cmdLineParser = cls._createCmdLineParser()
+        return cls._cmdLineParser
 
+    @classmethod
+    def fromCmdLine(cls, args):
+        options = cls._getCmdLineParser().parse_args(args)
+
+        kwArgs = {}
+        for name, paramSchema in cls.schema.iteritems():
+            try:
+                kwArgs[name] = getattr(options, name)
+            except AttributeError:
+                kwArgs[name] = None
+
+            if kwArgs[name] is None:
+                try:
+                    kwArgs[name] = paramSchema['default']
+                except KeyError:
+                    raise ConfigurationError, _("unexpected configuration "
+                                                "parameter '%s'") % name
+
+        return cls.fromUnchecked(**kwArgs)
+
+    @classmethod
+    def cmdLineHelp(cls):
+        return cls._getCmdLineParser().format_help()
+
+    def readableContents(self):
+        pass

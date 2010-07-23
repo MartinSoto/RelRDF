@@ -454,8 +454,20 @@ class Registry(object):
 	not exist in the registry.
 	"""
         backend, version, descr, configData = self.getRawEntry(path)
-        config = modelbasefactory.thawModelbaseConfig(backend, version,
-                                                      configData)
+
+        # Retrieve the backend path corresponding to this entry.
+        node = self.rootNode
+        backendPath = []
+        for name in path:
+            if name is None:
+                name = node['default']
+            node = node['entries'][name]
+            backendPath.append(node['backend'])
+
+        # Thaw the configuration.
+        configCls = modelbasefactory.getConfigClass(backendPath)
+        config = configCls.thaw(version, configData)
+
         return (descr, config)
 
     def removeEntry(self, path):

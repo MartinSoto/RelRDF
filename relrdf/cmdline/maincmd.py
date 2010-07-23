@@ -30,6 +30,7 @@ The main ``relrdf`` command
 
 import sys
 from os import path
+import itertools
 
 from relrdf.localization import _
 from relrdf.error import CommandLineError, ConfigurationError
@@ -153,9 +154,16 @@ def mainCmd(args):
 
     try:
         if args[0].startswith('::'):
-            # We have an explicit modelbase specification, parse it.
-            backend = modelbasefactory.getCmdLineBackend(args[0][2:])
-            mbConf, args = backend.argsToConfig(args)
+            # We have an explicit modelbase specification, parse it:
+
+            # Find the end of the modelbase flags.
+            i = 1
+            while i < len(args) and args[i][0] == '-':
+                i += 1
+
+            configCls = modelbasefactory.getConfigClass((args[0][2:],))
+            mbConf = configCls.fromCmdLine(args[1:i])
+            args = args[i:]
         elif args[0].startswith(':'):
             # We have a named modelbase configuration, retrieve it from
             # the default registry.

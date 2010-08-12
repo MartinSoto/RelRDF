@@ -1701,7 +1701,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             self.error(msg % ' '.join(argv))
         return args
 
-    def parse_known_args(self, args=None, namespace=None):
+    def parse_known_args(self, args=None, namespace=None, contiguous=False):
         # args default to the system args
         if args is None:
             args = _sys.argv[1:]
@@ -1727,12 +1727,12 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
 
         # parse the arguments and exit if there are any errors
         try:
-            return self._parse_known_args(args, namespace)
+            return self._parse_known_args(args, namespace, contiguous)
         except ArgumentError:
             err = _sys.exc_info()[1]
             self.error(str(err))
 
-    def _parse_known_args(self, arg_strings, namespace):
+    def _parse_known_args(self, arg_strings, namespace, contiguous):
         # replace arg strings that are file references
         if self.fromfile_prefix_chars is not None:
             arg_strings = self._read_args_from_files(arg_strings)
@@ -1814,8 +1814,12 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
 
                 # if we found no optional action, skip it
                 if action is None:
-                    extras.append(arg_strings[start_index])
-                    return start_index + 1
+                    if contiguous:
+                        extras.extend(arg_strings[start_index:])
+                        return len(arg_strings)
+                    else:
+                        extras.append(arg_strings[start_index])
+                        return start_index + 1
 
                 # if there is an explicit argument, try to match the
                 # optional's string arguments to only this
@@ -1924,9 +1928,14 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             # if we consumed all the positionals we could and we're not
             # at the index of an option string, there were extra arguments
             if start_index not in option_string_indices:
-                strings = arg_strings[start_index:next_option_string_index]
-                extras.extend(strings)
-                start_index = next_option_string_index
+                if contiguous:
+                    extras = arg_strings[start_index:]
+                    start_index = len(arg_strings)
+                    break
+                else:
+                    strings = arg_strings[start_index:next_option_string_index]
+                    extras.extend(strings)
+                    start_index = next_option_string_index
 
             # consume the next optional and any arguments for it
             start_index = consume_optional(start_index)

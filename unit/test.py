@@ -30,14 +30,27 @@ sys.path.insert(0, baseDir)
 
 import unittest
 
-import config
+# Import test modules.
+import argparse
 import cmdline
+import config
+
+testModules = [argparse, cmdline, config]
 
 
-_moduleSuites = [
-    unittest.defaultTestLoader.loadTestsFromModule(config),
-    unittest.defaultTestLoader.loadTestsFromModule(cmdline),
-    ]
+if len(sys.argv) == 1:
+    moduleSuites = [unittest.defaultTestLoader.loadTestsFromModule(module)
+                    for module in testModules]
+else:
+    moduleSuites = []
+    for modName in sys.argv[1:]:
+        modList = [module for module in testModules
+                   if module.__name__ == modName]
+        if len(modList) == 0:
+            print >> sys.stderr, "Test module '%s' not found" % modName
+            sys.exit(1)
+    moduleSuites.append(unittest.defaultTestLoader. \
+                            loadTestsFromModule(modList[0]))
 
-mainSuite = unittest.TestSuite(_moduleSuites)
+mainSuite = unittest.TestSuite(moduleSuites)
 unittest.TextTestRunner(verbosity=2).run(mainSuite)

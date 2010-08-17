@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='iso-8859-1'?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/">
+  <head>
+    <meta content="text/html; charset=iso-8859-1" http-equiv="content-type" />
+
+    <title>Navigation Elements</title>
+
+    <link rel="stylesheet" href="css/main.css" type="text/css" />
+  </head>
+
+  <body>
+    <div class="navElemList">
+      <div class="navElemRef"><a href="vmxti_root.html" target="descr"
+				 >Hauptseite</a></div>
+      <div py:for="i, (queryName, query) in enumerate(navQueries)"
+	   py:strip="">
+	<div class="navElemRef"><a href="${navPageLink(i)}" target="navelem"
+				   >${queryName}</a></div>
+      </div>
+    </div>
+  </body>
+</html>
+

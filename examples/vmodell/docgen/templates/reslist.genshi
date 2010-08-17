@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='iso-8859-1'?>
+
+<table xmlns="http://www.w3.org/1999/xhtml"
+       xmlns:py="http://genshi.edgewall.org/"
+       class="resRefList">
+  <tr py:for="refRes, graph in self.sortValueSubgraph(valueSubgraph)"
+      class="${self.refClass(refRes, graph)}">
+    <td class="typeName">${resTypeDsp.displayHrz(res=refRes)}</td>
+    <td class="resRef"
+	><a href="${resLink(refRes.uri)}"
+	    >${resNameDsp.displayHrz(res=refRes)}</a></td>
+  </tr>
+</table>

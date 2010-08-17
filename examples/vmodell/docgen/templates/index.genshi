@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='iso-8859-1'?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/">
+  <head>
+    <title>${makeTitle()}</title>
+  </head>
+
+  <frameset cols="30%, 70%">
+    <frameset rows="33%, 67%">
+      <frame name="navelems" src="navigation_elements.html" />
+      <frame name="navelem" src="navigation1.html" />
+    </frameset>
+    <frame name="descr" src="vmxti_root.html" />
+  </frameset>
+</html>

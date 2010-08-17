@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='iso-8859-1'?>
+
+<div xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:py="http://genshi.edgewall.org/"
+     class="resource">
+
+  <div class="typeName">
+    ${resTypeDsp.displayHrz()}
+  </div>
+  <h1>${resNameDsp.displayHrz()}</h1>
+
+  ${htmlPropDsp.displayVrt(prop = vmxt.Ablauf)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Ablaufdarstellung)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Aufgaben_und_Befugnisse)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Begriff)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.BeispielProduktgestaltung)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Beschreibung)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Beispielprodukt)}
+  ${textPropDsp.displayVrt(prop = vmxt.Copyright_kurz)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Copyright_lang)}
+  ${htmlPropDsp.displayVrt(prop = vmxt[u'Erläuterung'])}
+  ${textPropDsp.displayVrt(prop = vmxt.Extern)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Frage)}
+  ${htmlPropDsp.displayVrt(prop = vmxt[u'Fähigkeitsprofil'])}
+  ${textPropDsp.displayVrt(prop = vmxt.GenerierterInhalt)}
+  ${textPropDsp.displayVrt(prop = vmxt.Initial)}
+  ${textPropDsp.displayVrt(prop = vmxt.Produktvorlage)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Quellenverweis)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Rollenbesetzung)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Sinn_und_Zweck)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Text)}
+  ${textPropDsp.displayVrt(prop = vmxt[u'V-Modell-Kern'])}
+  ${textPropDsp.displayVrt(prop = vmxt.Version)}
+  ${htmlPropDsp.displayVrt(prop = vmxt.Zusammenfassung)}
+  ${textPropDsp.displayVrt(prop = vmxt.isEnd)}
+  ${textPropDsp.displayVrt(prop = vmxt.isStart)}
+  ${textPropDsp.displayVrt(prop = vmxt.vielfachheit)}
+  ${textPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchWerkzeugr)}
+  ${htmlPropDsp.displayVrt(prop = vmxt[u'Überblicksgrafik'])}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.AblaufbausteinRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt[u'AktivitätRef'])}
+  ${ogRelPropDsp.displayVrt(prop = vmxt[u'AktivitätsgruppeRef'])}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.EntscheidungspunktRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertErzeugendeAbhängigkeitRef'])}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertInhaltlicheAbhängigkeitRef'])}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertStrukturabhängigkeitRef'])}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertTailoringabhängigkeitRef'])}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.MethodenreferenzRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.MitwirkenderRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt.NachfolgerAblaufentscheidungspunktRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.NachfolgerParallelablaufRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.ProduktRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.ProduktgruppeRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt[u'ProjektdurchführungsstrategieRef'])}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.ProjektmerkmalWertRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.QuelleRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.SchnittstellenQuellproduktRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.TextbausteinRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.ThemaRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.VerantwortlicherRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.VonProduktRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.VorgehensbausteinRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.WerkzeugreferenzRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.ZuProduktRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.basiert_auf_VB_Ref)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt[u'enthält'])}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.kann_basieren_auf_VB_Ref)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchAGRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchAbschnittRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt[u'wird_abgebildet_durchAktivitätRef'])}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchEntscheidungspunktRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchKapitelRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchKonventionsabbildungRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchMethodenreferenzRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchPDSRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchPGRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchProduktRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchRolleRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchTeilRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt[u'wird_abgebildet_durchTeilaktivitätRef'])}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchThemaRef)}
+  ${ogRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchVBRef)}
+  ${ogRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchWerkzeugreferenzRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.AblaufbausteinRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt[u'AktivitätRef'])}
+  ${icRelPropDsp.displayVrt(prop = vmxt[u'AktivitätsgruppeRef'])}
+  ${icRelPropDsp.displayVrt(prop = vmxt.EntscheidungspunktRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertErzeugendeAbhängigkeitRef'])}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertInhaltlicheAbhängigkeitRef'])}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertStrukturabhängigkeitRef'])}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt[u'ErweitertTailoringabhängigkeitRef'])}
+  ${icRelPropDsp.displayVrt(prop = vmxt.MethodenreferenzRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.MitwirkenderRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt.NachfolgerAblaufentscheidungspunktRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.NachfolgerParallelablaufRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.ProduktRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.ProduktgruppeRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt[u'ProjektdurchführungsstrategieRef'])}
+  ${icRelPropDsp.displayVrt(prop = vmxt.ProjektmerkmalWertRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.QuelleRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.SchnittstellenQuellproduktRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.TextbausteinRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.ThemaRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.VerantwortlicherRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.VonProduktRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.VorgehensbausteinRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.WerkzeugreferenzRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.ZuProduktRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.basiert_auf_VB_Ref)}
+  ${icRelPropDsp.displayVrt(prop = vmxt[u'enthält'])}
+  ${icRelPropDsp.displayVrt(prop = vmxt.kann_basieren_auf_VB_Ref)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchAGRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchAbschnittRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt[u'wird_abgebildet_durchAktivitätRef'])}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchEntscheidungspunktRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchKapitelRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchKonventionsabbildungRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchMethodenreferenzRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchPDSRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchPGRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchProduktRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchRolleRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchTeilRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt[u'wird_abgebildet_durchTeilaktivitätRef'])}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchThemaRef)}
+  ${icRelPropDsp.displayVrt(prop = vmxt.wird_abgebildet_durchVBRef)}
+  ${icRelPropDsp.displayVrt(prop =
+      vmxt.wird_abgebildet_durchWerkzeugreferenzRef)}
+</div>

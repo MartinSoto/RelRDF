@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='iso-8859-1'?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/">
+  <head>
+    <meta content="text/html; charset=iso-8859-1" http-equiv="content-type" />
+
+    <title>Navigation List</title>
+
+    <link rel="stylesheet" href="css/main.css" type="text/css" />
+  </head>
+
+  <body>
+    <div class="navList">
+      <div class="elemCount">${len(resList)} Treffer</div>
+      <div py:for="res in self.sortResList(resList)" py:strip="">
+	<div class="typeName">${resTypeDsp.displayHrz(res=res)}</div>
+	<div class="resRef"><a href="${resLink(res.uri)}"
+			       target="descr"
+			       >${resNameDsp.displayHrz(res=res)}</a></div>
+      </div>
+    </div>
+  </body>
+</html>
+

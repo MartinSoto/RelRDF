@@ -1,0 +1,332 @@
+/* General formatting */
+
+body {
+    font-family: sans-serif;
+    font-size: 9pt;
+    margin: 0px;
+    padding: 0px;
+}
+
+ul ol {
+    padding-left: 1em;
+}
+
+ul {
+    list-style-type: square;
+}
+
+li {
+    padding-left: 10px;
+}
+
+div.content {
+    margin: 12px 18px 12px 50px;
+}
+
+
+/* Title */
+
+h1 {
+    font-size: 18pt;
+    margin-top: 3pt;
+    margin-left: -32px;
+    margin-bottom: 12pt;
+}
+
+div.resource div.typeName {
+    margin-left: -32px;
+}
+
+div.resource div.typeName span.typeName {
+    font-weight: bold;
+    background: #e0e0e0;
+    padding: 1px 3px;
+}
+
+
+/* Headings */
+
+h2 {
+    font-size: 11pt;
+    margin-top: 12pt;
+    margin-left: -32px;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-color: black;
+}
+
+
+/* Links */
+
+a:link, a:visited, a:active, a:hover {
+    font-weight: bold;
+    text-decoration: none;
+    color: black;
+}
+
+a:hover {
+    color: black;
+    text-decoration: underline;
+}
+
+
+/* Resource references */
+
+td.typeName {
+    width: 30%;
+    font-weight: bold;
+    font-size: 8pt;
+    padding: 0px 8px;
+    border-right: 6px solid white;
+    border-bottom: 3px solid white;
+    background: #e0e0e0;
+}
+
+td.resRef {
+    font-size: 8pt;
+    padding: 8px;
+}
+
+table.resRefList {
+    width: 100%;
+    table-layout: fixed;
+}
+
+
+/* Credits */
+
+div.credits {
+    color: black;
+    margin: 18px;
+    padding: 0px;
+}
+
+div.credits table {
+    border-spacing: 0px;
+    margin: 0px;
+    border-width: 0px;
+    padding: 0px;
+}
+
+div.credits table tbody, div.credits table * td {
+    border-spacing: 0px;
+    margin: 0px;
+    border-width: 0px;
+    padding: 0px;
+    vertical-align: top;
+    font-size: 8pt;
+}
+
+div.credits * td.logo {
+    width: 32px;
+}
+
+
+/* Navigation Element List */
+
+div.navElemList {
+    font-size: 8pt;
+    margin: 12px 18px;
+}
+
+div.navElemList div.section {
+    margin: 4px 0px;
+    padding: 2px 4px;
+    background: #e0e0e0;
+}
+
+div.navElemList div.navElemRef {
+    font-size: 8pt;
+    font-weight: bold;
+    margin: 4px;
+}
+
+
+/* Navigation Element */
+
+div.navList {
+    font-size: 8pt;
+    margin: 12px 18px;
+}
+
+div.navList div.elemCount {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+div.navList div.typeName {
+    background: #e0e0e0;
+    font-size: 8pt;
+    font-weight: bold;
+    padding: 6px 8px 2px 8px;
+}
+
+div.navList div.resRef {
+    background: #e0e0e0;
+    margin-bottom: 4px;
+    padding: 2px 8px 6px 8px;
+}
+
+
+/* Two-Way Comparison */
+
+.compOld, div.compOld a {
+    color: #e00000;
+}
+
+.compNew, div.compNew a {
+    color: #00b000;
+}
+
+tr.resRefOld td.typeName {
+    background: #ed5252;
+}
+
+tr.resRefNew td.typeName {
+    background: #99e999;
+}
+
+
+/* Three-Way Comparison */
+
+tr.resRefDeletedBC td.typeName {
+    color: black;
+    text-decoration: line-through
+}
+
+tr.resRefAddedBC td.typeName {
+    color: black;
+}
+
+tr.resRefDeletedB td.typeName {
+    background: #ed5252;
+    /*color: blue;
+    text-decoration: line-through;*/
+}
+
+tr.resRefAddedB td.typeName {
+    background: #99e999;
+    /*color: blue;*/
+}
+
+tr.resRefDeletedC td.typeName {
+    /*color: orange;*/
+    color: black;
+    text-decoration: line-through
+}
+
+tr.resRefAddedC td.typeName {
+    /*color: orange;*/
+    color: black;
+}
+
+
+/* Side-to-side, three-way comparison. */
+
+td.compValueB, td.compValueC {
+    font-size: 9pt;
+    padding-right: 16px;
+}
+
+
+/* Left side: */
+
+td.compValueB .compDeletedBC {
+    color: white;
+    text-decoration: line-through
+}
+div.navList td.compValueB .compDeletedBC {
+    color: #e0e0e0;
+    text-decoration: line-through
+}
+
+td.compValueB .compAddedBC {
+    color: black;
+}
+
+td.compValueB .compDeletedB {
+    color: #e00000;
+    /*color: blue;
+    text-decoration: line-through;*/
+}
+
+td.compValueB .compAddedB {
+    color: #00b000;
+    /*color: blue;*/
+}
+
+td.compValueB .compDeletedC {
+    color: black;
+}
+
+td.compValueB .compAddedC {
+    color: white;
+}
+div.navList td.compValueB .compAddedC {
+    color: #e0e0e0;
+}
+
+
+/* Right side: */
+
+.compValueC .compDeletedBC {
+    color: white;
+    text-decoration: line-through;
+}
+div.navList .compValueC .compDeletedBC {
+    color: #e0e0e0;
+    text-decoration: line-through;
+}
+
+.compValueC .compAddedBC {
+    color: black;
+}
+
+.compValueC .compDeletedB {
+    color: #e00000;
+    /*color: blue;
+    text-decoration: line-through;*/
+}
+
+.compValueC .compAddedB {
+    color: #00b000;
+    /*color: blue;*/
+}
+
+.compValueC .compDeletedC {
+    color: white;
+    text-decoration: line-through;
+}
+div.navList .compValueC .compDeletedC {
+    color: #e0e0e0;
+    text-decoration: line-through;
+}
+
+.compValueC .compAddedC {
+    /*color: orange;*/
+    color: black;
+}
+
+
+
+/* Welcome page */
+
+div.example {
+    margin: 15px 0px;
+    border-style: solid;
+    border-width: thin;
+    padding: 14px 14px;
+}
+
+div.example span.fakelink {
+    font-weight: bold;
+}
+
+div.example h2 {
+    margin: 0px 0px 15px 0px;
+}
+
+div.example table.resRefList {
+    margin: 0px 0px 0px 28px;
+}
+

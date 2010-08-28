@@ -34,6 +34,8 @@ def _getModule(modelBaseType):
     """
     modelBaseTypeNorm = modelBaseType.lower()
 
+    # This is implemented this way in order to import only the modules
+    # that are requested.
     if modelBaseTypeNorm == "postgres":
         from db import postgres
         return postgres
@@ -47,9 +49,6 @@ def _getModule(modelBaseType):
 def getModelBase(modelBaseType, **modelBaseArgs):
     module = _getModule(modelBaseType)
 
-    # This is implemented this way in order to import only the modules
-    # that are requested.
-
     try:
         return module.getModelBase(**modelBaseArgs)
     except TypeError, e:
@@ -57,13 +56,10 @@ def getModelBase(modelBaseType, **modelBaseArgs):
             _("Missing or invalid model base arguments: %s") % e)
 
 def getConfigClass(path):
-    # This is implemented this way in order to import only the modules
-    # that are requested.
-
     try:
         module = _getModule(path[0])
     except InstantiationError, e:
-        raise ConfigurationError(str(e))
+        raise ConfigurationError(unicode(e))
 
     return module.getConfigClass(path[1:])
 

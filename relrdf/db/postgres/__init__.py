@@ -23,3 +23,4 @@
 
 
 from modelbase import getModelBase
+from config import getConfigClass

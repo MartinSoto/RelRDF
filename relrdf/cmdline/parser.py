@@ -21,6 +21,24 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+"""Base class for command-line argument parsers in RelRDF."""
 
-from parser import ArgumentParser
-from backend import CmdLineBackend
+
+# Use our own argparse.
+from relrdf.util import argparse
+
+from relrdf.error import CommandLineError
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    """A customized version of :class:`argparse.ArgumentParser` with
+    modified error handling.
+    """
+
+    __slots__ = ()
+
+    def error(self, msg):
+        """Raise a :exc:`CommandLineError` exception with error
+        message `msg`.
+	"""
+        raise CommandLineError(msg)

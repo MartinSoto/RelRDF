@@ -37,6 +37,7 @@ from relrdf.error import CommandLineError, ConfigurationError
 from relrdf import modelbasefactory
 from relrdf import config
 
+import parser as parsermod
 import backend
 import help
 
@@ -67,10 +68,18 @@ class HelpOperation(backend.CmdLineOperation):
     """
 
     name = 'help'
-    usage = '%prog [OPERATION]'
+    usage = '%(prog)s [OPERATION]'
 
-    def run(self, options, args, **kwArgs):
-        if len(args) == 0:
+    def makeParser(self):
+        parser = super(HelpOperation, self).makeParser()
+
+        parser.add_argument('operation', nargs='?',
+                            help=_("Operation name"))
+
+        return parser
+
+    def run(self, options, **kwArgs):
+        if options.operation is None:
             sys.stdout.write(_("RelRDF - A system for storage, analysis and"
                                " comparison of RDF models\n"))
             sys.stdout.write("https://launchpad.net/relrdf\n\n")
@@ -85,13 +94,11 @@ class HelpOperation(backend.CmdLineOperation):
                                           firstIndent='  ' + name):
                     sys.stdout.write(line)
                     sys.stdout.write('\n')
-        elif len(args) == 1:
-            operation = getOperation(args[0])
+        else:
+            operation = getOperation(options.operation)
             if operation is None:
                 raise CommandLineError(_("Unknown operation '%s'") % args[0])
             operation.help()
-        else:
-            raise CommandLineError(_("Too many arguments"))
 
 
 # List of operation names.
@@ -129,6 +136,26 @@ def getOperation(name):
     else:
         return None
 
+def makeMbParser():
+    parser = parsermod.ArgumentParser(add_help=False)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--mb', '--modelbase', action='store')
+    group.add_argument('--mbtype', '--modelbasetype', action='store')
+
+    return parser
+
+mbParser = makeMbParser()
+
+def makeModelParser():
+    parser = parsermod.ArgumentParser(add_help=False)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--model', action='store')
+    group.add_argument('--modeltype', action='store')
+
+    return parser
+
+modelParser = makeModelParser()
+
 
 def mainCmd(args):
     """
@@ -140,70 +167,135 @@ def mainCmd(args):
     is an integer to be returned to the operating system as a process
     status.
     """
-
-    cmdName = path.basename(args[0])
-    args = args[1:]
-
-    if len(args) == 0:
-        helpMessage(cmdName)
-        return 0
-
-    mbConf = None
-    registry = None
-    mbConfName = None
-
     try:
-        if args[0].startswith('::'):
-            # We have an explicit modelbase specification, parse it:
+        cmdName = path.basename(args[0])
+        args = args[1:]
 
-            # Find the end of the modelbase flags.
-            i = 1
-            while i < len(args) and args[i][0] == '-':
-                i += 1
+        if len(args) == 0:
+            helpMessage(cmdName)
+            return 0
 
-            configCls = modelbasefactory.getConfigClass((args[0][2:],))
-            mbConf = configCls.fromCmdLine(args[1:i])
-            args = args[i:]
-        elif args[0].startswith(':'):
-            # We have a named modelbase configuration, retrieve it from
-            # the default registry.
-            try:
-                registry = config.getDefaultRegistry()
-                mbConfName = args[0][1:]
-                mbConf = registry.getEntry((mbConfName,))
-            except ConfigurationError, e:
-                raise CommandLineError(str(e))
+        registry = config.getDefaultRegistry()
 
-            # Get rid of the first argument.
-            args = args[1:]
+        mbConf = None
+        mbConfName = None
+        if args[0][0] == '-':
+            options, args = mbParser.parse_known_args(args, contiguous=True)
+            if options.mb is not None:
+                # We have a named modelbase configuration, retrieve it from
+                # the default registry.
+                try:
+                    descr, mbConf = registry.getEntry((options.mb,))
+                    mbConfName = options.mb
+                except ConfigurationError, e:
+                    raise CommandLineError(str(e))
+            elif options.mbtype is not None:
+                # We have an explicit modelbase specification, parse it:
+                try:
+                    configCls = modelbasefactory. \
+                        getConfigClass((options.mbtype,))
+                    mbConf, args = configCls.fromCmdLine(args)
+                except ConfigurationError, e:
+                    raise CommandLineError(str(e))
+
+        modelConf = None
+        modelConfName = None
+        if args[0][0] == '-':
+            options, args = modelParser.parse_known_args(args, contiguous=True)
+            if options.model is not None:
+                # We have a named model configuration.
+
+                if mbConfName is None and mbConf is not None:
+                    raise CommandLineError(_("A named model configuration "
+                                             "cannot "
+                                             "be specified for an explicit "
+                                             "modelbase configuration"))
+
+                # Retrieve it from the default registry.
+                try:
+                    descr, modelConf = registry.getEntry((mbConfName,
+                                                          options.model))
+                    modelConfName = options.model
+                except ConfigurationError, e:
+                    raise CommandLineError(str(e))
+            elif options.modeltype is not None:
+                # We have an explicit model specification.
+                try:
+                    # In order to obtain the configuration class for the
+                    # model, we require the modelbase type. It can always
+                    # be obtained from the current modelbase config, but
+                    # we may not have one as yet.
+                    if mbConf is None:
+                        # Use the default modelbase configuration.
+                        descr, mbConf = registry.getEntry((None,))
+
+                    configCls = modelbasefactory. \
+                        getConfigClass((mbConf.name,
+                                        options.modeltype,))
+                    modelConf, args = configCls.fromCmdLine(args)
+                except ConfigurationError, e:
+                    raise CommandLineError(str(e))
 
         # The first argument must now be an operation name.
         if len(args) == 0:
             raise CommandLineError(_("No operation name specified"))
+        if args[0][0] == '-':
+            raise CommandLineError(_("Unrecognized option '%s' "
+                                     "(or maybe it is just "
+                                     "misplaced...)") % args[0])
+
+        # if mbConf is None:
+        #     print "No modelbase configuration"
+        #     print
+        # else:
+        #     print "Modelbase config:"
+        #     print mbConf.readableContents()
+        # if modelConf is None:
+        #     print "No model configuration"
+        # else:
+        #     print "Model config:"
+        #     print modelConf.readableContents()
 
         # Retrieve the operation.
         operation = getOperation(args[0])
         if operation is None:
             raise CommandLineError(_("Unknown operation '%s'") % args[0])
 
-        # Run the operation.
-        if operation.needsMbConf:
-            if mbConf is None:
+        # Prepare the internal operation arguments.
+        kwargs = {'registry': registry}
+
+        if mbConf is not None:
+            kwargs['mbConf'] = mbConf
+            kwargs['mbConfName'] = mbConfName
+        else:
+            if operation.needsMbConf:
                 # No explicit modelbase configuration was specified,
                 # try to use the default configuration.
-                registry = config.getDefaultRegistry()
                 try:
-                    mbConf = registry.getEntry((None,))
-                    mbConfName = registry.getDefaultName(())
+                    kwargs['mbConf'] = registry.getEntry((None,))
+                    kwargs['mbConfName'] = registry.getDefaultName(())
                 except ConfigurationError:
-                    # Commands must deal with the absence of a
-                    # modelbase.
-                    mbConf = None
+                    # No modelbase available.
+                    pass
 
-            return operation(args, mbConf=mbConf, registry=registry,
-                             mbConfName=mbConfName)
+        if modelConf is not None:
+            kwargs['modelConf'] = modelConf
+            kwargs['modelConfName'] = modelConfName
         else:
-            return operation(args)
+            if operation.needsModelConf:
+                # No explicit model configuration was specified, try
+                # to use the default configuration.
+                try:
+                    kwargs['modelConf'] = registry.getEntry(
+                        (mbConfName, None))
+                    kwargs['modelConfName'] = registry.getDefaultName(
+                        (mbConfName,))
+                except ConfigurationError:
+                    # No model available.
+                    pass
+                
+        # Run the operation.
+        return operation(args, **kwargs)
     except CommandLineError, e:
         print >> sys.stderr, '%s: %s' % (cmdName, str(e))
         return 1

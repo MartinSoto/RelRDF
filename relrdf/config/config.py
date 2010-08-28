@@ -148,7 +148,8 @@ class Configuration(object):
 
     @classmethod
     def fromCmdLine(cls, args):
-        options = cls._getCmdLineParser().parse_args(args)
+        options, args = cls._getCmdLineParser().parse_known_args(args,
+                                                           contiguous=True)
 
         kwArgs = {}
         for name, paramSchema in cls.schema.iteritems():
@@ -164,11 +165,16 @@ class Configuration(object):
                     raise ConfigurationError, _("unexpected configuration "
                                                 "parameter '%s'") % name
 
-        return cls.fromUnchecked(**kwArgs)
+        return cls.fromUnchecked(**kwArgs), args
 
     @classmethod
     def cmdLineHelp(cls):
         return cls._getCmdLineParser().format_help()
 
     def readableContents(self):
-        pass
+        # FIXME: Implement this properly.
+        from pprint import pprint as pp
+        import StringIO
+        st = StringIO.StringIO()
+        pp(self.params, stream=st)
+        return st.getvalue()

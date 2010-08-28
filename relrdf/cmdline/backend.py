@@ -32,28 +32,15 @@
 """
 
 import itertools
-import optparse
 import re
 import sys
 
 from relrdf.localization import _
 from relrdf.error import CommandLineError
+from relrdf.cmdline import ArgumentParser
+
 
 import help
-
-
-class OptionParser(optparse.OptionParser):
-    """A customized version of :class:`optparse.OptionParser` with
-    modified error handling.
-    """
-
-    __slots__ = ()
-
-    def error(self, msg):
-        """Raise a :exc:`CommandLineError` exception with error
-        message `msg`.
-	"""
-        raise CommandLineError(msg)
 
 
 class CmdLineObject(object):
@@ -87,9 +74,8 @@ class CmdLineObject(object):
 	and add options to the returned parser.
 	"""
         # We use the customized option parser.
-        parser = OptionParser(prog=self.name, usage=self.usage,
-                              add_help_option=False)
-        parser.disable_interspersed_args()
+        parser = ArgumentParser(prog=self.name, usage=self.usage,
+                                add_help=False)
 
         return parser
 
@@ -185,7 +171,7 @@ class CmdLineBackend(CmdLineObject):
     name = None
 
     def argsToConfig(self, cmdLineArgs):
-        """Produce a modelbase configuration from the command-line
+        """Produce a configuration from the command-line
         specification in `cmdLineArgs`.
 
         `cmdLineArgs` is a list of strings. The first element always
@@ -213,10 +199,11 @@ class CmdLineBackend(CmdLineObject):
         resulting configuration together with all arguments left by
         the parser.
         """
-        options, args = self.parser.parse_args(cmdLineArgs[1:])
-        return (self.optionsToConfig(cmdLineArgs[0], options), args)
+        options, args = self.parser.parse_known_args(cmdLineArgs,
+                                                     contiguous=True)
+        return (self.optionsToConfig(options), args)
 
-    def optionsToConfig(self, mbId, options):
+    def optionsToConfig(self, options):
         """Produce a modelbase configuration from a set of parsed
         options.
 
@@ -260,15 +247,18 @@ class CmdLineOperation(CmdLineObject):
     needsMbConf = False
     """True if this operation requires a modelbase configuration."""
 
+    needsModelConf = False
+    """True if this operation requires a model configuration."""
+
     def makeParser(self):
         """Add a help option (:option:`-h` or :option:`--help`) to the
         parser created by the parent class.
 	"""
         parser = super(CmdLineOperation, self).makeParser()
 
-        parser.add_option('-h', '--help', action='store_true',
-                          dest='help', default=False,
-                          help=_("Show help message"))
+        parser.add_argument('-h', '--help', action='store_true',
+                            dest='help', default=False,
+                            help=_("Show help message"))
 
         return parser
 
@@ -281,8 +271,8 @@ class CmdLineOperation(CmdLineObject):
 	``-``). Option names and formats are specific to each
 	particular operation.
 
-	`kwArgs` may contain additional data required by the
-	operation. These data are all optional:
+	`kwArgs` may contain additional data items required by the
+	operation. These data items are all optional:
 
 	* ``mbConf``: a modelbase configuration (an instance of
 	  :class:`relrdf.config.ModelbaseConfig`) that represents the
@@ -317,21 +307,21 @@ class CmdLineOperation(CmdLineObject):
 	provided, the method fails with a :exc:`CommandLineError`
 	before calling :meth:`run`.
 	"""
-        options, args = self.parser.parse_args(cmdLineArgs[1:])
+        options = self.parser.parse_args(cmdLineArgs[1:])
 
         if options.help:
             self.help()
             return 0
 
         if self.needsMbConf and (kwArgs.get('mbConf') is None):
-            raise CommandLineError(_("Command '%s' requires a "
+            raise CommandLineError(_("Operation '%s' requires a "
                                      "modelbase but none was "
                                      "specified (and no default "
                                      "is set)" % self.name))
 
-        return self.run(options, args, **kwArgs)
+        return self.run(options, **kwArgs)
 
-    def run(self, options, args, **kwArgs):
+    def run(self, options, **kwArgs):
         """Execute the operation implemented by this object, after
         argument parsing.
 

@@ -54,11 +54,10 @@ class RegisterOperation(backend.CmdLineOperation):
     def makeParser(self):
         parser = super(RegisterOperation, self).makeParser()
 
-        parser.add_option('--descr', '--description', '-d',
-                          metavar=_("DESCR"), action='store',
-                          type='string', dest='descr', default='',
-                          help=_("Use description DESCR for this "
-                                 "modelbase (default: empty)"))
+        parser.add_argument('--descr', '--description', '-d',
+                            metavar=_("DESCR"), dest='descr', default='',
+                            help=_("Use description DESCR for this "
+                                   "modelbase (default: empty)"))
 
         return parser
 

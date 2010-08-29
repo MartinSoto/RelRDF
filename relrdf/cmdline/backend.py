@@ -43,7 +43,7 @@ from relrdf.cmdline import ArgumentParser
 import help
 
 
-class CmdLineObject(object):
+class CmdLineBase(object):
     """Base class for objects accessible from the command line through
     the :command:`relrdf` command."""
 
@@ -54,6 +54,9 @@ class CmdLineObject(object):
 
     usage = _("%prog [OPTIONS]")
     """Usage syntax (for user help)."""
+
+    description = ''
+    """Description string for the parser."""
 
     def __init__(self):
         """The constructor runs the :meth:`makeParser` method and assigns the
@@ -75,9 +78,14 @@ class CmdLineObject(object):
 	"""
         # We use the customized option parser.
         parser = ArgumentParser(prog=self.name, usage=self.usage,
+                                description=self.description,
                                 add_help=False)
 
         return parser
+
+    @classmethod
+    def cmdLineHelp(cls):
+        return cls._getCmdLineParser().format_help()
 
     @classmethod
     def summary(cls):
@@ -162,13 +170,13 @@ class CmdLineObject(object):
         self.printHelpField(_("Description"), text[pos + 1:], stream)
 
 
-class CmdLineBackend(CmdLineObject):
-    """Base class for command-line support in RelRDF backends."""
+class CmdLineObject(CmdLineBase):
+    """Base class for command-line support in RelRDF objects such as
+    modelbases and models."""
 
     __slots__ = ()
 
-    identifier = None
-    name = None
+    configClass = None
 
     def argsToConfig(self, cmdLineArgs):
         """Produce a configuration from the command-line
@@ -220,7 +228,21 @@ class CmdLineBackend(CmdLineObject):
         In case of error, this function raises :exc:`CommandLineError`
         with an appropriate error message.
         """
-        raise NotImplementedError
+        kwArgs = {}
+        for name, paramSchema in self.configClass.schema.iteritems():
+            try:
+                kwArgs[name] = getattr(options, name)
+            except AttributeError:
+                kwArgs[name] = None
+
+            if kwArgs[name] is None:
+                try:
+                    kwArgs[name] = paramSchema['default']
+                except KeyError:
+                    raise ConfigurationError, _("unexpected configuration "
+                                                "parameter '%s'") % name
+
+        return self.configClass.fromUnchecked(**kwArgs)
 
     def getOperation(self, name):
         raise NotImplementedError
@@ -229,7 +251,7 @@ class CmdLineBackend(CmdLineObject):
         raise NotImplementedError
 
 
-class CmdLineOperation(CmdLineObject):
+class CmdLineOperation(CmdLineBase):
     """Base class for the command-line operations (subcommands) of the
     ``relrdf`` command.
 

@@ -63,6 +63,14 @@ def getConfigClass(path):
 
     return module.getConfigClass(path[1:])
 
+def getCmdLineObject(path):
+    try:
+        module = _getModule(path[0])
+    except InstantiationError, e:
+        raise ConfigurationError(unicode(e))
+
+    return module.getCmdLineObject(path[1:])
+
 def getModelBases():
     import db.mysql
     return {"postgres": db.postgres.modelbase.ModelBase}

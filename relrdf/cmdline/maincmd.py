@@ -192,9 +192,9 @@ def mainCmd(args):
             elif options.mbtype is not None:
                 # We have an explicit modelbase specification, parse it:
                 try:
-                    configCls = modelbasefactory. \
-                        getConfigClass((options.mbtype,))
-                    mbConf, args = configCls.fromCmdLine(args)
+                    cmdLineObj = modelbasefactory. \
+                        getCmdLineObject((options.mbtype,))
+                    mbConf, args = cmdLineObj.argsToConfig(args)
                 except ConfigurationError, e:
                     raise CommandLineError(str(e))
 
@@ -229,10 +229,10 @@ def mainCmd(args):
                         # Use the default modelbase configuration.
                         descr, mbConf = registry.getEntry((None,))
 
-                    configCls = modelbasefactory. \
-                        getConfigClass((mbConf.name,
-                                        options.modeltype,))
-                    modelConf, args = configCls.fromCmdLine(args)
+                    cmdLineObj = modelbasefactory. \
+                        getCmdLineObject((mbConf.name,
+                                          options.modeltype,))
+                    modelConf, args = cmdLineObj.argsToConfig(args)
                 except ConfigurationError, e:
                     raise CommandLineError(str(e))
 

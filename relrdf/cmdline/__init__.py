@@ -23,4 +23,5 @@
 
 
 from parser import ArgumentParser
-from backend import CmdLineBackend
+from backend import CmdLineObject, CmdLineOperation
+

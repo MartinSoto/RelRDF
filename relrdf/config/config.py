@@ -136,41 +136,6 @@ class Configuration(object):
         # Create the actual object.
         return cls(**kwArgs)
 
-    @classmethod
-    def _createCmdLineParser(cls):
-        raise NotImplementedError
-
-    @classmethod
-    def _getCmdLineParser(cls):
-        if cls._cmdLineParser is None:
-            cls._cmdLineParser = cls._createCmdLineParser()
-        return cls._cmdLineParser
-
-    @classmethod
-    def fromCmdLine(cls, args):
-        options, args = cls._getCmdLineParser().parse_known_args(args,
-                                                           contiguous=True)
-
-        kwArgs = {}
-        for name, paramSchema in cls.schema.iteritems():
-            try:
-                kwArgs[name] = getattr(options, name)
-            except AttributeError:
-                kwArgs[name] = None
-
-            if kwArgs[name] is None:
-                try:
-                    kwArgs[name] = paramSchema['default']
-                except KeyError:
-                    raise ConfigurationError, _("unexpected configuration "
-                                                "parameter '%s'") % name
-
-        return cls.fromUnchecked(**kwArgs), args
-
-    @classmethod
-    def cmdLineHelp(cls):
-        return cls._getCmdLineParser().format_help()
-
     def readableContents(self):
         # FIXME: Implement this properly.
         from pprint import pprint as pp

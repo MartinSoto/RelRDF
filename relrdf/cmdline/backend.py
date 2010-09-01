@@ -37,10 +37,43 @@ import sys
 
 from relrdf.localization import _
 from relrdf.error import CommandLineError
+from relrdf.util import argparse
 from relrdf.cmdline import ArgumentParser
 
-
 import help
+
+
+class HelpException(Exception):
+    """Exception raised when a ``-h`` option is present in the command
+    line."""
+
+    __slots__ = ()
+
+    pass
+
+
+class HelpAction(argparse.Action):
+    """Argument parser action to handle the help options.
+
+    This action raises a :exc:`HelpException` whenever an option
+    associated to it is encountered by the parser (this will normally
+    be the ``-h`` or ``--help`` option). The purpose is to disable
+    normal argument parser when the help option is used. This is
+    particularly important when the parser has required options or
+    positional arguments, because it does not make sense to require
+    these arguments in order to display a help message.."""
+
+    __slots__ = ()
+
+    def __init__(self, option_strings, dest, nargs=None, const=None,
+                 default=None, required=False, help=None, metavar=None):
+        super(HelpAction, self).__init__(option_strings=option_strings,
+            dest=dest, nargs=0, const=True, default=default, required=required,
+            help=help)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, self.const)
+        raise HelpException()
 
 
 class CmdLineBase(object):
@@ -278,8 +311,11 @@ class CmdLineOperation(CmdLineBase):
 	"""
         parser = super(CmdLineOperation, self).makeParser()
 
-        parser.add_argument('-h', '--help', action='store_true',
-                            dest='help', default=False,
+        # The help option uses a especial help action in order to
+        # interrupt parsing as soon as the option is seen. If this
+        # isn't done, the parser may fail because of, e.g., missing
+        # required arguments, and won't let us display the help.
+        parser.add_argument('-h', '--help', action=HelpAction,
                             help=_("Show help message"))
 
         return parser
@@ -329,9 +365,10 @@ class CmdLineOperation(CmdLineBase):
 	provided, the method fails with a :exc:`CommandLineError`
 	before calling :meth:`run`.
 	"""
-        options = self.parser.parse_args(cmdLineArgs[1:])
-
-        if options.help:
+        try:
+            options = self.parser.parse_args(cmdLineArgs[1:])
+        except HelpException:
+            # Help required.
             self.help()
             return 0
 

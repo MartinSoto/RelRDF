@@ -47,7 +47,7 @@ class RegisterOperation(backend.CmdLineOperation):
     __slots__ = ()
 
     name = 'register'
-    usage = '%prog NAME'
+    usage = '%(prog)s NAME'
 
     needsMbConf = True
 
@@ -58,25 +58,22 @@ class RegisterOperation(backend.CmdLineOperation):
                             metavar=_("DESCR"), dest='descr', default='',
                             help=_("Use description DESCR for this "
                                    "modelbase (default: empty)"))
+        parser.add_argument('name', metavar=_("NAME"),
+                            help=_("NAME for the registered configuration"))
 
         return parser
 
 
-    def run(self, options, args, mbConf, registry=None, **kwArgs):
-        if len(args) == 0:
-            raise CommandLineError(_("No name specified"))
-        elif len(args) > 1:
-            raise CommandLineError(_("Too many arguments"))
-
+    def run(self, options, mbConf, registry=None, **kwArgs):
         if registry is None:
             registry = config.getDefaultRegistry()
 
         try:
-            registry.setEntry((args[0],), options.descr, mbConf)
+            registry.setEntry((options.name,), options.descr, mbConf)
         except ConfigurationError, e:
             raise CommandLineError(e)
 
-        sys.stdout.write(_("Added entry '%s'") % args[0])
+        sys.stdout.write(_("Added entry '%s'") % options.name)
 
         return 0
 
@@ -91,12 +88,9 @@ class ListOperation(backend.CmdLineOperation):
     __slots__ = ()
 
     name = 'list'
-    usage = '%prog NAME'
+    usage = '%(prog)s'
 
-    def run(self, options, args, registry=None, **kwArgs):
-        if len(args) > 0:
-            raise CommandLineError(_("Too many arguments"))
-
+    def run(self, options, registry=None, **kwArgs):
         if registry is None:
             registry = config.getDefaultRegistry()
 
@@ -129,14 +123,11 @@ class ForgetOperation(backend.CmdLineOperation):
     __slots__ = ()
 
     name = 'forget'
-    usage = '%prog'
+    usage = '%(prog)s'
 
     needsMbConf = True
 
-    def run(self, options, args, registry=None, mbConfName=None, **kwArgs):
-        if len(args) > 0:
-            raise CommandLineError(_("Too many arguments"))
-
+    def run(self, options, registry=None, mbConfName=None, **kwArgs):
         if mbConfName is None:
             raise CommandLineError(_("No stored modelbase selected, "
                                      "nothing to forget!"))
@@ -160,14 +151,11 @@ class SetDefaultOperation(backend.CmdLineOperation):
     __slots__ = ()
 
     name = 'setdefault'
-    usage = '%prog'
+    usage = '%(prog)s'
 
     needsMbConf = True
 
-    def run(self, options, args, registry=None, mbConfName=None, **kwArgs):
-        if len(args) > 0:
-            raise CommandLineError(_("Too many arguments"))
-
+    def run(self, options, registry=None, mbConfName=None, **kwArgs):
         if mbConfName is None:
             raise CommandLineError(_("A modelbase that is not stored "
                                      "cannot be set as default"))

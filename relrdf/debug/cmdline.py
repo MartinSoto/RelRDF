@@ -26,39 +26,22 @@
 Command-line support for the debugging backend
 """
 
-import argparse
+from relrdf.error import InstantiationError
+from relrdf.cmdline import CmdLineObject
 
-from relrdf.error import ConfigurationError
-from relrdf.config import Configuration
+import config
 
 
-class DebugConfiguration(Configuration):
-    """Debug command-line backend.
-    """
-
+class DebugCmdLineObj(CmdLineObject):
     __slots__ = ()
 
     name = 'debug'
-    version = 1
-    schema = {
-        'foo': {
-            'type': str,
-            'default': 'The Real Foo',
-            },
-        'bar': {
-            'type': int,
-            'default': 42,
-            },
-        'baz': {
-            'type': bool,
-            'default': False,
-            },
-        }
+    description = "Options to access the debug backend"
 
-    @classmethod
-    def _createCmdLineParser(cls):
-        parser = argparse.ArgumentParser(
-            description="Options for the FooBar frobnicating modelbase")
+    configClass = config.DebugConfiguration
+
+    def makeParser(self):
+        parser = super(DebugCmdLineObj, self).makeParser()
 
         parser.add_argument('--foo', metavar="STRING", type=str,
                             help="Set first segment of the FUBAR "
@@ -72,8 +55,9 @@ class DebugConfiguration(Configuration):
         return parser
 
 
-def getConfigClass(path):
+def getCmdLineObject(path):
     if len(path) == 0:
-        return DebugConfiguration
+        return DebugCmdLineObj()
     else:
-        return None
+        raise InstantiationError("'%s' is not a valid model type for a "
+                                 "debug modelbase" % path[0])

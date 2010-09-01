@@ -97,7 +97,8 @@ class HelpOperation(backend.CmdLineOperation):
         else:
             operation = getOperation(options.operation)
             if operation is None:
-                raise CommandLineError(_("Unknown operation '%s'") % args[0])
+                raise CommandLineError(_("Unknown operation '%s'") %
+                                       options.operation)
             operation.help()
 
 

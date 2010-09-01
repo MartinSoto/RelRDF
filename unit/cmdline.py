@@ -139,7 +139,7 @@ class RegisterTestCase(BasicTestCase):
         self.checkCommand(['register', '-h'])
 
     def testRegister1(self):
-        stdout = self.checkCommand(['::debug', '--foo=theFoo', '--bar=43',
+        stdout = self.checkCommand(['--mbtype=debug', '--foo=theFoo', '--bar=43',
                                     '--baz', 'register', 'entry1'])
 
         self.assertTrue('entry1' in stdout)
@@ -155,9 +155,9 @@ class RegisterTestCase(BasicTestCase):
     def testRegister2(self):
         # Make sure that the registry isn't overwritten by a second
         # command.
-        self.checkCommand(['::debug', '--foo=theFoo', '--bar=43',
+        self.checkCommand(['--mbtype=debug', '--foo=theFoo', '--bar=43',
                            '--baz', 'register', 'entry1'])
-        self.checkCommand(['::debug', '--foo=anotherFoo', 'register',
+        self.checkCommand(['--mbtype=debug', '--foo=anotherFoo', 'register',
                            'entry2'])
 
         reg = self.getRegistry()
@@ -170,7 +170,7 @@ class RegisterTestCase(BasicTestCase):
 
     def testRegisterDescr(self):
         descrText = 'The description'
-        self.checkCommand(['::debug', '--foo=theFoo', 'register', 
+        self.checkCommand(['--mbtype=debug', '--foo=theFoo', 'register', 
                            '-d', descrText, 'entry1'])
 
         reg = self.getRegistry()
@@ -185,10 +185,10 @@ class RegisterTestCase(BasicTestCase):
         self.checkCommandError(['register', 'entry1'])
 
     def testNoName(self):
-        self.checkCommandError(['::debug', 'register'])
+        self.checkCommandError(['--mbtype=debug', 'register'])
 
     def testManyOptions(self):
-        self.checkCommandError(['::debug', 'register', 'entry1', 'entry2'])
+        self.checkCommandError(['--mbtype=debug', 'register', 'entry1', 'entry2'])
 
 
 class ListTestCase(BasicTestCase):
@@ -251,7 +251,7 @@ class ForgetTestCase(BasicTestCase):
         reg.setDefaultEntry(('entry1',))
         del reg
 
-        stdout = self.checkCommand([':entry1', 'forget'])
+        stdout = self.checkCommand(['--mb=entry1', 'forget'])
 
         self.assertTrue('entry1' in stdout)
 
@@ -263,8 +263,8 @@ class ForgetTestCase(BasicTestCase):
         reg.setDefaultEntry(('entry1',))
         del reg
 
-        self.checkCommand([':entry3', 'forget'])
-        self.checkCommand([':entry2', 'forget'])
+        self.checkCommand(['--mb=entry3', 'forget'])
+        self.checkCommand(['--mb=entry2', 'forget'])
 
         reg = self.getRegistry()
         self.assertEqual(set(reg.getEntryNames(())), set(['entry1']))
@@ -288,13 +288,13 @@ class ForgetTestCase(BasicTestCase):
         self.assertEqual(config.getParam('bar'), 14)        
 
     def testForgetInexistent(self):
-        self.checkCommandError([':entry1', 'forget'])
+        self.checkCommandError(['--mb=entry1', 'forget'])
 
     def testForgetExplicit(self):
-        self.checkCommandError(['::debug', 'forget'])
+        self.checkCommandError(['--mbtype=debug', 'forget'])
 
     def testNoModelbase(self):
-        self.checkCommandError([':entry1', 'forget'])
+        self.checkCommandError(['--mb=entry1', 'forget'])
 
     def testWithOptions(self):
         self.checkCommandError(['forget', 'someoption'])
@@ -311,7 +311,7 @@ class SetDefaultTestCase(BasicTestCase):
         reg.setEntry(('entry1',), '', DebugConfiguration())
         del reg
 
-        stdout = self.checkCommand([':entry1', 'setdefault'])
+        stdout = self.checkCommand(['--mb=entry1', 'setdefault'])
 
         self.assertTrue('entry1' in stdout)
 
@@ -325,12 +325,12 @@ class SetDefaultTestCase(BasicTestCase):
         reg.setEntry(('entry3',), '', DebugConfiguration())
         del reg
 
-        self.checkCommand([':entry3', 'setdefault'])
+        self.checkCommand(['--mb=entry3', 'setdefault'])
 
         reg = self.getRegistry()
         self.assertEqual(reg.getDefaultName(()), 'entry3')
 
-        self.checkCommand([':entry2', 'setdefault'])
+        self.checkCommand(['--mb=entry2', 'setdefault'])
 
         reg = self.getRegistry()
         self.assertEqual(reg.getDefaultName(()), 'entry2')
@@ -349,13 +349,13 @@ class SetDefaultTestCase(BasicTestCase):
         self.assertEqual(reg.getDefaultName(()), 'entry2')
 
     def testSetDefaultInexistent(self):
-        self.checkCommandError([':entry1', 'setdefault'])
+        self.checkCommandError(['--mb=entry1', 'setdefault'])
 
     def testSetDefaultExplicit(self):
-        self.checkCommandError(['::debug', 'setdefault'])
+        self.checkCommandError(['--mbtype=debug', 'setdefault'])
 
     def testNoModelbase(self):
-        self.checkCommandError([':entry1', 'setdefault'])
+        self.checkCommandError(['--mb=entry1', 'setdefault'])
 
     def testWithOptions(self):
         self.checkCommandError(['setdefault', 'someoption'])

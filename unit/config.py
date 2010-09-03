@@ -111,6 +111,11 @@ class CreationTestCase(BasicTestCase):
         self.maybeReopen()
         self.assertTrue(self.reg.getDefaultName(self.basePath) is None)
 
+    @raises(ConfigurationError)
+    def testGetInexistent(self):
+        self.maybeReopen()
+        self.reg.getRawEntry(self.basePath + ('entry5',))
+
 
 class CreationTestCaseNoReopen(CreationTestCase):
     """Registry creation, no reopen."""

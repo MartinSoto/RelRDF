@@ -289,7 +289,11 @@ class Registry(object):
                             ':'.join(path[:i - 1]))
 
             entries = node.get('entries')
-            node = entries is not None and entries.get(name)
+            if entries is None:
+                node = None
+            else:
+                node = entries is not None and entries.get(name)
+
             if node is None:
                 if i == 0:
                     raise ConfigurationError(

@@ -1764,7 +1764,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             # otherwise, add the arg to the arg strings
             # and note the index if it was an option
             else:
-                option_tuple = self._parse_optional(arg_string)
+                option_tuple = self._parse_optional(arg_string, contiguous)
                 if option_tuple is None:
                     pattern = 'A'
                 else:
@@ -2043,7 +2043,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
         # return the list of arg string counts
         return result
 
-    def _parse_optional(self, arg_string):
+    def _parse_optional(self, arg_string, contiguous=False):
         # if it's an empty string, it was meant to be a positional
         if not arg_string:
             return None
@@ -2074,10 +2074,13 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
 
         # if multiple actions match, the option string was ambiguous
         if len(option_tuples) > 1:
-            options = ', '.join([option_string
-                for action, option_string, explicit_arg in option_tuples])
-            tup = arg_string, options
-            self.error(_('ambiguous option: %s could match %s') % tup)
+            if contiguous:
+                return None
+            else:
+                options = ', '.join([option_string
+                    for action, option_string, explicit_arg in option_tuples])
+                tup = arg_string, options
+                self.error(_('ambiguous option: %s could match %s') % tup)
 
         # if exactly one action matched, this segmentation is good,
         # so return the parsed action

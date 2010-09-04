@@ -32,8 +32,9 @@ from relrdf.debug import DebugConfiguration
 
 
 class BasicTestCase(unittest.TestCase):
-    """Basic test case for accessing the modelbase registry from the
-    command line."""
+    """Basic test case for accessing the registry from the command
+    line.
+    """
 
     def setUp(self):
         # Clean up the environment.
@@ -55,6 +56,14 @@ class BasicTestCase(unittest.TestCase):
 
         # Make the config file location point to the directory.
         os.environ['RELRDF_CONFIG'] = os.path.join(self.dir, 'config.json')
+
+        # Object selection values. They can be changed to run particular
+        # tests at different levels of the configuration hierarchy.
+        # See also method getSelArgs.
+        self.pathPrefix = ()
+        self.selPrefix = []
+        self.selOpt = 'mb'
+        self.typePrefix = self.selPrefix + ['--mbtype=debug']
 
     def tearDown(self):
         shutil.rmtree(self.dir)
@@ -107,6 +116,49 @@ class BasicTestCase(unittest.TestCase):
 
         return status, stdout, stderr
 
+    def getSelArgs(self, name):
+        """Returns the command-line arguments necessary to select
+        entry `name`."""
+        return self.selPrefix + ['--%s=%s' % (self.selOpt, name)]
+
+
+class ModelTestCase(BasicTestCase):
+    """Basic test case adapted to run at the model level."""
+
+    def setUp(self):
+        super(ModelTestCase, self).setUp()
+
+        # Object selection values for the model level.
+        self.pathPrefix = ('baseentry',)
+        self.selPrefix = ['--mb=baseentry']
+        self.selOpt = 'model'
+        self.typePrefix = self.selPrefix + ['--modeltype=debug']        
+
+        # Add the base modelbase config. All tests will run using this
+        # configuration as a parent.
+        reg = self.getRegistry()
+        reg.setEntry(self.pathPrefix, '', DebugConfiguration())
+
+
+class ModelMbDefTestCase(BasicTestCase):
+    """Basic test case adapted to run at the model level, using the
+    default modelbase."""
+
+    def setUp(self):
+        super(ModelMbDefTestCase, self).setUp()
+
+        # Object selection values for the model level.
+        self.pathPrefix = ('baseentry',)
+        self.selPrefix = []
+        self.selOpt = 'model'
+        self.typePrefix = self.selPrefix + ['--modeltype=debug']        
+
+        # Add the base modelbase config. All tests will run using this
+        # configuration as a parent.
+        reg = self.getRegistry()
+        reg.setEntry(self.pathPrefix, '', DebugConfiguration())
+        reg.setDefaultEntry(self.pathPrefix)
+
 
 class MainCommandTestCase(BasicTestCase):
     def testNoArgs(self):
@@ -139,14 +191,16 @@ class RegisterTestCase(BasicTestCase):
         self.checkCommand(['register', '-h'])
 
     def testRegister1(self):
-        stdout = self.checkCommand(['--mbtype=debug', '--foo=theFoo', '--bar=43',
+        stdout = self.checkCommand(self.typePrefix +
+                                   ['--foo=theFoo', '--bar=43',
                                     '--baz', 'register', 'entry1'])
 
         self.assertTrue('entry1' in stdout)
 
         reg = self.getRegistry()
-        self.assertEqual(set(reg.getEntryNames(())), set(['entry1']))
-        descr, config = reg.getEntry(('entry1',))
+        self.assertEqual(set(reg.getEntryNames(self.pathPrefix)),
+                         set(['entry1']))
+        descr, config = reg.getEntry(self.pathPrefix + ('entry1',))
         self.assertEqual(descr, '')
         self.assertEqual(config.getParam('foo'), 'theFoo')
         self.assertEqual(config.getParam('bar'), 43)
@@ -155,14 +209,16 @@ class RegisterTestCase(BasicTestCase):
     def testRegister2(self):
         # Make sure that the registry isn't overwritten by a second
         # command.
-        self.checkCommand(['--mbtype=debug', '--foo=theFoo', '--bar=43',
+        self.checkCommand(self.typePrefix +
+                          ['--foo=theFoo', '--bar=43',
                            '--baz', 'register', 'entry1'])
-        self.checkCommand(['--mbtype=debug', '--foo=anotherFoo', 'register',
-                           'entry2'])
+        self.checkCommand(self.typePrefix +
+                          ['--foo=anotherFoo', 'register', 'entry2'])
 
         reg = self.getRegistry()
-        self.assertEqual(set(reg.getEntryNames(())), set(['entry1', 'entry2']))
-        descr, config = reg.getEntry(('entry1',))
+        self.assertEqual(set(reg.getEntryNames(self.pathPrefix)),
+                         set(['entry1', 'entry2']))
+        descr, config = reg.getEntry(self.pathPrefix + ('entry1',))
         self.assertEqual(descr, '')
         self.assertEqual(config.getParam('foo'), 'theFoo')
         self.assertEqual(config.getParam('bar'), 43)
@@ -170,12 +226,14 @@ class RegisterTestCase(BasicTestCase):
 
     def testRegisterDescr(self):
         descrText = 'The description'
-        self.checkCommand(['--mbtype=debug', '--foo=theFoo', 'register', 
-                           '-d', descrText, 'entry1'])
+        self.checkCommand(self.typePrefix +
+                          ['--foo=theFoo', 'register', '-d', descrText,
+                           'entry1'])
 
         reg = self.getRegistry()
-        self.assertEqual(set(reg.getEntryNames(())), set(['entry1']))
-        descr, config = reg.getEntry(('entry1',))
+        self.assertEqual(set(reg.getEntryNames(self.pathPrefix)),
+                         set(['entry1']))
+        descr, config = reg.getEntry(self.pathPrefix + ('entry1',))
         self.assertEqual(descr, descrText)
         self.assertEqual(config.getParam('foo'), 'theFoo')
         self.assertEqual(config.getParam('bar'), 42)
@@ -185,58 +243,86 @@ class RegisterTestCase(BasicTestCase):
         self.checkCommandError(['register', 'entry1'])
 
     def testNoName(self):
-        self.checkCommandError(['--mbtype=debug', 'register'])
+        self.checkCommandError(self.typePrefix + ['register'])
 
     def testManyOptions(self):
-        self.checkCommandError(['--mbtype=debug', 'register', 'entry1', 'entry2'])
+        self.checkCommandError(self.typePrefix +
+                               ['register', 'entry1', 'entry2'])
+
+
+class ModelRegisterTestCase(ModelTestCase, RegisterTestCase):
+    """Test the register operation at the model level."""
+
+    def testNoNamedModelbase(self):
+        self.checkCommandError(['--mbtype=debug', '--modeltype=debug',
+                                'register', 'entry1'])
+
+
+class ModelMbDefRegisterTestCase(ModelMbDefTestCase, RegisterTestCase):
+    """Test the register operation at the model level, using the
+    default modelbase."""
+    pass
 
 
 class ListTestCase(BasicTestCase):
     """Test the list operation."""
 
     def testHelp(self):
-        self.checkCommand(['list', '-h'])
+        self.checkCommand(self.selPrefix + ['list', '-h'])
 
     def testListNone(self):
-        stdout = self.checkCommand(['list'])
+        stdout = self.checkCommand(self.selPrefix + ['list'])
         self.assertTrue(len(stdout) == 0)
 
     def testListOne(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration())
         del reg
 
-        self.assertEqual(self.checkCommand(['list']), 'entry1\n')
+        self.assertEqual(self.checkCommand(self.selPrefix + ['list']),
+                         'entry1\n')
 
     def testListTwo(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry2',), '', DebugConfiguration())
-        reg.setEntry(('entry1',), '', DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry2',), '',
+                     DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration())
         del reg
 
-        self.assertEqual(self.checkCommand(['list']),
+        self.assertEqual(self.checkCommand(self.selPrefix + ['list']),
                          'entry1\nentry2\n')
 
     def testListOneDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration())
-        reg.setDefaultEntry(('entry1',))
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration())
+        reg.setDefaultEntry(self.pathPrefix + ('entry1',))
         del reg
 
-        self.assertEqual(self.checkCommand(['list']), 'entry1 (default)\n')
+        self.assertEqual(self.checkCommand(self.selPrefix + ['list']),
+                         'entry1 (default)\n')
 
     def testListTwoDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry2',), '', DebugConfiguration())
-        reg.setEntry(('entry1',), '', DebugConfiguration())
-        reg.setDefaultEntry(('entry2',))
+        reg.setEntry(self.pathPrefix + ('entry2',), '',
+                     DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration())
+        reg.setDefaultEntry(self.pathPrefix + ('entry2',))
         del reg
 
-        self.assertEqual(self.checkCommand(['list']),
+        self.assertEqual(self.checkCommand(self.selPrefix + ['list']),
                          'entry1\nentry2 (default)\n')
 
     def testWithOptions(self):
         self.checkCommandError(['list', 'someoption'])
+
+
+class ModelListTestCase(ModelTestCase, ListTestCase):
+    """Test the list operation at the model level."""
+    pass
 
 
 class ForgetTestCase(BasicTestCase):
@@ -247,57 +333,72 @@ class ForgetTestCase(BasicTestCase):
 
     def testForget1(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration())
-        reg.setDefaultEntry(('entry1',))
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration())
+        reg.setDefaultEntry(self.pathPrefix + ('entry1',))
         del reg
 
-        stdout = self.checkCommand(['--mb=entry1', 'forget'])
+        stdout = self.checkCommand(self.getSelArgs('entry1') + ['forget'])
 
         self.assertTrue('entry1' in stdout)
 
     def testForget2(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfiguration())
-        reg.setEntry(('entry3',), '', DebugConfiguration())
-        reg.setDefaultEntry(('entry1',))
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration(bar=14))
+        reg.setEntry(self.pathPrefix + ('entry2',), '',
+                     DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry3',), '',
+                     DebugConfiguration())
+        reg.setDefaultEntry(self.pathPrefix + ('entry1',))
         del reg
 
-        self.checkCommand(['--mb=entry3', 'forget'])
-        self.checkCommand(['--mb=entry2', 'forget'])
+        self.checkCommand(self.getSelArgs('entry3') + ['forget'])
+        self.checkCommand(self.getSelArgs('entry2') + ['forget'])
 
         reg = self.getRegistry()
-        self.assertEqual(set(reg.getEntryNames(())), set(['entry1']))
-        descr, config = reg.getEntry(('entry1',))
+        self.assertEqual(set(reg.getEntryNames(self.pathPrefix)),
+                         set(['entry1']))
+        descr, config = reg.getEntry(self.pathPrefix + ('entry1',))
         self.assertEqual(config.getParam('bar'), 14)
 
     def testForgetDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfiguration())
-        reg.setEntry(('entry3',), '', DebugConfiguration())
-        reg.setDefaultEntry(('entry2',))
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration(bar=14))
+        reg.setEntry(self.pathPrefix + ('entry2',), '',
+                     DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry3',), '',
+                     DebugConfiguration())
+        reg.setDefaultEntry(self.pathPrefix + ('entry2',))
         del reg
 
-        self.checkCommand(['forget'])
-
-        reg = self.getRegistry()
-        self.assertEqual(set(reg.getEntryNames(())),
-                         set(['entry1', 'entry3']))
-        descr, config = reg.getEntry(('entry1',))
-        self.assertEqual(config.getParam('bar'), 14)        
+        self.checkCommandError(self.selPrefix + ['forget'])
 
     def testForgetInexistent(self):
-        self.checkCommandError(['--mb=entry1', 'forget'])
+        self.checkCommandError(self.getSelArgs('entry1') + ['forget'])
 
     def testForgetExplicit(self):
-        self.checkCommandError(['--mbtype=debug', 'forget'])
+        self.checkCommandError(self.typePrefix + ['forget'])
 
     def testNoModelbase(self):
-        self.checkCommandError(['--mb=entry1', 'forget'])
+        self.checkCommandError(self.getSelArgs('entry1') + ['forget'])
 
     def testWithOptions(self):
-        self.checkCommandError(['forget', 'someoption'])
+        self.checkCommandError(self.selPrefix + ['forget', 'someoption'])
+
+
+class ModelForgetTestCase(ModelTestCase, ForgetTestCase):
+    """Test the forget operation at the model level."""
+
+    def testForgetDefault(self):
+        pass
+
+
+class ModelMbDefForgetTestCase(ModelMbDefTestCase, ForgetTestCase):
+    """Test the forget operation at the model level, using the
+    default modelbase."""
+    pass
 
 
 class SetDefaultTestCase(BasicTestCase):
@@ -308,54 +409,71 @@ class SetDefaultTestCase(BasicTestCase):
 
     def testSetDefault1(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration())
         del reg
 
-        stdout = self.checkCommand(['--mb=entry1', 'setdefault'])
+        stdout = self.checkCommand(self.getSelArgs('entry1') + ['setdefault'])
 
         self.assertTrue('entry1' in stdout)
 
         reg = self.getRegistry()
-        self.assertEqual(reg.getDefaultName(()), 'entry1')
+        self.assertEqual(reg.getDefaultName(self.pathPrefix), 'entry1')
 
     def testSetDefault2(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfiguration())
-        reg.setEntry(('entry3',), '', DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration(bar=14))
+        reg.setEntry(self.pathPrefix + ('entry2',), '',
+                     DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry3',), '',
+                     DebugConfiguration())
         del reg
 
-        self.checkCommand(['--mb=entry3', 'setdefault'])
+        self.checkCommand(self.getSelArgs('entry3') + ['setdefault'])
 
         reg = self.getRegistry()
-        self.assertEqual(reg.getDefaultName(()), 'entry3')
+        self.assertEqual(reg.getDefaultName(self.pathPrefix), 'entry3')
 
-        self.checkCommand(['--mb=entry2', 'setdefault'])
+        self.checkCommand(self.getSelArgs('entry2') + ['setdefault'])
 
         reg = self.getRegistry()
-        self.assertEqual(reg.getDefaultName(()), 'entry2')
+        self.assertEqual(reg.getDefaultName(self.pathPrefix), 'entry2')
 
     def testSetDefaultDefault(self):
         reg = self.getRegistry()
-        reg.setEntry(('entry1',), '', DebugConfiguration(bar=14))
-        reg.setEntry(('entry2',), '', DebugConfiguration())
-        reg.setEntry(('entry3',), '', DebugConfiguration())
-        reg.setDefaultEntry(('entry2',))
+        reg.setEntry(self.pathPrefix + ('entry1',), '',
+                     DebugConfiguration(bar=14))
+        reg.setEntry(self.pathPrefix + ('entry2',), '',
+                     DebugConfiguration())
+        reg.setEntry(self.pathPrefix + ('entry3',), '',
+                     DebugConfiguration())
+        reg.setDefaultEntry(self.pathPrefix + ('entry2',))
         del reg
 
-        self.checkCommand(['setdefault'])
-
-        reg = self.getRegistry()
-        self.assertEqual(reg.getDefaultName(()), 'entry2')
+        self.checkCommandError(self.selPrefix + ['setdefault'])
 
     def testSetDefaultInexistent(self):
-        self.checkCommandError(['--mb=entry1', 'setdefault'])
+        self.checkCommandError(self.getSelArgs('entry1') + ['setdefault'])
 
     def testSetDefaultExplicit(self):
-        self.checkCommandError(['--mbtype=debug', 'setdefault'])
+        self.checkCommandError(self.typePrefix + ['setdefault'])
 
     def testNoModelbase(self):
-        self.checkCommandError(['--mb=entry1', 'setdefault'])
+        self.checkCommandError(self.getSelArgs('entry1') + ['setdefault'])
 
     def testWithOptions(self):
         self.checkCommandError(['setdefault', 'someoption'])
+
+
+class ModelSetDefaultTestCase(ModelTestCase, SetDefaultTestCase):
+    """Test the setdefault operation at the model level."""
+
+    def testSetDefaultDefault(self):
+        pass
+
+
+class ModelMbDefSetDefaultTestCase(ModelMbDefTestCase, SetDefaultTestCase):
+    """Test the setdefault operation at the model level, using the
+    default modelbase."""
+    pass

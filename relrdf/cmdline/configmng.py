@@ -35,21 +35,19 @@ import backend
 
 
 class RegisterOperation(backend.CmdLineOperation):
-    """Register a modelbase in the local registry
+    """Register a modelbase or model in the local registry
 
-    Registers the selected modelbase under the given NAME.
+    Registers the modelbase or model specified by the modelbase and
+    model arguments under the given NAME.
 
-    This command can also be used to copy a modelbase
-    configuration, by selecting the source configuration and
-    registering it under a new target name.
+    This command can also be used to copy a configuration, by
+    selecting it and registering it under a new target name.
     """
 
     __slots__ = ()
 
     name = 'register'
     usage = '%(prog)s NAME'
-
-    needsMbConf = True
 
     def makeParser(self):
         parser = super(RegisterOperation, self).makeParser()
@@ -64,12 +62,28 @@ class RegisterOperation(backend.CmdLineOperation):
         return parser
 
 
-    def run(self, options, mbConf, registry=None, **kwArgs):
+    def run(self, options, mbConf=None, mbConfName=None, modelConf=None,
+            registry=None, **kwArgs):
         if registry is None:
             registry = config.getDefaultRegistry()
 
+        if modelConf is None:
+            if mbConf is None:
+                raise CommandLineError(_("No modelbase or model specified, "
+                                         "nothing to register!"))
+
+            path = (options.name,)
+            conf = mbConf
+        else:
+            if mbConfName is None:
+                raise CommandLineError(_("Cannot register model because "
+                                         "no named modelbase was specified"))
+
+            path = (mbConfName, options.name)
+            conf = modelConf
+
         try:
-            registry.setEntry((options.name,), options.descr, mbConf)
+            registry.setEntry(path, options.descr, conf)
         except ConfigurationError, e:
             raise CommandLineError(e)
 
@@ -79,10 +93,12 @@ class RegisterOperation(backend.CmdLineOperation):
 
 
 class ListOperation(backend.CmdLineOperation):
-    """List the modelbase names in the local registry
+    """List the registered modelbase or model names
 
-    List modelbase names in alphabetical order, one per line. The
-    current default modelbase, if any, will be marked with "(default)"
+    If no modelbase is specified, list modelbase names in alphabetical
+    order, one per line. The current default modelbase, if any, will
+    be marked with "(default). If a modelbase is specified by name,
+    list the models in that modelbase."
     """
 
     __slots__ = ()
@@ -90,13 +106,23 @@ class ListOperation(backend.CmdLineOperation):
     name = 'list'
     usage = '%(prog)s'
 
-    def run(self, options, registry=None, **kwArgs):
+    def run(self, options, mbConf=None, mbConfName=None, registry=None,
+            **kwArgs):
         if registry is None:
             registry = config.getDefaultRegistry()
 
+        if mbConf is None:
+            path = ()
+        else:
+            if mbConfName is None:
+                raise CommandLineError(_("No named modelbase configuration "
+                                         "selected, nothing to list!"))
+
+            path = (mbConfName,)
+
         try:
-            default = registry.getDefaultName(())
-            names = list(registry.getEntryNames(()))
+            default = registry.getDefaultName(path)
+            names = list(registry.getEntryNames(path))
             names.sort()
             for name in names:
                 sys.stdout.write(name)
@@ -110,14 +136,17 @@ class ListOperation(backend.CmdLineOperation):
 
 
 class ForgetOperation(backend.CmdLineOperation):
-    """Remove a modelbase configuration from the local registry
+    """Remove a modelbase or model configuration from the local registry
 
-    Removes the selected modelbase.
+    Removes the selected modelbase or model configuration from the
+    registry. Only explicitly selected modelbases and models will be
+    forgotten, this operation will not act on the defaults. 
 
-    The modelbase will only be removed from the local registry (i.e.,
-    it will be forgotten) but not destroyed. If the configuration data
-    is (manually) provided again, the modelbase should still be
-    accessible.
+    Notice that only the configuration will be removed but the
+    referenced modelbase or model will not be affected in any way. If
+    the configuration data is provided again (for example, by entering
+    it manually), the referenced object should become accessible
+    again.
     """
 
     __slots__ = ()
@@ -125,27 +154,35 @@ class ForgetOperation(backend.CmdLineOperation):
     name = 'forget'
     usage = '%(prog)s'
 
-    needsMbConf = True
-
-    def run(self, options, registry=None, mbConfName=None, **kwArgs):
-        if mbConfName is None:
-            raise CommandLineError(_("No stored modelbase selected, "
-                                     "nothing to forget!"))
+    def run(self, options, mbConf=None, mbConfName=None, modelConf=None, 
+            modelConfName=None, registry=None, **kwArgs):
+        if modelConfName is not None:
+            path = (mbConfName, modelConfName)
+        else:
+            if modelConf is not None:
+                raise CommandLineError(_("No named model configuration "
+                                         "selected, nothing to forget!"))
+            if mbConfName is None:
+                raise CommandLineError(_("No named modelbase configuration "
+                                         "selected, nothing to forget!"))
+            path = (mbConfName,)
 
         try:
-            registry.removeEntry((mbConfName,))
+            registry.removeEntry(path)
         except ConfigurationError, e:
             raise CommandLineError(e)
 
-        sys.stdout.write(_("Entry '%s' forgotten") % mbConfName)
+        sys.stdout.write(_("Entry '%s' forgotten") % path[-1])
 
         return 0
 
 
 class SetDefaultOperation(backend.CmdLineOperation):
-    """Set the default modelbase for the local registry
+    """Set the default modelbase and default models in the local registry
 
-    The selected modelbase will become the default.
+    The selected modelbase or model will become the default. The
+    default modelbase is global, whereas models are set as default for
+    their corresponding modelbases.
     """
 
     __slots__ = ()
@@ -153,18 +190,26 @@ class SetDefaultOperation(backend.CmdLineOperation):
     name = 'setdefault'
     usage = '%(prog)s'
 
-    needsMbConf = True
-
-    def run(self, options, registry=None, mbConfName=None, **kwArgs):
-        if mbConfName is None:
-            raise CommandLineError(_("A modelbase that is not stored "
-                                     "cannot be set as default"))
+    def run(self, options, mbConf=None, mbConfName=None, modelConf=None, 
+            modelConfName=None, registry=None, **kwArgs):
+        if modelConfName is not None:
+            path = (mbConfName, modelConfName)
+        else:
+            if modelConf is not None:
+                raise CommandLineError(_("No named model configuration "
+                                         "selected, nothing to set as "
+                                         "default!"))
+            if mbConfName is None:
+                raise CommandLineError(_("No named modelbase configuration "
+                                         "selected, nothing to set as "
+                                         "default!"))
+            path = (mbConfName,)
 
         try:
-            registry.setDefaultEntry((mbConfName,))
+            registry.setDefaultEntry(path)
         except ConfigurationError, e:
             raise CommandLineError(e)
 
-        sys.stdout.write(_("'%s' is now the default entry") % mbConfName)
+        sys.stdout.write(_("'%s' is now the default entry") % path[-1])
 
         return 0

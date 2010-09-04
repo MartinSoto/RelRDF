@@ -42,7 +42,7 @@ import pango
 
 import gtke
 from Config import CaseSensitiveConfigParser, getCFGFilename
-from relrdf.modelbasefactory import getModelBases
+from relrdf.centralfactory import getModelBases
 
 def getObjectName(obj):
     if hasattr(obj, "name"):

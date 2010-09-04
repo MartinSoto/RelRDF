@@ -55,7 +55,7 @@ import json
 
 from relrdf.localization import _
 from relrdf.error import ConfigurationError
-from relrdf import modelbasefactory
+from relrdf import centralfactory
 
 
 class Registry(object):
@@ -469,7 +469,7 @@ class Registry(object):
             backendPath.append(node['backend'])
 
         # Thaw the configuration.
-        configCls = modelbasefactory.getConfigClass(backendPath)
+        configCls = centralfactory.getConfigClass(backendPath)
         config = configCls.thaw(version, configData)
 
         return (descr, config)

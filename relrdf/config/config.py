@@ -94,7 +94,7 @@ class Configuration(object):
           serializable using the standard :mod:`json` module.
 
 	These values can be passed to the
-        :func:`modelbasefactory.thawModelbaseConfig` to produce a
+        :func:`centralfactory.thawModelbaseConfig` to produce a
         configuration object that is equivalent to this one. This
         function, in turn, calls the :meth:`thaw` method in this
         class.

@@ -34,7 +34,7 @@ import itertools
 
 from relrdf.localization import _
 from relrdf.error import CommandLineError, ConfigurationError
-from relrdf import modelbasefactory
+from relrdf import centralfactory
 from relrdf import config
 
 import parser as parsermod
@@ -193,7 +193,7 @@ def mainCmd(args):
             elif options.mbtype is not None:
                 # We have an explicit modelbase specification, parse it:
                 try:
-                    cmdLineObj = modelbasefactory. \
+                    cmdLineObj = centralfactory. \
                         getCmdLineObject((options.mbtype,))
                     mbConf, args = cmdLineObj.argsToConfig(args)
                 except ConfigurationError, e:
@@ -237,7 +237,7 @@ def mainCmd(args):
                             pass
                         descr, mbConf = registry.getEntry((mbConfName,))
 
-                    cmdLineObj = modelbasefactory. \
+                    cmdLineObj = centralfactory. \
                         getCmdLineObject((mbConf.name,
                                           options.modeltype,))
                     modelConf, args = cmdLineObj.argsToConfig(args)

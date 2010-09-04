@@ -43,14 +43,32 @@ if len(sys.argv) == 1:
                     for module in testModules]
 else:
     moduleSuites = []
-    for modName in sys.argv[1:]:
+    for name in sys.argv[1:]:
+        nameParts = name.split('.')
+
+        # Find the test module.
+        modName = nameParts[0]
         modList = [module for module in testModules
                    if module.__name__ == modName]
         if len(modList) == 0:
             print >> sys.stderr, "Test module '%s' not found" % modName
             sys.exit(1)
-    moduleSuites.append(unittest.defaultTestLoader. \
-                            loadTestsFromModule(modList[0]))
+        module = modList[0]
+
+        if len(nameParts) == 1:
+            moduleSuites.append(unittest.defaultTestLoader. \
+                                    loadTestsFromModule(module))
+        else:
+            # Get the test class.
+            try:
+                testClass = getattr(module, nameParts[1])
+            except AttributeError:
+                print >> sys.stderr, "Test class '%s.%s' not found" % \
+                    tuple(nameParts[0:2])
+                sys.exit(1)
+
+            moduleSuites.append(unittest.defaultTestLoader. \
+                                    loadTestsFromTestCase(testClass))
 
 mainSuite = unittest.TestSuite(moduleSuites)
 unittest.TextTestRunner(verbosity=2).run(mainSuite)

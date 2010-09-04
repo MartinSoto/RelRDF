@@ -208,9 +208,9 @@ def mainCmd(args):
 
                 if mbConfName is None and mbConf is not None:
                     raise CommandLineError(_("A named model configuration "
-                                             "cannot "
-                                             "be specified for an explicit "
-                                             "modelbase configuration"))
+                                             "is not allowed for an "
+                                             "explicit modelbase "
+                                             "configuration"))
 
                 # Retrieve it from the default registry.
                 try:
@@ -228,7 +228,14 @@ def mainCmd(args):
                     # we may not have one as yet.
                     if mbConf is None:
                         # Use the default modelbase configuration.
-                        descr, mbConf = registry.getEntry((None,))
+                        mbConfName = registry.getDefaultName(())
+                        if mbConfName is None:
+                            raise CommandLineError(
+                                _("An explicit model configuration requires "
+                                  "a modelbase but none was specified "
+                                  "(and no default is set)" % self.name))
+                            pass
+                        descr, mbConf = registry.getEntry((mbConfName,))
 
                     cmdLineObj = modelbasefactory. \
                         getCmdLineObject((mbConf.name,
@@ -258,9 +265,10 @@ def mainCmd(args):
         #     print modelConf.readableContents()
 
         # Retrieve the operation.
-        operation = getOperation(args[0])
+        opName = args[0]
+        operation = getOperation(opName)
         if operation is None:
-            raise CommandLineError(_("Unknown operation '%s'") % args[0])
+            raise CommandLineError(_("Unknown operation '%s'") % opName)
 
         # Prepare the internal operation arguments.
         kwargs = {'registry': registry}
@@ -273,7 +281,7 @@ def mainCmd(args):
                 # No explicit modelbase configuration was specified,
                 # try to use the default configuration.
                 try:
-                    kwargs['mbConf'] = registry.getEntry((None,))
+                    descr, kwargs['mbConf'] = registry.getEntry((None,))
                     kwargs['mbConfName'] = registry.getDefaultName(())
                 except ConfigurationError:
                     # No modelbase available.
@@ -287,7 +295,7 @@ def mainCmd(args):
                 # No explicit model configuration was specified, try
                 # to use the default configuration.
                 try:
-                    kwargs['modelConf'] = registry.getEntry(
+                    descr, kwargs['modelConf'] = registry.getEntry(
                         (mbConfName, None))
                     kwargs['modelConfName'] = registry.getDefaultName(
                         (mbConfName,))

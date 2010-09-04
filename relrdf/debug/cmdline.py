@@ -56,8 +56,12 @@ class DebugCmdLineObj(CmdLineObject):
 
 
 def getCmdLineObject(path):
-    if len(path) == 0:
+    path = tuple(path)
+
+    # Use the same configuration class at all levels.
+    if path == ():
+        return DebugCmdLineObj()
+    elif path == ('debug',):
         return DebugCmdLineObj()
     else:
-        raise InstantiationError("'%s' is not a valid model type for a "
-                                 "debug modelbase" % path[0])
+        raise InstantiationError("invalid object path %s" % repr(path))

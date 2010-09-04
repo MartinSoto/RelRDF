@@ -55,8 +55,12 @@ class DebugConfiguration(Configuration):
 
 
 def getConfigClass(path):
-    if len(path) == 0:
+    path = tuple(path)
+
+    # Use the same configuration class at all levels.
+    if path == ():
+        return DebugConfiguration
+    elif path == ('debug',):
         return DebugConfiguration
     else:
-        raise InstantiationError("'%s' is not a valid model type for a "
-                                 "debug modelbase" % path[0])
+        raise InstantiationError("invalid object path %s" % repr(path))

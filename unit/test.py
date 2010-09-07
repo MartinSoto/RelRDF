@@ -32,10 +32,11 @@ import unittest
 
 # Import test modules.
 import argparse
+import basesinks
 import cmdline
 import config
 
-testModules = [argparse, cmdline, config]
+testModules = [argparse, basesinks, cmdline, config]
 
 
 if len(sys.argv) == 1:

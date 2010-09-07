@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
 # comparison of RDF models.
 #
 # Copyright (C) 2005-2009, Fraunhofer Institut Experimentelles
-# Software Engineering (IESE).
+#                          Software Engineering (IESE).
+# Copyright (C) 2010,      Martín Soto
 #
 # RelRDF is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -25,9 +27,13 @@
 from relrdf.localization import _
 from relrdf.error import InstantiationError
 from relrdf.expression import uri, literal
+from relrdf.modelbase import Modelbase, Sink
 from relrdf.commonns import rdf
 
-class NullSink(object):
+import config
+
+
+class NullSink(Sink):
     """An RDF sink that ignores triples passed to it."""
 
     __slots__ = ()
@@ -35,11 +41,8 @@ class NullSink(object):
     def triple(self, subject, pred, object):
         pass
 
-    def close(self):
-        pass
 
-
-class PrintSink(object):
+class PrintSink(Sink):
     """An RDF sink that prints triples passed to it."""
 
     def triple(self, subject, pred, object):
@@ -55,16 +58,15 @@ class PrintSink(object):
                                 pred.encode('utf8'), \
                                 objStr.encode('utf8'))
 
-    def close(self):
-        pass
 
-class ListSink(list):
+class ListSink(Sink, list):
     """An RDF sink that stores triples as a list"""
 
     def triple(self, subject, pred, object):
         self.append((subject, pred, object))
 
-class DictSink(dict):
+
+class DictSink(Sink, dict):
     """An RDF sink that stores triples as a dictionary"""
 
     def triple(self, subject, pred, object):
@@ -96,29 +98,33 @@ class DictSink(dict):
             list.append(first)
             base = rest
 
-class DebugModelbase(object):
-    """An incomplete model base to instantiate and serve the debugging
-    sinks in this class."""
+class DebugModelbase(Modelbase):
+    """An incomplete modelbase used to instantiate and serve the
+    debugging sinks in this module."""
 
     __slots__ = ()
 
-    def getSink(self, sinkType, **sinkArgs):
-        sinkTypeNorm = sinkType.lower()
+    name = 'debug'
 
-        try:
-            if sinkTypeNorm == 'null':
-                return NullSink(**sinkArgs)
-            elif sinkTypeNorm == 'print':
-                return PrintSink(**sinkArgs)
-            else:
-                raise InstantiationError(_("Invalid sink type '%s'") % sinkType)
-        except TypeError, e:
-            raise InstantiationError(_("Missing or invalid sink arguments: %s")
-                                     % e)
-
-    def close(self):
+    def __init__(self, **kwArgs):
+        # Ignore the arguments.
         pass
 
-def getModelbase(**modelbaseArgs):
-    return DebugModelbase(**modelbaseArgs)
+    def getSink(self, modelConf):
+        assert isinstance(modelConf, config.DebugModelConfiguration)
 
+        if modelConf.name == 'null':
+            return NullSink(**modelConf.getParams())
+        elif modelConf.name == 'print':
+            return PrintSink(**modelConf.getParams())
+        elif modelConf.name == 'list':
+            return ListSink(**modelConf.getParams())
+        elif modelConf.name == 'dict':
+            return DictSink(**modelConf.getParams())
+        else:
+            assert False, "Unidentified model configuration"
+
+
+def getModelbase(mbConf):
+    assert isinstance(mbConf, config.DebugConfiguration)
+    return DebugModelbase(**mbConf.getParams())

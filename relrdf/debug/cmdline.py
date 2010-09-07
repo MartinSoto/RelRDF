@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
@@ -5,6 +6,7 @@
 #
 # Copyright (c) 2005-2010 Fraunhofer-Institut fuer Experimentelles
 #                         Software Engineering (IESE).
+# Copyright (c) 2010      Martín Soto
 #
 # RelRDF is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -26,7 +28,9 @@
 Command-line support for the debugging backend
 """
 
-from relrdf.error import InstantiationError
+from relrdf.localization import _
+
+from relrdf.error import CommandLineError
 from relrdf.cmdline import CmdLineObject
 
 import config
@@ -55,6 +59,24 @@ class DebugCmdLineObj(CmdLineObject):
         return parser
 
 
+class NullSinkCmdLineObj(CmdLineObject):
+    __slots__ = ()
+
+    name = 'null'
+    description = "Options to access the null sink"
+
+    configClass = config.NullSinkConfiguration
+
+
+class PrintSinkCmdLineObj(CmdLineObject):
+    __slots__ = ()
+
+    name = 'print'
+    description = "Options to access the print sink"
+
+    configClass = config.PrintSinkConfiguration
+
+
 def getCmdLineObject(path):
     path = tuple(path)
 
@@ -63,5 +85,10 @@ def getCmdLineObject(path):
         return DebugCmdLineObj()
     elif path == ('debug',):
         return DebugCmdLineObj()
+    elif path == ('null',):
+        return NullSinkCmdLineObj()
+    elif path == ('print',):
+        return PrintSinkCmdLineObj()
     else:
-        raise InstantiationError("invalid object path %s" % repr(path))
+        raise CommandLineError(_("'%s' is not a valid model type for "
+                                 "modelbase 'debug'" % path[0]))

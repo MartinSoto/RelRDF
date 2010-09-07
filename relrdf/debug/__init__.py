@@ -23,3 +23,4 @@
 
 from config import DebugConfiguration, getConfigClass
 from cmdline import getCmdLineObject
+from basesinks import getModelbase

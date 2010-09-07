@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
@@ -5,6 +6,7 @@
 #
 # Copyright (c) 2005-2010 Fraunhofer-Institut fuer Experimentelles
 #                         Software Engineering (IESE).
+# Copyright (c) 2010      Martín Soto
 #
 # RelRDF is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -85,8 +87,9 @@ class CmdLineBase(object):
     name = """<command>"""
     """Command name (mainly for user help)."""
 
-    usage = _("%prog [OPTIONS]")
-    """Usage syntax (for user help)."""
+    usage = None
+    """Usage syntax (for user help). If ``None`` let the parser
+    calculate it."""
 
     description = ''
     """Description string for the parser."""
@@ -109,10 +112,14 @@ class CmdLineBase(object):
 	Classes overriding this method should call the super method
 	and add options to the returned parser.
 	"""
-        # We use the customized option parser.
-        parser = ArgumentParser(prog=self.name, usage=self.usage,
-                                description=self.description,
-                                add_help=False)
+        kwArgs = dict(prog=self.name,
+                      description=self.description,
+                      add_help=False)
+        if self.usage is not None:
+            kwArgs['usage'] = self.usage
+
+        # We use our own customized option parser class.
+        parser = ArgumentParser(**kwArgs)
 
         return parser
 

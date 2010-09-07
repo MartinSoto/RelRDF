@@ -43,7 +43,7 @@ from relrdf.util.nsshortener import NamespaceUriShortener
 
 # Factory function to create model bases. Indirectly, this gives access
 # to queryable model objects.
-from centralfactory import getModelBase
+from centralfactory import getModelbase
 
 # Factory function for creating query templates.
 from parsequery import makeTemplate, parseQuery

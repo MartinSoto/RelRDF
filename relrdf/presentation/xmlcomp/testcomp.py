@@ -33,10 +33,10 @@ if __name__ == '__main__':
     argv = list(sys.argv[3:])
 
     baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
-    modelBase = relrdf.getModelBase(baseType, **baseArgs)
+    modelbase = relrdf.getModelbase(baseType, **baseArgs)
 
     modelType, modelArgs = parseCmdLineArgs(argv, 'model')
-    model = modelBase.getModel(modelType, **modelArgs)
+    model = modelbase.getModel(modelType, **modelArgs)
 
     print inst, prop
 

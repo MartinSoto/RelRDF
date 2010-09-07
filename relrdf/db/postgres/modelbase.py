@@ -36,7 +36,7 @@ from relrdf import commonns
 import basicquery
 import basicsinks
 
-class BasicModelBase(object):
+class BasicModelbase(object):
     """Model base for the basic schema."""
 
     __slots__ = ('db',
@@ -404,10 +404,10 @@ def checkSchemaVersion(name, version, minVer, maxVer):
                                    "RelRDF installation") %
                                  (version, name))
 
-def getModelBase(db, **modelBaseArgs):
+def getModelbase(db, **modelbaseArgs):
     # FIXME: This will cause slowness in situations where many
     # model bases must be created (e.g., Internet server).
-    conn = pgdb.connect(database=db, **modelBaseArgs)
+    conn = pgdb.connect(database=db, **modelbaseArgs)
 
     cursor = conn.cursor()
     cursor.execute("select name, version from relrdf_schema_version")
@@ -418,6 +418,6 @@ def getModelBase(db, **modelBaseArgs):
 
     if name == 'basic':
         checkSchemaVersion(name, version, 1, 1)
-        return BasicModelBase(db, **modelBaseArgs)
+        return BasicModelbase(db, **modelbaseArgs)
     else:
         raise InstantiationError(_("Unsupported schema '%s'") % name)

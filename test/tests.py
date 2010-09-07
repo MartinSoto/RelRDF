@@ -161,9 +161,9 @@ class QueryEvaluationTest(object):
 
         # Create a sink for the test model.
         if asGraph:
-            sink = ctx.modelBase.getSink('singlegraph', baseGraph=uri)
+            sink = ctx.modelbase.getSink('singlegraph', baseGraph=uri)
         else:
-            sink = ctx.modelBase.getSink('singlegraph',
+            sink = ctx.modelbase.getSink('singlegraph',
                                          baseGraph=ctx.baseGraphUri)
 
         # Copy data into database (no commit!)
@@ -186,7 +186,7 @@ class QueryEvaluationTest(object):
             raise QueryException("Failed to read query", detail)
 
         # Create the model.
-        model = ctx.modelBase.getModel('plain',
+        model = ctx.modelbase.getModel('plain',
                                        baseGraph=ctx.baseGraphUri)
 
         try:

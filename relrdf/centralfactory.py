@@ -28,29 +28,29 @@ from error import InstantiationError, ConfigurationError
 import cmdline
 
 
-def _getModule(modelBaseType):
+def _getModule(modelbaseType):
     """Retrieve the Python module associated to a particular modelbase
     type.
     """
-    modelBaseTypeNorm = modelBaseType.lower()
+    modelbaseTypeNorm = modelbaseType.lower()
 
     # This is implemented this way in order to import only the modules
     # that are requested.
-    if modelBaseTypeNorm == "postgres":
+    if modelbaseTypeNorm == "postgres":
         from db import postgres
         return postgres
-    elif modelBaseTypeNorm == "debug":
+    elif modelbaseTypeNorm == "debug":
         import debug
         return debug
     else:
         raise InstantiationError("invalid model base type '%s'"
-                                 % modelBaseType)
+                                 % modelbaseType)
 
-def getModelBase(modelBaseType, **modelBaseArgs):
-    module = _getModule(modelBaseType)
+def getModelbase(modelbaseType, **modelbaseArgs):
+    module = _getModule(modelbaseType)
 
     try:
-        return module.getModelBase(**modelBaseArgs)
+        return module.getModelbase(**modelbaseArgs)
     except TypeError, e:
         raise InstantiationError(
             _("Missing or invalid model base arguments: %s") % e)
@@ -71,6 +71,6 @@ def getCmdLineObject(path):
 
     return module.getCmdLineObject(path[1:])
 
-def getModelBases():
+def getModelbases():
     import db.mysql
-    return {"postgres": db.postgres.modelbase.ModelBase}
+    return {"postgres": db.postgres.modelbase.Modelbase}

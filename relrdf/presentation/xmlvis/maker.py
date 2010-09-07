@@ -276,10 +276,10 @@ if __name__ == '__main__':
 
     try:
         baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
-        modelBase = relrdf.getModelBase(baseType, **baseArgs)
+        modelbase = relrdf.getModelbase(baseType, **baseArgs)
 
         modelType, modelArgs = parseCmdLineArgs(argv, 'model')
-        model = modelBase.getModel(modelType, **modelArgs)
+        model = modelbase.getModel(modelType, **modelArgs)
     except InstantiationError, e:
         error(e)
 
@@ -314,4 +314,4 @@ where {
     maker.serialize('http://www.v-modell-xt.de/model/1#root')
 
     model.close()
-    modelBase.close()
+    modelbase.close()

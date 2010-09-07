@@ -22,5 +22,5 @@
 # Boston, MA 02111-1307, USA.
 
 
-from modelbase import getModelBase
+from modelbase import getModelbase
 from config import getConfigClass

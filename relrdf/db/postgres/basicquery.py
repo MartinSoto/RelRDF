@@ -143,16 +143,16 @@ class BasicMapper(transform.PureRelationalTransformer):
 
 class BasicGraphMapper(BasicMapper):
 
-    __slots__ = ('modelBase',
+    __slots__ = ('modelbase',
                  'baseGraph',
                  'baseGraphId',
                  'stmtReplDefault',
                  'stmtReplOther')
 
-    def __init__(self, modelBase, baseGraph):
+    def __init__(self, modelbase, baseGraph):
         super(BasicGraphMapper, self).__init__()
 
-        self.modelBase = modelBase
+        self.modelbase = modelbase
         self.baseGraph = baseGraph
 
         # Cache for the statement pattern replacement expressions.
@@ -241,7 +241,7 @@ class BasicGraphMapper(BasicMapper):
 
     def process(self, expr):
         # Lookup the base graph for every transformation.
-        self.baseGraphId = self.modelBase.lookupGraphId(self.baseGraph)
+        self.baseGraphId = self.modelbase.lookupGraphId(self.baseGraph)
 
         return super(BasicGraphMapper, self).process(expr)
 
@@ -253,8 +253,8 @@ class GraphMapper(BasicGraphMapper, transform.StandardReifTransformer):
     name = "Single Graph"
     parameterInfo = ({"name":"graphId", "label":"Graph ID", "tip":"Enter the ID of the graph to be used", "assert":"graphId != ''", "asserterror":"Graph ID must not be empty"},)
 
-    def __init__(self, modelBase, baseGraph, **args):
-        super(GraphMapper, self).__init__(modelBase, baseGraph)
+    def __init__(self, modelbase, baseGraph, **args):
+        super(GraphMapper, self).__init__(modelbase, baseGraph)
 
     def getModifGraph(self):
         return self.baseGraph
@@ -453,14 +453,14 @@ class ExistsResults(BaseResults):
 
 
 class BasicModel(object):
-    __slots__ = ('modelBase',
+    __slots__ = ('modelbase',
                  'mappingTransf',
                  'modelArgs',
                  '_connection',
                  '_changeCursor',)
 
-    def __init__(self, modelBase, connection, mappingTransf, **modelArgs):
-        self.modelBase = modelBase
+    def __init__(self, modelbase, connection, mappingTransf, **modelArgs):
+        self.modelbase = modelbase
         self.mappingTransf = mappingTransf
         self.modelArgs = modelArgs
         self._connection = connection
@@ -510,7 +510,7 @@ class BasicModel(object):
                 raise ModifyError(_("Destination model is read-only"))
 
         # Return the appropriate sink.
-        return SingleGraphRdfSink(self.modelBase, graphUri, delete=delete)
+        return SingleGraphRdfSink(self.modelbase, graphUri, delete=delete)
 
     def _processModifOp(self, expr):
         # Get the statement per row count before transforming to SQL.
@@ -526,7 +526,7 @@ class BasicModel(object):
                 assert False, "Unexpected expression type"
 
             # Process the data.
-            self.modelBase.insertByQuery(self._exprToSql(expr[0]),
+            self.modelbase.insertByQuery(self._exprToSql(expr[0]),
                                          stmtsPerRow)
 
             # Return count of affected rows
@@ -549,7 +549,7 @@ class BasicModel(object):
         # Flush the buffers in the model base in order to prevent the
         # query from producing invalid results due to unprocessed
         # data.
-        self.modelBase.flush()
+        self.modelbase.flush()
 
         if isinstance(expr, nodes.ModifOperation):
             return self._processModifOp(expr)
@@ -591,30 +591,30 @@ class BasicModel(object):
             return self._exprToSql(expr)
 
     def getPrefixes(self):
-        return self.modelBase.getPrefixes()
+        return self.modelbase.getPrefixes()
 
     def close(self):
-        self.modelBase = None
+        self.modelbase = None
 
 
 class TwoWayModel(BasicModel):
 
     __slots__ = ('prefixes')
 
-    def __init__(self, modelBase, connection, mappingTransf, graphA, graphB, **modelArgs):
-        super(TwoWayModel, self).__init__(modelBase, connection, mappingTransf, **modelArgs)
+    def __init__(self, modelbase, connection, mappingTransf, graphA, graphB, **modelArgs):
+        super(TwoWayModel, self).__init__(modelbase, connection, mappingTransf, **modelArgs)
 
         self.prefixes = nsshortener.NamespaceUriShortener()
-        self.prefixes.addPrefixes(modelBase.getPrefixes())
+        self.prefixes.addPrefixes(modelbase.getPrefixes())
 
-        graphAid = modelBase.lookupGraphId(graphA)
-        graphBid = modelBase.lookupGraphId(graphB)
+        graphAid = modelbase.lookupGraphId(graphA)
+        graphBid = modelbase.lookupGraphId(graphB)
 
         # Won't be a problem, but won't give interesting results either
         assert graphAid != 0, "Graph A doesn't exist!"
         assert graphBid != 0, "Graph B doesn't exist!"
 
-        graphUris = modelBase.prepareTwoWay(graphAid, graphBid)
+        graphUris = modelbase.prepareTwoWay(graphAid, graphBid)
 
         self.prefixes['compA'] = graphUris[0]
         self.prefixes['compB'] = graphUris[1]
@@ -628,7 +628,7 @@ _modelFactories = {
     'twoway': (TwoWayModel, GraphMapper)
     }
 
-def getModel(modelBase, connection, modelType, schema=None, **modelArgs):
+def getModel(modelbase, connection, modelType, schema=None, **modelArgs):
     modelTypeNorm = modelType.lower()
 
     try:
@@ -639,8 +639,8 @@ def getModel(modelBase, connection, modelType, schema=None, **modelArgs):
         raise InstantiationError(_("Missing or invalid model "
                                    "arguments: %s") % e)
 
-    return modelCls(modelBase, connection,
-                    transfCls(modelBase, **modelArgs),
+    return modelCls(modelbase, connection,
+                    transfCls(modelbase, **modelArgs),
                     **modelArgs)
 
 def getModelMappers():

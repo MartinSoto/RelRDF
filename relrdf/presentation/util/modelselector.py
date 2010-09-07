@@ -42,7 +42,7 @@ import pango
 
 import gtke
 from Config import CaseSensitiveConfigParser, getCFGFilename
-from relrdf.centralfactory import getModelBases
+from relrdf.centralfactory import getModelbases
 
 def getObjectName(obj):
     if hasattr(obj, "name"):
@@ -597,7 +597,7 @@ class ModelParameterPage(AbstractParameterPage):
             pre.models[modelname] = options
         
 def getModel(parent=None, showall=False):
-    databases = getModelBases()
+    databases = getModelbases()
     predefs = loadConfig(getCFGFilename("relrdf") + "models", databases)
     md = ModelDialog(databases.values(), predefs)
     if not md.run(parent, showall):

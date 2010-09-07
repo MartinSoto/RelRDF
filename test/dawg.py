@@ -155,7 +155,7 @@ class Manifesto(object):
 
 class TestContext(object):
 
-    __slots__ = ('modelBase',
+    __slots__ = ('modelbase',
                  'baseGraphUri',
                  'destPath',
                  'refSet',
@@ -169,8 +169,8 @@ class TestContext(object):
     FAIL = 1
     NO_SUPPORT = 2
 
-    def __init__(self, modelBase, baseGraphUri, destPath, refSet = set()):
-        self.modelBase = modelBase
+    def __init__(self, modelbase, baseGraphUri, destPath, refSet = set()):
+        self.modelbase = modelbase
         self.baseGraphUri = baseGraphUri
         self.destPath = destPath
         self.refSet = refSet
@@ -277,7 +277,7 @@ class TestContext(object):
 
     def testEnd(self, result, statusTags, color, value):
         # Rollback any changes done on database (if any).
-        self.modelBase.rollback()
+        self.modelbase.rollback()
 
         # Save results.
         assert self._currentTest is not None
@@ -408,13 +408,13 @@ if __name__ == '__main__':
     # Get model base
     try:
         baseType, baseArgs = parseCmdLineArgs(argv, 'model base')
-        modelBase = relrdf.getModelBase(baseType, **baseArgs)
+        modelbase = relrdf.getModelbase(baseType, **baseArgs)
     except InstantiationError, e:
         print >> sys.stderr, ("error: %s") % e
         sys.exit(1)
 
     # Open test context
-    ctx = TestContext(modelBase, manifest.source, 'report', refSet)
+    ctx = TestContext(modelbase, manifest.source, 'report', refSet)
 
     ctx.start()
 

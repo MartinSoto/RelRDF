@@ -96,7 +96,7 @@ class DictSink(dict):
             list.append(first)
             base = rest
 
-class DebugModelBase(object):
+class DebugModelbase(object):
     """An incomplete model base to instantiate and serve the debugging
     sinks in this class."""
 
@@ -119,6 +119,6 @@ class DebugModelBase(object):
     def close(self):
         pass
 
-def getModelBase(**modelBaseArgs):
-    return DebugModelBase(**modelBaseArgs)
+def getModelbase(**modelbaseArgs):
+    return DebugModelbase(**modelbaseArgs)
 

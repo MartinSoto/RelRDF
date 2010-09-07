@@ -396,12 +396,12 @@ class NotebookPage(UiManagerSlaveDelegate):
         else:
             cell.set_property("background", "#AAAAAA")
     
-    def openModel(self, modelBaseType, modelBaseArgs, modelType, modelArgs,
-                  schModelBaseType=None, schModelBaseArgs=None,
+    def openModel(self, modelbaseType, modelbaseArgs, modelType, modelArgs,
+                  schModelbaseType=None, schModelbaseArgs=None,
                   schModelType=None, schModelArgs=None):
         # Open the main model.
-        self.modelBase = relrdf.getModelBase(modelBaseType, **modelBaseArgs)
-        self.model = self.modelBase.getModel(modelType, **modelArgs)
+        self.modelbase = relrdf.getModelbase(modelbaseType, **modelbaseArgs)
+        self.model = self.modelbase.getModel(modelType, **modelArgs)
 
         # Create an appropriate URI shortener.
         self.shortener = nsshortener.NamespaceUriShortener(shortFmt='%s:%s',
@@ -413,18 +413,18 @@ class NotebookPage(UiManagerSlaveDelegate):
         # Add the namespaces from the model.
         self.shortener.addPrefixes(self.model.getPrefixes())
 
-        if schModelBaseType is not None:
+        if schModelbaseType is not None:
             # Open the schema model.
-            self.schModelBase = relrdf.getModelBase(schModelBaseType,
-                                               **schModelBaseArgs)
-            self.schemaModel = self.schModelBase.getModel(schModelType,
+            self.schModelbase = relrdf.getModelbase(schModelbaseType,
+                                               **schModelbaseArgs)
+            self.schemaModel = self.schModelbase.getModel(schModelType,
                                                           **schModelArgs)
 
             # Add any additional namespaces from the schema model.
             self.shortener.addPrefixes(self.schemaModel.getPrefixes())
         else:
             # Use the same model for the schema.
-            self.schModelBase = self.modelBase
+            self.schModelbase = self.modelbase
             self.schemaModel = self.model
 
         # Create the schema pane.
@@ -432,7 +432,7 @@ class NotebookPage(UiManagerSlaveDelegate):
                                      self.shortener)
 
         self.showMessage("Model opened succesfully.")
-        self.pageName = "%s (%s)" % (getObjectName(self.modelBase),
+        self.pageName = "%s (%s)" % (getObjectName(self.modelbase),
                                      getObjectName(self.model.mappingTransf))
         return self.pageName
 
@@ -1110,9 +1110,9 @@ class NotebookPage(UiManagerSlaveDelegate):
         # Close the models and model bases.
         if self.schemaModel is not self.model:
             self.schemaModel.close()
-            self.schModelBase.close()
+            self.schModelbase.close()
         self.model.close()
-        self.modelBase.close()
+        self.modelbase.close()
 
 
 class MainWindow(UiManagerDelegate):
@@ -1184,14 +1184,14 @@ class MainWindow(UiManagerDelegate):
 
         self.appName = self.mainWindow.get_title()
 
-    def openModel(self, modelBaseType, modelBaseArgs, modelType, modelArgs,
-                  schModelBaseType=None, schModelBaseArgs=None,
+    def openModel(self, modelbaseType, modelbaseArgs, modelType, modelArgs,
+                  schModelbaseType=None, schModelbaseArgs=None,
                   schModelType=None, schModelArgs=None):
         new_page = NotebookPage()
         new_widget = new_page.get_toplevel()
         new_widget.delegate = new_page
-        page_name = new_page.openModel(modelBaseType, modelBaseArgs, modelType, 
-            modelArgs, schModelBaseType=None, schModelBaseArgs=None,
+        page_name = new_page.openModel(modelbaseType, modelbaseArgs, modelType, 
+            modelArgs, schModelbaseType=None, schModelbaseArgs=None,
             schModelType=None, schModelArgs=None)
         vbox = gtk.HBox()
         LabelBox = gtke.EventBox(gtk.Label(page_name))

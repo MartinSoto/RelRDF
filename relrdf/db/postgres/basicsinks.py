@@ -28,14 +28,14 @@ class SingleGraphRdfSink(object):
     """An RDF sink that sends all tuples to a single graph in the
     database."""
 
-    __slots__ = ('modelBase',
+    __slots__ = ('modelbase',
                  'baseGraph',
                  'verbose',
                  'delete',
                  'graphId',)
 
-    def __init__(self, modelBase, baseGraph, verbose=False, delete=False):
-        self.modelBase = modelBase
+    def __init__(self, modelbase, baseGraph, verbose=False, delete=False):
+        self.modelbase = modelbase
         self.baseGraph = baseGraph
         self.verbose = verbose
         self.delete = delete
@@ -45,26 +45,26 @@ class SingleGraphRdfSink(object):
     def setGraph(self, graphUri):
         """ Sets the name of the graph to receive triples."""
         # Get graph ID from database
-        self.graphId = int(self.modelBase.lookupGraphId(graphUri,
+        self.graphId = int(self.modelbase.lookupGraphId(graphUri,
                                                         create=True))
 
     def triple(self, subject, pred, object):
-        self.modelBase.queueTriple(self.graphId, self.delete, subject,
+        self.modelbase.queueTriple(self.graphId, self.delete, subject,
                                    pred, object)
 
     def close(self):
-        self.modelBase = None
+        self.modelbase = None
 
 
 _sinkFactories = {
     'singlegraph': SingleGraphRdfSink,
     }
 
-def getSink(modelBase, sinkType, **sinkArgs):
+def getSink(modelbase, sinkType, **sinkArgs):
     sinkTypeNorm = sinkType.lower()
 
     try:
-        return _sinkFactories[sinkTypeNorm](modelBase, **sinkArgs)
+        return _sinkFactories[sinkTypeNorm](modelbase, **sinkArgs)
     except KeyError:
         raise InstantiationError(("Invalid sink type '%s'") % sinkType)
     except TypeError, e:

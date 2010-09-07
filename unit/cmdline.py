@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
@@ -5,6 +6,7 @@
 #
 # Copyright (c) 2005-2010 Fraunhofer-Institut fuer Experimentelles
 #                         Software Engineering (IESE).
+# Copyright (c) 2010      Martín Soto
 #
 # RelRDF is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -25,7 +27,7 @@
 """
 
 import unittest
-import os, tempfile, shutil, subprocess
+import os, tempfile, shutil, subprocess, hashlib
 
 from relrdf import config
 from relrdf.debug import DebugConfiguration
@@ -65,6 +67,79 @@ class BasicTestCase(unittest.TestCase):
         self.selOpt = 'mb'
         self.typePrefix = self.selPrefix + ['--mbtype=debug']
 
+        # Object selection options. They can be changed so that the
+        # command is always run with these selection options.
+        self.selOp# -*- Python -*-
+#
+# This file is part of RelRDF, a library for storage and
+# comparison of RDF models.
+#
+# Copyright (c) 2005-2010 Fraunhofer-Institut fuer Experimentelles
+#                         Software Engineering (IESE).
+#
+# RelRDF is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+
+"""Test the basic set of command-line operations.
+"""
+
+import unittest
+import os, tempfile, shutil, subprocess, hashlib
+
+from relrdf import config
+from relrdf.debug import DebugConfiguration
+
+
+class BasicTestCase(unittest.TestCase):
+    """Basic test case for accessing the registry from the command
+    line.
+    """
+
+    def setUp(self):
+        # Clean up the environment.
+        try:
+            del os.environ['HOME']
+        except KeyError:
+            pass
+        try:
+            del os.environ['XDG_DATA_HOME']
+        except KeyError:
+            pass
+        try:
+            del os.environ['RELRDF_CONFIG']
+        except KeyError:
+            pass
+
+        # Create a directory.
+        self.dir = tempfile.mkdtemp()
+
+        # Make the config file location point to the directory.
+        os.environ['RELRDF_CONFIG'] = os.path.join(self.dir, 'config.json')
+
+        # Object selection values. They can be changed to run particular
+        # tests at different levels of the configuration hierarchy.
+        # See also method getSelArgs.
+        self.pathPrefix = ()
+        self.selPrefix = []
+        self.selOpt = 'mb'
+        self.typePrefix = self.selPrefix + ['--mbtype=debug']
+
+        # Object selection options. They can be changed so that the
+        # command is always run with these selection options.
+        self.selOptions = []
+
     def tearDown(self):
         shutil.rmtree(self.dir)
         del os.environ['RELRDF_CONFIG']
@@ -79,8 +154,9 @@ class BasicTestCase(unittest.TestCase):
             os.path.join(os.path.dirname(__file__),
                          '..', 'bin', 'relrdf'))
 
-        p = subprocess.Popen([relrdfProg] + cmdLine, stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen([relrdfProg] + self.selOptions + cmdLine,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
 
         return p.returncode, stdout, stderr
@@ -477,3 +553,68 @@ class ModelMbDefSetDefaultTestCase(ModelMbDefTestCase, SetDefaultTestCase):
     """Test the setdefault operation at the model level, using the
     default modelbase."""
     pass
+
+
+class ImportTestCase(BasicTestCase):
+    """Test the import operation."""
+
+    def setUp(self):
+        super(ImportTestCase, self).setUp()
+
+        self.selOptions = ['--mbtype=debug', '--modeltype=print']
+
+    def checkPrint(self, cmdLine, checksum):
+        stdout = self.checkCommand(['import'] + cmdLine).split('\n')
+        stdout.sort()
+
+        m = hashlib.md5()
+        for line in stdout:
+            m.update(line + '\n')
+
+        self.assertEqual(m.hexdigest(), checksum)
+
+    def testHelp(self):
+        self.checkCommand(['import', '-h'])
+
+    def testRdfXML1(self):
+        self.checkPrint(['--type=rdfxml', 'data/model1.rdf'],
+                        '925d9f176ad033d4e00c68a36b47bbb4')
+
+    # FIXME: Test other parsers.
+
+    def testNoOptions(self):
+        self.checkCommandError(['import'])
+
+    def testNoFileType(self):
+        self.checkCommandError(['import', 'data/model1.rdf'])
+
+    def testInvalidFileType(self):
+        st, out, err = self.checkCommandError(['import', '--type=abcde',
+                                               'data/model1.rdf'])
+        self.assertTrue('abcde' in err)
+
+    def testFileNotFound1(self):
+        st, out, err = self.checkCommandError(['import', '--type=rdfxml',
+                                               'xxyyzz/mmnn'])
+        self.assertTrue('xxyyzz/mmnn' in err)
+
+    def testFileNotFound2(self):
+        st, out, err = self.checkCommandError(['import', '--type=v-modell',
+                                               'xxyyzz/mmnn'])
+        self.assertTrue('xxyyzz/mmnn' in err)
+
+    def testFileNotFound3(self):
+        st, out, err = self.checkCommandError(['import', '--type=xmi',
+                                               'xxyyzz/mmnn'])
+        self.assertTrue('xxyyzz/mmnn' in err)
+
+    def testFileNotFound4(self):
+        st, out, err = self.checkCommandError(['import', '--type=turtle',
+                                               'xxyyzz/mmnn'])
+        self.assertTrue('xxyyzz/mmnn' in err)
+
+    def testFileNotFound5(self):
+        st, out, err = self.checkCommandError(['import', '--type=ntriples',
+                                               'xxyyzz/mmnn'])
+        self.assertTrue('xxyyzz/mmnn' in err)
+

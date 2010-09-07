@@ -105,8 +105,9 @@ class HelpOperation(backend.CmdLineOperation):
 # List of operation names.
 operationNames = [
     'help',
-    'register',
+    'import',
     'list',
+    'register',
     'setdefault',
     ]
 
@@ -134,6 +135,9 @@ def getOperation(name):
     if name == 'setdefault':
         import configmng
         return configmng.SetDefaultOperation()
+    if name == 'import':
+        import importfile
+        return importfile.ImportOperation()
     else:
         return None
 

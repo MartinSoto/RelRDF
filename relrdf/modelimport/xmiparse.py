@@ -26,11 +26,10 @@ import sys
 import re
 import urllib
 
-from elementtree import ElementTree as et
+from xml.etree import ElementTree as et
 
 from relrdf.expression.uri import Uri, Namespace
 from relrdf.expression.literal import Literal
-from relrdf.basesinks import PrintSink
 from relrdf import commonns
 
 

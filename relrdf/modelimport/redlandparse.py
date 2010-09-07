@@ -21,6 +21,7 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+import os
 
 from relrdf.expression import uri,  literal
 
@@ -52,15 +53,14 @@ class RedlandParser(object):
                 blanks[node.blank_identifier] = uri.newBlank()
                 return blanks[node.blank_identifier]
         else:
-            assert False, "Received unknown node type from RedLand RDF parser"
+            assert False, "Received unknown node type from Redland RDF parser"
 
     def parse(self, source, sink):
-
-
-        # Make valid source URI
+        # Make a valid source URI
         source = str(source)
-        if source.find("://") < 0:
-            source = "file://" + source
+        if '://' not in source:
+            # Treat source as a local file name.
+            source = "file://" + os.path.abspath(source)
 
         # Create parser
         parser = RDF.Parser(name=self.format)

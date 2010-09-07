@@ -30,7 +30,6 @@ from xml.parsers import expat
 
 from relrdf import commonns
 from relrdf.expression import literal, uri
-from relrdf.basesinks import PrintSink
 
 
 vModellNs = uri.Namespace('http://www.v-modell-xt.de/schema/1#')
@@ -130,10 +129,7 @@ class VModellParser(object):
                  sink=None):
         self.namespace = namespace
 
-        if sink is None:
-            self.sink = PrintSink()
-        else:
-            self.sink = sink
+        self.sink = sink
 
         self.elems = []
         self.currentElem = None

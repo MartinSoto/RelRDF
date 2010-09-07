@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # -*- Python -*-
 #
 # This file is part of RelRDF, a library for storage and
@@ -5,6 +6,7 @@
 #
 # Copyright (c) 2005-2010 Fraunhofer-Institut fuer Experimentelles
 #                         Software Engineering (IESE).
+# Copyright (c) 2010      Martín Soto
 #
 # RelRDF is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -46,14 +48,20 @@ def _getModule(modelbaseType):
         raise InstantiationError("invalid model base type '%s'"
                                  % modelbaseType)
 
-def getModelbase(modelbaseType, **modelbaseArgs):
-    module = _getModule(modelbaseType)
+def getModelbase(mbConf):
+    module = _getModule(mbConf.name)
+    return module.getModelbase(mbConf)
 
-    try:
-        return module.getModelbase(**modelbaseArgs)
-    except TypeError, e:
-        raise InstantiationError(
-            _("Missing or invalid model base arguments: %s") % e)
+def getModelbaseFromParams(mbType, **mbParams):
+    """A convenience function to create a modelbase directly from its
+    parameters, passed as keywords.
+
+    This function creates a configuration object and passes it to
+    func:`getModelbase`.
+    """
+    mbConfCls = getConfigClass((mbType,))
+    mbConf = mbConfCls.fromUnchecked(**mbParams)
+    return getModelbase(mbConf)
 
 def getConfigClass(path):
     try:
